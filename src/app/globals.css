@@ -1,0 +1,284 @@
+@import "tailwindcss";
+
+@source "../components/**/*.{ts,tsx}";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: #fafafa;
+  --foreground: #000;
+  --card: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --card-foreground: var(--foreground);
+  --popover: var(--background);
+  --popover-foreground: var(--foreground);
+  --primary: #ec3750;
+  --primary-foreground: #fff;
+  --secondary: #ffbf71;
+  --secondary-foreground: #000;
+  --muted: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --muted-foreground: color-mix(in srgb, var(--foreground) 72%, var(--background));
+  --accent: #ffbf71;
+  --accent-foreground: #000;
+  --destructive: #ec3750;
+  --acceptance: #64ff96;
+  --acceptance-foreground: #000;
+  --rejection: #d84f4f;
+  --rejection-foreground: #fff;
+  --border: color-mix(in srgb, var(--foreground) 10%, var(--background));
+  --input: color-mix(in srgb, var(--foreground) 10%, var(--background));
+  --ring: #ec3750;
+  --overlay-backdrop: rgb(0 0 0 / 78%);
+  --paper-grid-line: color-mix(in srgb, var(--foreground) 5%, var(--background));
+  --paper-grid-size: 16px;
+  --topbar: #181818;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-acceptance: var(--acceptance);
+  --color-acceptance-foreground: var(--acceptance-foreground);
+  --color-rejection: var(--rejection);
+  --color-rejection-foreground: var(--rejection-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+html {
+  height: 100%;
+  color-scheme: light;
+}
+
+html,
+body {
+  max-width: 100vw;
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background);
+  background-image:
+    linear-gradient(to right, var(--paper-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--paper-grid-line) 1px, transparent 1px);
+  background-size: var(--paper-grid-size) var(--paper-grid-size);
+  color: var(--foreground);
+  font-family: "Phantom Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: "Phantom Sans", system-ui, sans-serif;
+}
+
+.font-body {
+  font-family: "Phantom Sans", system-ui, sans-serif;
+}
+
+.font-sub {
+  font-family: "Phantom Sans", system-ui, sans-serif;
+}
+
+@font-face {
+  font-family: "Phantom Sans";
+  src:
+    url("https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Regular.woff")
+      format("woff"),
+    url("https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Regular.woff2")
+      format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Phantom Sans";
+  src:
+    url("https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Bold.woff")
+      format("woff"),
+    url("https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Bold.woff2")
+      format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .page-shell {
+    min-height: 100vh;
+    background-color: var(--background);
+    background-image:
+      linear-gradient(to right, var(--paper-grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--paper-grid-line) 1px, transparent 1px);
+    background-size: var(--paper-grid-size) var(--paper-grid-size);
+  }
+
+  nav.bg-\[var\(--topbar\)\] {
+    background-color: var(--topbar) !important;
+  }
+
+  .ui-panel {
+    @apply rounded-3xl border border-white/10 p-5 md:p-6;
+  }
+
+  .ui-input-surface {
+    @apply border-foreground/15 bg-background text-foreground placeholder:text-muted-foreground hover:bg-muted;
+  }
+}
+
+/* stylelint-disable selector-class-pattern */
+@layer utilities {
+  .bg-black {
+    background-color: var(--background) !important;
+  }
+
+  .text-white {
+    color: var(--foreground) !important;
+  }
+
+  .text-white\/50 {
+    color: color-mix(in srgb, var(--foreground) 50%, transparent) !important;
+  }
+
+  p.text-secondary,
+  div.text-secondary,
+  span.text-secondary,
+  th.text-secondary,
+  td.text-secondary,
+  label.text-secondary,
+  .text-acceptance {
+    font-weight: 700 !important;
+  }
+
+  .border-white {
+    border-color: var(--foreground) !important;
+  }
+
+  .border-white\/5 {
+    border-color: color-mix(in srgb, var(--foreground) 5%, transparent) !important;
+  }
+
+  .border-white\/10 {
+    border-color: color-mix(in srgb, var(--foreground) 10%, transparent) !important;
+  }
+
+  .ring-white\/10 {
+    --tw-ring-color: color-mix(in srgb, var(--foreground) 10%, transparent) !important;
+  }
+
+  .focus-visible\:ring-white\/15:focus-visible {
+    --tw-ring-color: color-mix(in srgb, var(--foreground) 15%, transparent) !important;
+  }
+
+  .hover\:bg-white:hover {
+    background-color: var(--background) !important;
+  }
+
+  .hover\:text-white:hover {
+    color: var(--foreground) !important;
+  }
+
+  .hover\:border-white:hover {
+    border-color: var(--foreground) !important;
+  }
+
+  nav a {
+    background-color: transparent !important;
+  }
+
+  nav .text-white,
+  nav .text-accent {
+    color: #fff !important;
+  }
+
+  [data-slot="select-content"] {
+    background-color: #fff !important;
+    box-shadow: 0 4px 20px rgb(0 0 0 / 15%) !important;
+  }
+
+  [data-slot="select-item"]:focus {
+    background-color: color-mix(in srgb, var(--foreground) 8%, transparent) !important;
+    color: var(--foreground) !important;
+  }
+
+  .placeholder\:text-white::placeholder {
+    color: color-mix(in srgb, var(--foreground) 55%, transparent) !important;
+  }
+
+  .bg-primary.text-white,
+  .bg-rejection.text-white,
+  .bg-primary .text-white,
+  .bg-rejection .text-white {
+    color: #fff !important;
+  }
+
+  :is(
+    button:not(:disabled),
+    [data-slot="button"]:not(:disabled),
+    a[data-slot="button"],
+    a.inline-flex.rounded-xl
+  ):is(:hover, :focus-visible) {
+    background-color: #000 !important;
+    border-color: #000 !important;
+    color: #fff !important;
+  }
+
+  :is(
+    button:not(:disabled),
+    [data-slot="button"]:not(:disabled),
+    a[data-slot="button"],
+    a.inline-flex.rounded-xl
+  ):is(:hover, :focus-visible) svg {
+    color: #fff !important;
+  }
+}
+/* stylelint-enable selector-class-pattern */

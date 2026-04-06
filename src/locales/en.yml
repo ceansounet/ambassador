@@ -1,0 +1,383 @@
+locale:
+  html-lang: en
+  date-format-locale: en-US
+
+app:
+  metadata:
+    title: Hack Club Ambassador
+    description: Hack Club Ambassador program
+  login:
+    title: Welcome!
+    login: Login
+    or: or
+    sign-up: Sign Up
+    email-placeholder: Email
+    alt-login-prefix: Or..
+    alt-login-link: sign in with Hack Club
+  navbar:
+    logo-alt: Ambassador
+    admin-link: Admin
+    refresh-session: Refresh session
+    settings-label: Settings
+    sign-out-label: Sign out
+
+dashboard:
+  heading: "Hey, {name}!"
+  no-application:
+    eyebrow: Get Started
+    title: Apply to be an Ambassador
+    body: "Ready to represent Hack Club? Fill out a quick application and we'll review it."
+    cta: Apply Now
+  pending:
+    eyebrow: Under review
+    title: Application Pending
+    body: "Your application submitted on {date} is being reviewed. We'll get back to you soon."
+    status: Waiting for review
+  pending-automatic-checks:
+    eyebrow: One more step
+    title: Please verify your ID
+    body: Please ID verify at auth.hackclub.com so we can keep moving your application forward.
+    cta: Verify at auth.hackclub.com
+  approved:
+    title: You're an Ambassador!
+    body: Congratulations! Your application has been approved. Welcome to the team.
+    status: Active Ambassador
+  rejected:
+    eyebrow: Not Accepted
+    title: Application Not Accepted
+    body: "Unfortunately your application wasn't accepted this time. Feel free to reach out if you have questions."
+  rejected-permanently:
+    eyebrow: Permanently Rejected
+    title: Application Closed
+    body: Your latest application has been permanently rejected. Contact the team directly if you believe this needs review.
+
+settings:
+  heading: Settings
+  form:
+    labels:
+      name: Name
+      first-name: First name
+      last-name: Last name
+      email: Email
+      slack: Slack
+      verification-status: Verification status
+      shipping-address: Shipping address
+      region: Region
+    actions:
+      save: Save
+      saving: Saving...
+      saved: Saved!
+    errors:
+      generic: Something went wrong.
+      unauthorized: Refresh your session and try again.
+      invalid-address-index: Pick a valid shipping address.
+      invalid-region: Pick a valid region.
+
+error-pages:
+  preview:
+    title: Error pages
+    description: Open each route to preview and tweak that error page.
+    not-found: Preview 404 page
+    unauthorized: Preview 401 page
+    forbidden: Preview 403 page
+    internal: Preview 500 page
+  not-found:
+    code: "404"
+    title: Page not found
+    description: The page you requested does not exist or may have moved.
+    action: Go to login
+  unauthorized:
+    code: "401"
+    title: Unauthorized
+    description: Your session is missing or expired. Please sign in and try again.
+    action: Sign in again
+  forbidden:
+    code: "403"
+    title: Forbidden
+    description: You do not have permission to access this resource.
+    action: Go to dashboard
+  internal:
+    code: "500"
+    title: Something went wrong
+    description: An unexpected error interrupted this page.
+    retry: Try again
+    action: Go to dashboard
+
+common:
+  empty-value: "-"
+  unknown: Unknown
+  yes: "Yes"
+  no: "No"
+  latest: Latest
+  history: History
+  view: View
+  page-fraction: "{page} / {totalPages}"
+
+status:
+  pending: Pending
+  pending-automatic-checks: Pending Automatic Checks
+  pending-review: Pending Review
+  approved: Approved
+  accepted: Accepted
+  rejected: Rejected
+  rejected-permanent: Banned
+  rejected-permanently: Banned
+  rejected-permenant: Banned
+
+admin:
+  tabs:
+    dashboard: Overview
+    users: Users
+    applications: Applications
+    orders: Orders
+  overview:
+    title: Overview
+    description: It's numbers time..?
+    stats:
+      visitors: Visitors
+      visitors-detail: "{count} total hits tracked"
+      signups: Signups
+      signups-detail: "{percent} of visitors"
+      applicants: Applicants
+      applicants-detail: "{count} total form submissions"
+      pending-review: Pending review
+      pending-review-detail: "{count} latest applications already reviewed"
+    charts:
+      recent-activity-eyebrow: Recent activity
+      recent-activity-title: Recent activity
+      decision-split-eyebrow: Latest application outcomes
+      decision-split-title: Decision split
+      application-flow-eyebrow: Application flow
+      application-flow-title: Application flow
+      no-flow-data: No flow data yet.
+      still-pending: Still pending
+      ranges:
+        seven-days: 7 days
+        fourteen-days: 14 days
+        thirty-days: 30 days
+        ninety-days: 90 days
+      series:
+        visits: Visits
+        signups: Signups
+        applications: Applications
+        pending: Pending
+        approved: Approved
+        denied: Denied
+        visited-website: Visited website
+        signed-up: Signed up
+        filled-form: Filled form
+  orders:
+    title: Orders
+    empty: Orders coming soon
+  applications-list:
+    title: Applications
+    columns:
+      applicant: Applicant
+      name-on-app: Name on App
+      status: Status
+      location: Location
+      submitted: Submitted
+      open: Open
+    latest: Latest
+    history: History
+    view-details: View details
+    empty: No applications yet
+  users-list:
+    title: Users
+    columns:
+      name: Name
+      email: Email
+      location: Location
+      latest-app: Latest App
+      apps: Apps
+      admin: Admin
+      joined: Joined
+      open: Open
+    no-application: No application
+    view-user: View user
+    empty: No users yet
+  application-detail:
+    breadcrumb: Applications
+    latest-application: Latest application
+    historical-application: Historical application
+    open-user-page: Open user page ↗
+    locked:
+      title: Review locked to newest application
+      body: Approve and reject actions do not run against older submissions. Open the newest application on file for this user if you want to make a decision.
+      cta: Open newest application
+    sections:
+      review-actions:
+        title: Review Actions
+        description: The buttons below only affect the newest application on file.
+      application-answers:
+        title: Application Answers
+        description: Everything submitted with this application.
+      application-metadata:
+        title: Application Metadata
+        description: Submission, status, and decision data.
+      applicant:
+        title: Applicant
+        description: Latest profile data captured for this user.
+      history:
+        title: Application History
+        description: Newest first for this user.
+      visits:
+        title: Visits
+        description: All visits, 3 at a time.
+      orders:
+        title: Orders
+        description: Recent order records for this user.
+    actions:
+      accept: Accept
+      reject-note-label: Reject note
+      reject-note-placeholder: Why this application is being rejected
+      reject-with-note: Reject with note
+      permanent-rejection-note-label: Permanent rejection note
+      permanent-rejection-note-placeholder: Optional context for permanent rejection
+      reject-permanently: Reject permanently
+      mark-tshirt-shipped: Mark T-shirt shipped
+      mark-tshirt-unshipped: Mark T-shirt not shipped
+      historical-disabled: This application is historical, so review actions are disabled here.
+    answers:
+      name: Name
+      date-of-birth: Date of birth
+      email: Email
+      slack-id: Slack ID
+      hca-id: HCA ID
+      phone: Phone
+      address: Address
+      tshirt-size: T-shirt size
+      bio: Bio
+      headshot: Headshot
+      github-url: GitHub URL
+      portfolio-url: Portfolio URL
+      first-thing-do: First thing you'd do
+      best-place-poster: Best place to put a poster
+      something-else: Something else
+      background: Background
+      why-ambassador: Why do you want to be an ambassador?
+      anything-else: Anything else?
+    metadata:
+      submitted: Submitted
+      last-updated: Last updated
+      reviewed: Reviewed
+      reviewed-by: Reviewed by
+      airtable-record-id: Airtable record ID
+      submitted-ip: Submitted IP
+      application-location: Application location
+      coordinates: Coordinates
+      idv-status: ID verification status
+      tshirt-shipped: T-shirt shipped
+      decision-note: Decision note
+    applicant-fields:
+      display-name: Display name
+      first-name: First name
+      last-name: Last name
+      email: Email
+      slack: Slack
+      hca-id: HCA ID
+      verification-status: Verification status
+      street-address: Street address
+      hca-city-and-region: HCA city and region
+      hca-postal-code: HCA postal code
+      hca-country: HCA country
+      user-location: User location
+      postal-code: Postal code
+      timezone: Timezone
+      network-org: Network org
+      last-seen-ip: Last seen IP
+      user-created: User created
+    history:
+      when: When
+      status: Status
+      name: Name
+      open: Open
+      view: View
+    visits:
+      unknown-network: Unknown network
+      empty: No visits recorded yet.
+    orders:
+      empty: No orders on file.
+  user-detail:
+    breadcrumb: Users
+    latest-application: Latest application
+    no-application: No application
+    user-permanently-rejected: User permanently rejected
+    open-latest-application: Open latest application ↗
+    sections:
+      user-actions:
+        title: User Actions
+        description: All of these controls target the newest application on file.
+      user-profile:
+        title: User Profile
+        description: Current account and location data.
+      applications:
+        title: Applications
+        description: Full application history, newest first.
+      latest-application-snapshot:
+        title: Latest Application Snapshot
+        description: Quick view of the newest application state.
+      permanent-rejection:
+        title: Permanent Rejection
+        description: User-level lockout state.
+      visits:
+        title: Visits
+        description: All visits, 3 at a time.
+      orders:
+        title: Orders
+        description: Recent order records tied to this account.
+    actions:
+      current-review-target: Current review target
+      bypass-approval: Bypass approval
+      reject-note-label: Reject note
+      reject-note-placeholder: Why this user should be rejected
+      reject: Reject
+      permanent-rejection-note-label: Permanent rejection note
+      permanent-rejection-note-placeholder: Optional context for permanent rejection
+      reject-permanently: Reject permanently
+      no-review-target: This user does not have any applications yet, so there is no review target to update.
+    profile-fields:
+      display-name: Display name
+      first-name: First name
+      last-name: Last name
+      email: Email
+      slack: Slack
+      hca-id: HCA ID
+      verification-status: Verification status
+      street-address: Street address
+      hca-city-and-region: HCA city and region
+      hca-postal-code: HCA postal code
+      hca-country: HCA country
+      hca-addresses: HCA addresses
+      location: Location
+      postal-code: Postal code
+      timezone: Timezone
+      network-org: Network org
+      coordinates: Coordinates
+      last-seen-ip: Last seen IP
+      admin: Admin
+      created: Created
+      updated: Updated
+    applications:
+      submitted: Submitted
+      status: Status
+      name: Name
+      open: Open
+      view: View
+      empty: No applications on file.
+    latest-application-snapshot:
+      application-id: Application ID
+      submitted: Submitted
+      updated: Updated
+      name-on-app: Name on app
+      date-of-birth: Date of birth
+      decision-note: Decision note
+      empty: No application on file.
+    permanent-rejection:
+      rejected-permanently-at: Rejected permanently at
+      permanent-note: Permanent note
+    visits:
+      unknown-network: Unknown network
+      empty: No visits recorded yet.
+    orders:
+      empty: No orders on file.
