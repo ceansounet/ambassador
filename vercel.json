@@ -1,4 +1,5 @@
 {
+  "devCommand": "next dev -p 7171",
   "crons": [
     {
       "path": "/api/cron/applications/sync",
