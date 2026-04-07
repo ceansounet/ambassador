@@ -238,6 +238,7 @@ admin:
       mark-tshirt-shipped: Mark T-shirt shipped
       mark-tshirt-unshipped: Mark T-shirt not shipped
       historical-disabled: This application is historical, so review actions are disabled here.
+      delete: Delete from our side
     answers:
       name: Name
       date-of-birth: Date of birth

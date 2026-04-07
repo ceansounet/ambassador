@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
 import Icon from "@hackclub/icons";
@@ -17,10 +18,11 @@ export async function Navbar({
     <nav className="border-b border-white/5 bg-[var(--topbar)] px-6 py-4">
       <div className="mx-auto flex max-w-5xl items-center justify-between">
         <a href="/dashboard" className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src="/dashboard-logo.png"
             alt={t("app.navbar.logo-alt")}
+            width={787}
+            height={798}
             className="h-9 w-auto"
           />
         </a>

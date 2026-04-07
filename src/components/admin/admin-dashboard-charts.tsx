@@ -90,7 +90,7 @@ export function AdminDashboardCharts({
   const hasApplicationFlowData = flowChartData.some((step) => step.value > 0);
 
   return (
-    <section className="overflow-hidden rounded-[32px] bg-card">
+    <section className="overflow-hidden bg-card">
       <div className="grid xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)]">
         <section className="min-w-0 p-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">

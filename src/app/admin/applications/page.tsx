@@ -33,7 +33,7 @@ export default async function AdminApplicationsPage() {
       <header className="space-y-2">
         <h1 className="text-4xl text-white">{t("admin.applications-list.title")}</h1>
       </header>
-      <div className="overflow-x-auto rounded-3xl border border-white/10 p-3 md:p-4">
+      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-white">

@@ -8,7 +8,7 @@
   --radius: 0.625rem;
   --background: #fafafa;
   --foreground: #000;
-  --card: color-mix(in srgb, var(--foreground) 4%, var(--background));
+  --card: color-mix(in srgb, var(--foreground) 2.5%, var(--background));
   --card-foreground: var(--foreground);
   --popover: var(--background);
   --popover-foreground: var(--foreground);
@@ -175,7 +175,6 @@ a {
   }
 }
 
-/* stylelint-disable selector-class-pattern */
 @layer utilities {
   .bg-black {
     background-color: var(--background) !important;
@@ -281,4 +280,3 @@ a {
     color: #fff !important;
   }
 }
-/* stylelint-enable selector-class-pattern */

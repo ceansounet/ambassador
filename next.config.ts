@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
   experimental: {
     authInterrupts: true,
   },
+  serverExternalPackages: ["postgres-shift"],
   images: {
     remotePatterns: [
       {

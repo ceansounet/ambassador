@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { DeleteApplicationButton } from "@/components/admin/delete-application-button";
 import { DetailFieldRow, DetailPager, DetailSection } from "@/components/admin/detail";
 import { SlackAvatar, SlackProfile } from "@/components/admin/slack-profile";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -172,6 +173,11 @@ export default async function AdminApplicationDetailPage({
         title={t("admin.application-detail.sections.review-actions.title")}
         description={t("admin.application-detail.sections.review-actions.description")}
       >
+        <DeleteApplicationButton
+          applicationId={application.id}
+          label={t("admin.application-detail.actions.delete")}
+        />
+
         {isLatest ? (
           <div className="space-y-6">
             <form action={`/api/admin/applications/${application.id}/approve`} method="POST" className="max-w-xl space-y-3">
