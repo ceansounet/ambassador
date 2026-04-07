@@ -58,6 +58,7 @@ export default function SettingsClient({
     surfaceClass,
     "text-foreground disabled:opacity-100 disabled:text-foreground disabled:[-webkit-text-fill-color:var(--foreground)]",
   );
+  const selectContentClass = "border-white/10 bg-black text-white !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
 
   const handleSave = async () => {
     setSaving(true);
@@ -203,7 +204,13 @@ export default function SettingsClient({
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-white/10 bg-black text-white">
+              <SelectContent
+                position="popper"
+                side="bottom"
+                sideOffset={6}
+                avoidCollisions={false}
+                className={selectContentClass}
+              >
                 {addresses.map((addr, i) => (
                   <SelectItem
                     key={i}
@@ -232,7 +239,13 @@ export default function SettingsClient({
           >
             <SelectValue />
           </SelectTrigger>
-          <SelectContent position="popper" side="bottom" className="max-h-72 border-white/10 bg-black text-white">
+          <SelectContent
+            position="popper"
+            side="bottom"
+            sideOffset={6}
+            avoidCollisions={false}
+            className={cn("max-h-72", selectContentClass)}
+          >
             {SUPPORTED_AMBASSADOR_REGIONS.map((regionName) => (
               <SelectItem
                 key={regionName}
