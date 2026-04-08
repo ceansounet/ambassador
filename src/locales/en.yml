@@ -473,3 +473,73 @@ admin:
       empty: No visits recorded yet.
     orders:
       empty: No orders on file.
+
+landing:
+  apply: Apply
+  apply-sub: "{daysLeft} days left, US, UK, CA, EU, AU only"
+  log-in: Log in
+
+  hero:
+    0: Inspire more teens like you to code.
+    1: Get money.
+    2: Repeat.
+
+  intro:
+    start: --- START OF MESSAGE ---
+    0: At Hack Club, we help teens to discover the joy of code, together. We run events for teen hackers to make cool things, and earn prizes - from iPads, MacBooks and Raspberry Pis, to flights to in-person hackathons around the world. Along the way, they'll find a space online made for them, and maybe make a few friends too.
+    1: This summer, we're partnering with NASA, AMD, and GitHub to run <strong>the world's biggest engineering challenge</strong>, and we want your help.
+    2: We're looking for young people like you to advertise Hack Club in your country. We want even more teens to sign up and take part in our events, and we want you to make it happen.
+    3: You can send emails to schools, put up posters, post on social media, or do anything really - how you do outreach is up to you.
+    4: In return, we'll give you Hack Club t-shirts and merch. Plus, for every poster you put up, and every signup you get, <strong>we give you money.</strong> Real money. To your bank account. <partyparrot></partyparrot>
+    5: Ready?
+    end: <<EOF
+
+  past-events:
+    title: Past events
+    0: In 2025, Hack Clubbers around the world spent over <strong>240,000 hours coding</strong>, building over <strong>23,000 unique projects</strong>.
+    1: In 2026, we want to do even better.
+    flagship:
+      title: Campfire Flagship
+      desc: A 3-day flagship game jam in Los Angeles with YouTubers like Michael Reeves, William Osman, and many more!
+    blueprint:
+      title: Blueprint
+      desc: Blueprint gave $140,000 to fund 1,500 hardware and electronics projects built by teenagers.
+    midnight:
+      title: Midnight
+      desc: A murder-mystery hackathon held in Austria, Vienna with 60+ teenagers from all across the world!
+    siege:
+      title: Siege
+      desc: 100+ teens created a project each week for 10 weeks, and received a Framework laptop.
+
+  past-projects:
+    title: Past projects built by teenagers in Hack Club
+    by: By
+    doom-pdf:
+      title: Doom PDF
+      desc: "A source port of Doom (1993),\nrunning inside a PDF document."
+      by: Allen D
+    librepods:
+      title: LibrePods
+      desc: "Airpods liberated from\nApple's ecosystem."
+      by: Kavish D
+    vert:
+      title: VERT
+      desc: "A file conversion utility that uses\nWebAssembly to convert files\non-device instead of on the cloud."
+      by: Maya
+    biblically-accurate:
+      title: The Biblically Accurate Macropad
+      desc: "A very macro macropad in the shape\nof a biblically accurate angel!"
+      by: Alex Tran
+    specter:
+      title: Specter
+      desc: "A game about a knight bravely\ntrying to escape the cave, but\nis haunted by his own ghost."
+      by: Ayessa
+    blind-defusal:
+      title: Blind Defusal
+      desc: "A two-player, cooperative\n\"bomb defusal\" game."
+      by: Joshua W
+
+  footer:
+    cta: Make your mark.
+    cta-sub: applications close [tbd] April 2026, at 12:00am EDT.
+    copyright: "© 2026 Hack Club. 501(c)(3) nonprofit (EIN: 81-2908499)"
