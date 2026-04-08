@@ -1,11 +1,11 @@
-import sql from "@/lib/db";
+import sql from "@/lib/database/client";
 import {
   normalizeHackClubAddresses,
   SUPPORTED_AMBASSADOR_REGIONS,
 } from "@/lib/settings";
 import { isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
-import { ensureUserAddressSchema } from "@/lib/user-address-schema";
+import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {

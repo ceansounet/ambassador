@@ -55,7 +55,13 @@ export async function readQrCodesFromImageBuffer(
     headers,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as QreaderResponse;
+  let payload: QreaderResponse = {};
+
+  try {
+    payload = (await response.json()) as QreaderResponse;
+  } catch (error) {
+    console.error("Failed to parse qreader response", error);
+  }
 
   if (!response.ok) {
     throw new Error(payload.error || `qreader responded with ${response.status}`);

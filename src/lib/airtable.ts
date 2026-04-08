@@ -1,5 +1,3 @@
-import { tryParseJson } from "@/lib/parse"
-
 const AIRTABLE_API_BASE_URL = "https://api.airtable.com/v0"
 
 export type AirtableRecord<TFields extends Record<string, unknown> = Record<string, unknown>> = {
@@ -199,7 +197,15 @@ export class AirtableClient {
     })
 
     const text = await response.text()
-    const body = text ? tryParseJson(text) : null
+    let body: unknown = null
+
+    if (text) {
+      try {
+        body = JSON.parse(text)
+      } catch {
+        body = text
+      }
+    }
 
     if (!response.ok) {
       throw new AirtableError(`Airtable request failed with status ${response.status}`, {

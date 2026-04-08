@@ -1,5 +1,5 @@
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
 
 export async function GET() {

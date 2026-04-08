@@ -2,7 +2,7 @@ import { forbidden, unauthorized } from "next/navigation";
 
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { Navbar } from "@/components/navbar";
-import sql from "@/lib/db";
+import sql from "@/lib/database/client";
 import { getSession } from "@/lib/session";
 
 export default async function AdminLayout({

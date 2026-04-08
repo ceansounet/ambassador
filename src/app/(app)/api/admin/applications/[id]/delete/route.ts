@@ -1,8 +1,8 @@
-import { isUserAdmin } from "@/lib/admin";
+import { isUserAdmin } from "@/lib/applications/review";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
-import sql from "@/lib/db";
+import sql from "@/lib/database/client";
 
 export async function POST(
   request: Request,

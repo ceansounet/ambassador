@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectPath } from "@/lib/http";
 import { clearSession, createToken, getSession, setSession } from "@/lib/session";
 

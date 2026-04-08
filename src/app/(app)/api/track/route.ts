@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-import { ensureSchema } from "@/lib/ensure-schema";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import {
   linkAnonymousVisits,
   trackAnonymousVisit,

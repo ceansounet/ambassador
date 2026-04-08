@@ -1,4 +1,4 @@
-import { migrate } from "@/lib/migrate";
+import { migrate } from "@/lib/database/migrate";
 
 function isAuthorized(request: Request) {
   const secret = process.env.MIGRATE_SECRET?.trim() || process.env.CRON_SECRET?.trim();

@@ -1,5 +1,5 @@
-import { isUserAdmin, setApplicationTshirtShipped } from "@/lib/admin";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { isUserAdmin, setApplicationTshirtShipped } from "@/lib/applications/review";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
 

@@ -4,7 +4,9 @@ import { useEffect } from "react";
 
 export function Tracker() {
   useEffect(() => {
-    fetch("/api/track", { method: "POST" }).catch(() => {});
+    void fetch("/api/track", { method: "POST" }).catch((error) => {
+      console.error("Failed to track visit", error);
+    });
   }, []);
 
   return null;

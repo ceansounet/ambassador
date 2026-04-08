@@ -1,7 +1,7 @@
-import { isUserAdmin } from "@/lib/admin";
+import { isUserAdmin } from "@/lib/applications/review";
 import { revalidatePath } from "next/cache";
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
 

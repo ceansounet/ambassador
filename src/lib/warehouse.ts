@@ -265,7 +265,15 @@ export class WarehouseApiClient {
     })
 
     const text = await response.text()
-    const responseBody = text ? tryParseJson(text) : null
+    let responseBody: unknown = null
+
+    if (text) {
+      try {
+        responseBody = JSON.parse(text)
+      } catch {
+        responseBody = text
+      }
+    }
 
     if (!response.ok) {
       throw new WarehouseApiError(`Warehouse API request failed with status ${response.status}`, {
@@ -282,4 +290,3 @@ export async function sendWarehouseSku(input: SendWarehouseSkuInput) {
   const client = new WarehouseApiClient()
   return client.sendSku(input)
 }
-import { tryParseJson } from "@/lib/parse"

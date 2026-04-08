@@ -1,5 +1,5 @@
-import sql from "./db";
-import { requireEnv } from "./env";
+import sql from "@/lib/database/client";
+import { requireEnv } from "@/lib/env";
 
 const PRIVATE_RANGES = [
   /^10\./,
@@ -122,7 +122,9 @@ export async function trackAnonymousVisit(ip: string) {
     VALUES (${visitId}, ${ip}, 'anonymous')
   `;
 
-  geocodeVisit(ip, visitId).catch(() => {});
+  void geocodeVisit(ip, visitId).catch((error) => {
+    console.error("Failed to geocode anonymous visit", { visitId, error });
+  });
 }
 
 async function geocodeVisit(ip: string, visitId: string) {
@@ -163,7 +165,9 @@ export async function trackAuthenticatedVisit(ip: string, userId: string) {
     VALUES (${visitId}, ${ip}, ${userId}, 'revisit')
   `;
 
-  geocodeVisit(ip, visitId).catch(() => {});
+  void geocodeVisit(ip, visitId).catch((error) => {
+    console.error("Failed to geocode authenticated visit", { visitId, error });
+  });
 }
 
 export async function linkAnonymousVisits(ip: string, userId: string) {

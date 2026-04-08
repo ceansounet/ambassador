@@ -1,5 +1,5 @@
-import { syncAirtableApplicationsToPostgres } from "@/lib/application-sync";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { syncAirtableApplicationsToPostgres } from "@/lib/applications/sync";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 
 function isAuthorized(request: Request) {
   if (process.env.NODE_ENV !== "production") {

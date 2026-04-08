@@ -1,17 +1,17 @@
 import { cookies } from "next/headers";
 
-import { linkApplicationsToUser } from "@/lib/application-sync";
+import { linkApplicationsToUser } from "@/lib/applications/sync";
 import {
   exchangeCodeForToken,
   fetchUserInfo,
   OAUTH_STATE_COOKIE_NAME,
 } from "@/lib/auth";
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { geocodeIp, linkAnonymousVisits } from "@/lib/geo";
 import { getRequestIp } from "@/lib/http";
 import { createToken, setSession } from "@/lib/session";
-import { ensureUserAddressSchema } from "@/lib/user-address-schema";
+import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -114,15 +114,23 @@ export async function GET(request: Request) {
     VALUES (${crypto.randomUUID()}, ${ip}, ${user.id}, 'signup')
   `;
 
-  geocodeIp(ip, "users", user.id).catch(() => {});
-  geocodeIp(ip, "ip_visits", null, user.id, "signup").catch(() => {});
-  linkAnonymousVisits(ip, user.id).catch(() => {});
-  linkApplicationsToUser({
+  void geocodeIp(ip, "users", user.id).catch((error) => {
+    console.error("Failed to geocode signed-in user", { userId: user.id, error });
+  });
+  void geocodeIp(ip, "ip_visits", null, user.id, "signup").catch((error) => {
+    console.error("Failed to geocode signup visit", { userId: user.id, error });
+  });
+  void linkAnonymousVisits(ip, user.id).catch((error) => {
+    console.error("Failed to link anonymous visits", { userId: user.id, error });
+  });
+  void linkApplicationsToUser({
     userId: user.id,
     email: email ?? null,
     hcaId,
     slackId: slackId ?? null,
-  }).catch(() => {});
+  }).catch((error) => {
+    console.error("Failed to link applications to user", { userId: user.id, error });
+  });
 
   const token = await createToken({
     sub: user.id,
