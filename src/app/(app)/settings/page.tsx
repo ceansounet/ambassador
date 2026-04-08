@@ -3,16 +3,17 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { Navbar } from "@/components/navbar";
-import sql from "@/lib/db";
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import sql from "@/lib/database/client";
 import { normalizeHackClubAddresses } from "@/lib/settings";
 import { getSession } from "@/lib/session";
-import { ensureUserAddressSchema } from "@/lib/user-address-schema";
+import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 
 import SettingsClient from "./SettingsClient";
 
-export const metadata: Metadata = {
-  title: "Ambassadors // Settings",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("settings.metadata.title");
+}
 
 export default async function SettingsPage() {
   const session = await getSession();

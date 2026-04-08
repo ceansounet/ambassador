@@ -9,9 +9,11 @@ import Questions from "@/components/landing/Questions";
 import Sep from "@/components/landing/Sep";
 import Footer from "@/components/landing/Footer";
 
-export const metadata: Metadata = {
-  title: "Ambassadors // Landing",
-};
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("landing.metadata.title");
+}
 
 export default function Home() {
   return (

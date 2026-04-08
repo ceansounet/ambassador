@@ -3,17 +3,18 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { Navbar } from "@/components/navbar";
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { listPosterCampaigns } from "@/lib/posters/config";
 import { listPosterDataForUser } from "@/lib/posters/service";
 import { getSession } from "@/lib/session";
 
 import { PostersClient } from "./PostersClient";
 
-export const metadata: Metadata = {
-  title: "Ambassadors // Posters",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("posters.metadata.title");
+}
 
 export default async function PostersPage() {
   const session = await getSession();
@@ -37,7 +38,7 @@ export default async function PostersPage() {
       <main className="page-shell">
         <Navbar isAdmin={Boolean(user?.is_admin)} balanceCents={user?.balance_cents ?? 0} />
         <div className="mx-auto max-w-5xl px-6 py-12">
-          <h1 className="text-4xl text-white">Coming soon!</h1>
+          <h1 className="text-4xl text-white">{t("posters.unavailable")}</h1>
         </div>
       </main>
     );

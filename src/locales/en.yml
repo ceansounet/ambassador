@@ -7,10 +7,13 @@ app:
     title: Hack Club Ambassador
     description: Hack Club Ambassador program
   login:
+    metadata:
+      title: Login
     title: Welcome!
     login: Login
     or: or
     sign-up: Sign Up
+    waving-hand-alt: Waving hand
     email-placeholder: Email
     alt-login-prefix: Or..
     alt-login-link: sign in with Hack Club
@@ -22,7 +25,24 @@ app:
     settings-label: Settings
     sign-out-label: Sign out
 
+landing:
+  metadata:
+    title: Ambassador Program
+
+dev-admin-selector:
+  label: dev/admin selector
+  states:
+    apply: Apply
+    ineligible: Ineligible region
+    pending-checks: Pending (ID check)
+    pending: Pending (review)
+    approved: Approved
+    rejected: Rejected
+    banned: Application closed
+
 dashboard:
+  metadata:
+    title: Dashboard
   heading: "Hey, {name}!"
   stepper:
     apply: Apply
@@ -65,8 +85,11 @@ dashboard:
     body: Your latest application has been permanently rejected. Contact the team directly if you believe this needs review.
 
 posters:
+  metadata:
+    title: Posters
   heading: Posters
   subheading: p-p- posters...???
+  unavailable: Coming soon!
   campaign:
     label: Campaign
     placeholder: Pick a campaign
@@ -135,6 +158,8 @@ posters:
     geolocation-denied: Precise location access was denied. Please enable it in your browser settings.
 
 settings:
+  metadata:
+    title: Settings
   heading: Settings
   form:
     labels:
@@ -165,26 +190,34 @@ error-pages:
     forbidden: Preview 403 page
     internal: Preview 500 page
   not-found:
+    metadata:
+      title: Page not found
     code: "404"
     title: Page not found
     description: The page you requested does not exist or may have moved.
-    action: Go to login
+    action: Go home
   unauthorized:
+    metadata:
+      title: Unauthorized
     code: "401"
     title: Unauthorized
     description: Your session is missing or expired. Please sign in and try again.
     action: Sign in again
   forbidden:
+    metadata:
+      title: Forbidden
     code: "403"
     title: Forbidden
     description: You do not have permission to access this resource.
     action: Go to dashboard
   internal:
+    metadata:
+      title: Something went wrong
     code: "500"
     title: Something went wrong
     description: An unexpected error interrupted this page.
     retry: Try again
-    action: Go to dashboard
+    action: Go home
 
 common:
   empty-value: "-"
@@ -195,6 +228,7 @@ common:
   history: History
   view: View
   page-fraction: "{page} / {totalPages}"
+  confirm-destructive: Are you sure? Scary things will happen otherwise.
 
 status:
   pending: Pending
@@ -214,6 +248,8 @@ admin:
     applications: Applications
     orders: Orders
   overview:
+    metadata:
+      title: Overview
     title: Overview
     description: It's numbers time..?
     stats:
@@ -228,7 +264,7 @@ admin:
     charts:
       recent-activity-eyebrow: Recent activity
       recent-activity-title: Recent activity
-      decision-split-eyebrow: Latest application outcomes
+      decision-split-eyebrow: Application outcomes
       decision-split-title: Decision split
       application-flow-eyebrow: Application flow
       application-flow-title: Application flow
@@ -245,14 +281,20 @@ admin:
         applications: Applications
         pending: Pending
         approved: Approved
+        rejected: Rejected
+        banned: Banned
         denied: Denied
         visited-website: Visited website
         signed-up: Signed up
         filled-form: Filled form
   orders:
+    metadata:
+      title: Orders
     title: Orders
     empty: Orders coming soon
   applications-list:
+    metadata:
+      title: Applications
     title: Applications
     columns:
       applicant: Applicant
@@ -266,6 +308,8 @@ admin:
     view-details: View details
     empty: No applications yet
   users-list:
+    metadata:
+      title: Users
     title: Users
     columns:
       name: Name
@@ -280,6 +324,7 @@ admin:
     view-user: View user
     empty: No users yet
   application-detail:
+    page-title: Application details
     breadcrumb: Applications
     latest-application: Latest application
     historical-application: Historical application
@@ -322,6 +367,8 @@ admin:
       mark-tshirt-unshipped: Mark T-shirt not shipped
       historical-disabled: This application is historical, so review actions are disabled here.
       delete: Delete from our side
+      confirmations:
+        delete: Delete this application from our side? If the Airtable record still exists, it will resync on the next sync.
     answers:
       name: Name
       date-of-birth: Date of birth
@@ -384,6 +431,8 @@ admin:
     orders:
       empty: No orders on file.
   user-detail:
+    metadata:
+      title: User details
     breadcrumb: Users
     latest-application: Latest application
     no-application: No application

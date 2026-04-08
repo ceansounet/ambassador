@@ -5,11 +5,12 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { Input } from "@/components/ui/input";
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
 import { getSession } from "@/lib/session";
 
-export const metadata: Metadata = {
-  title: "Ambassadors // Login",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("app.login.metadata.title");
+}
 
 export default async function LoginPage() {
   const session = await getSession();
@@ -24,7 +25,7 @@ export default async function LoginPage() {
           <h1 className="text-4xl font-bold text-white">{t("app.login.title")}</h1>
           <Image
             src="https://fonts.gstatic.com/s/e/notoemoji/latest/1f44b/emoji.svg"
-            alt="Waving hand"
+            alt={t("app.login.waving-hand-alt")}
             width={40}
             height={40}
             className="h-10 w-10"
