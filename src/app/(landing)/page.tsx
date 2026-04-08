@@ -161,11 +161,10 @@ export default function Home() {
             media, or do anything really - how you do outreach is up to you.
           </p>
           <p>
-            In return, you&rsquo;ll get an exclusive{" "}
-            <em>@events.hackclub.com </em> email, and we&rsquo;ll give you Hack
-            Club t-shirts and merch. Plus, for every poster you put up, and
-            every signup you get, <strong>we give you money.</strong> Real
-            money. To your bank account.{" "}
+            In return, we&rsquo;ll give you Hack Club t-shirts and merch. Plus,
+            for every poster you put up, and every signup you get,{" "}
+            <strong>we give you money.</strong> Real money. To your bank
+            account.{" "}
             <Image
               src={partyparrot}
               alt=""
@@ -422,8 +421,7 @@ export default function Home() {
               + $75 = $90 for that month!
             </p>
             <p className="mt-2">
-              We&rsquo;ll also give you Hack Club branded merch, and an
-              exclusive <em>@events.hackclub.com</em> email.
+              We&rsquo;ll also give you Hack Club branded t-shirts and merch.
             </p>
           </div>
           <div className="py-4 border-b border-neutral-300 leading-relaxed text-xl">
