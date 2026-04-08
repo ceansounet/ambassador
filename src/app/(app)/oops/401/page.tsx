@@ -7,6 +7,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("error-pages.unauthorized.metadata.title");
 }
 
-export default function Unauthorized() {
+export default function Oops401Page() {
   return <UnauthorizedPage />;
 }

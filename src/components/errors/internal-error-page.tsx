@@ -10,9 +10,10 @@ import { ErrorFrame } from "@/components/errors/error-frame";
 
 type InternalErrorPageProps = {
   onRetry?: () => void;
+  showDevAdminSelector?: boolean;
 };
 
-export function InternalErrorPage({ onRetry }: InternalErrorPageProps) {
+export function InternalErrorPage({ onRetry, showDevAdminSelector = false }: InternalErrorPageProps) {
   const t = useTranslations("error-pages.internal");
 
   return (
@@ -21,17 +22,19 @@ export function InternalErrorPage({ onRetry }: InternalErrorPageProps) {
       title={t("title")}
       description={t("description")}
       icon={<Icon glyph="bug" size={24} />}
-      primaryAction={undefined}
+      primaryAction={onRetry ? undefined : { href: "/", label: t("action") }}
+      showDevAdminSelector={showDevAdminSelector}
     >
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8">
         {onRetry ? (
           <Button variant="success" size="app" onClick={onRetry}>
             {t("retry")}
           </Button>
-        ) : null}
-        <Button asChild size="app">
-          <Link href="/dashboard">{t("action")}</Link>
-        </Button>
+        ) : (
+          <Button asChild size="app">
+            <Link href="/">{t("action")}</Link>
+          </Button>
+        )}
       </div>
     </ErrorFrame>
   );

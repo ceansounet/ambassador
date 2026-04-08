@@ -7,6 +7,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("error-pages.forbidden.metadata.title");
 }
 
-export default function Forbidden() {
+export default function Oops403Page() {
   return <ForbiddenPage />;
 }
