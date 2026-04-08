@@ -41,7 +41,7 @@ export function ErrorFrame({
 
         {primaryAction ? (
           <div className="mt-8">
-            <Button asChild size="lg">
+            <Button asChild size="app">
               <Link href={primaryAction.href}>{primaryAction.label}</Link>
             </Button>
           </div>

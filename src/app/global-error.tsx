@@ -30,7 +30,7 @@ export default function GlobalError({
           icon={<Icon glyph="bug" size={24} />}
         >
           <div className="mt-8">
-            <Button size="lg" onClick={reset}>
+            <Button size="app" onClick={reset}>
               Try again
             </Button>
           </div>

@@ -24,8 +24,12 @@ export function InternalErrorPage({ onRetry }: InternalErrorPageProps) {
       primaryAction={undefined}
     >
       <div className="mt-8 flex flex-wrap gap-3">
-        {onRetry ? <Button className="text-primary-foreground" onClick={onRetry}>{t("retry")}</Button> : null}
-        <Button asChild className="text-primary-foreground">
+        {onRetry ? (
+          <Button variant="success" size="app" onClick={onRetry}>
+            {t("retry")}
+          </Button>
+        ) : null}
+        <Button asChild size="app">
           <Link href="/dashboard">{t("action")}</Link>
         </Button>
       </div>
