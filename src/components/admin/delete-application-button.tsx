@@ -1,31 +1,28 @@
 "use client";
 
+import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
 import { buttonVariants } from "@/components/ui/button";
 
 export function DeleteApplicationButton({
   applicationId,
   label,
+  confirmationMessage,
 }: {
   applicationId: string;
   label: string;
+  confirmationMessage: string;
 }) {
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (!confirm("Delete this application from our side? It will resync from Airtable on the next sync.")) {
-      e.preventDefault();
-    }
-  }
-
   return (
-    <form
+    <ConfirmSubmitForm
       action={`/api/admin/applications/${applicationId}/delete`}
       method="POST"
       className="max-w-xl space-y-3"
-      onSubmit={handleSubmit}
+      confirmationMessage={confirmationMessage}
     >
       <input type="hidden" name="redirectTo" value="/admin/applications" />
       <button className={buttonVariants({ size: "app" })}>
         {label}
       </button>
-    </form>
+    </ConfirmSubmitForm>
   );
 }

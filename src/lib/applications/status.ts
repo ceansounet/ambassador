@@ -77,6 +77,13 @@ export function isTerminalApplicationStatus(status: string | null | undefined) {
   );
 }
 
+export function canChangeApplicationReviewStatus(
+  currentStatus: string | null | undefined,
+  nextStatus: ApplicationStatus,
+) {
+  return normalizeApplicationStatus(currentStatus) !== nextStatus;
+}
+
 export function getApplicationStatusMeta(t: Translate) {
   return {
     [APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS]: {

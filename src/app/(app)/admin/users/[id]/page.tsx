@@ -3,21 +3,29 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
 import { DetailFieldRow, DetailPager, DetailSection } from "@/components/admin/detail";
 import { SlackAvatar, SlackProfile } from "@/components/admin/slack-profile";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { pillVariants } from "@/components/ui/pill";
 import { Textarea } from "@/components/ui/textarea";
-import { isRejectedPermanentlyApplicationStatus } from "@/lib/applications";
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import {
+  APPLICATION_STATUS_ACCEPTED,
+  APPLICATION_STATUS_REJECTED,
+  APPLICATION_STATUS_REJECTED_PERMANENT,
+  canChangeApplicationReviewStatus,
+  isRejectedPermanentlyApplicationStatus,
+} from "@/lib/applications/status";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
-import { ensureUserAddressSchema } from "@/lib/user-address-schema";
+import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 
-export const metadata: Metadata = {
-  title: "Admin // Users",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("admin.user-detail.metadata.title");
+}
 
 export default async function AdminUserDetailPage({
   params,
@@ -104,6 +112,18 @@ export default async function AdminUserDetailPage({
   const shouldShowPermanentRejectionLabel =
     !!user.permanently_rejected_at &&
     !isRejectedPermanentlyApplicationStatus(latestApplication?.status);
+  const canAccept = latestApplication
+    ? canChangeApplicationReviewStatus(latestApplication.status, APPLICATION_STATUS_ACCEPTED)
+    : false;
+  const canReject = latestApplication
+    ? canChangeApplicationReviewStatus(latestApplication.status, APPLICATION_STATUS_REJECTED)
+    : false;
+  const canRejectPermanently = latestApplication
+    ? canChangeApplicationReviewStatus(
+        latestApplication.status,
+        APPLICATION_STATUS_REJECTED_PERMANENT,
+      )
+    : false;
 
   return (
     <div className="space-y-10">
@@ -184,49 +204,61 @@ export default async function AdminUserDetailPage({
               </div>
             </div>
 
-            <form action={`/api/admin/users/${user.id}/approve`} method="POST" className="max-w-xl space-y-3">
-              <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-              <button className={buttonVariants({ variant: "success", size: "app" })}>
-                {t("admin.user-detail.actions.bypass-approval")}
-              </button>
-            </form>
+            {canAccept ? (
+              <form action={`/api/admin/users/${user.id}/approve`} method="POST" className="max-w-xl space-y-3">
+                <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                <button className={buttonVariants({ variant: "success", size: "app" })}>
+                  {t("admin.user-detail.actions.bypass-approval")}
+                </button>
+              </form>
+            ) : null}
 
-            <form action={`/api/admin/users/${user.id}/reject`} method="POST" className="max-w-xl space-y-3">
-              <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-              <label className="block text-sm text-secondary">
-                {t("admin.user-detail.actions.reject-note-label")}
-                <Textarea
-                  name="note"
-                  required
-                  rows={5}
-                  className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                  placeholder={t("admin.user-detail.actions.reject-note-placeholder")}
-                />
-              </label>
-              <button className={buttonVariants({ size: "app" })}>
-                {t("admin.user-detail.actions.reject")}
-              </button>
-            </form>
+            {canReject ? (
+              <ConfirmSubmitForm
+                action={`/api/admin/users/${user.id}/reject`}
+                method="POST"
+                className="max-w-xl space-y-3"
+                confirmationMessage={t("common.confirm-destructive")}
+              >
+                <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                <label className="block text-sm text-secondary">
+                  {t("admin.user-detail.actions.reject-note-label")}
+                  <Textarea
+                    name="note"
+                    required
+                    rows={5}
+                    className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    placeholder={t("admin.user-detail.actions.reject-note-placeholder")}
+                  />
+                </label>
+                <button className={buttonVariants({ size: "app" })}>
+                  {t("admin.user-detail.actions.reject")}
+                </button>
+              </ConfirmSubmitForm>
+            ) : null}
 
-            <form
-              action={`/api/admin/users/${user.id}/reject-permanently`}
-              method="POST"
-              className="max-w-xl space-y-3"
-            >
-              <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-              <label className="block text-sm text-secondary">
-                {t("admin.user-detail.actions.permanent-rejection-note-label")}
-                <Textarea
-                  name="note"
-                  rows={4}
-                  className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                  placeholder={t("admin.user-detail.actions.permanent-rejection-note-placeholder")}
-                />
-              </label>
-              <button className={buttonVariants({ size: "app" })}>
-                {t("admin.user-detail.actions.reject-permanently")}
-              </button>
-            </form>
+            {canRejectPermanently ? (
+              <ConfirmSubmitForm
+                action={`/api/admin/users/${user.id}/reject-permanently`}
+                method="POST"
+                className="max-w-xl space-y-3"
+                confirmationMessage={t("common.confirm-destructive")}
+              >
+                <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                <label className="block text-sm text-secondary">
+                  {t("admin.user-detail.actions.permanent-rejection-note-label")}
+                  <Textarea
+                    name="note"
+                    rows={4}
+                    className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    placeholder={t("admin.user-detail.actions.permanent-rejection-note-placeholder")}
+                  />
+                </label>
+                <button className={buttonVariants({ size: "app" })}>
+                  {t("admin.user-detail.actions.reject-permanently")}
+                </button>
+              </ConfirmSubmitForm>
+            ) : null}
           </div>
         ) : (
           <p className="font-body text-base text-white">

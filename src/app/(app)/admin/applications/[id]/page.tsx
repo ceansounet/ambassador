@@ -4,21 +4,28 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { DeleteApplicationButton } from "@/components/admin/delete-application-button";
+import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
 import { DetailFieldRow, DetailPager, DetailSection } from "@/components/admin/detail";
 import { SlackAvatar, SlackProfile } from "@/components/admin/slack-profile";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { buttonVariants } from "@/components/ui/button";
 import { pillVariants } from "@/components/ui/pill";
 import { Textarea } from "@/components/ui/textarea";
-import sql from "@/lib/db";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import {
+  APPLICATION_STATUS_ACCEPTED,
+  APPLICATION_STATUS_REJECTED,
+  APPLICATION_STATUS_REJECTED_PERMANENT,
+  canChangeApplicationReviewStatus,
+} from "@/lib/applications/status";
+import sql from "@/lib/database/client";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
-import { tryParseJson } from "@/lib/parse";
-import { ensureUserAddressSchema } from "@/lib/user-address-schema";
+import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 
-export const metadata: Metadata = {
-  title: "Admin // Applications",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return getTranslatedPageMetadata("admin.application-detail.page-title");
+}
 
 export default async function AdminApplicationDetailPage({
   params,
@@ -126,6 +133,12 @@ export default async function AdminApplicationDetailPage({
           !!address && typeof address === "object",
       )
     : [];
+  const canAccept = canChangeApplicationReviewStatus(application.status, APPLICATION_STATUS_ACCEPTED);
+  const canReject = canChangeApplicationReviewStatus(application.status, APPLICATION_STATUS_REJECTED);
+  const canRejectPermanently = canChangeApplicationReviewStatus(
+    application.status,
+    APPLICATION_STATUS_REJECTED_PERMANENT,
+  );
 
   return (
     <div className="space-y-10">
@@ -193,53 +206,66 @@ export default async function AdminApplicationDetailPage({
         <DeleteApplicationButton
           applicationId={application.id}
           label={t("admin.application-detail.actions.delete")}
+          confirmationMessage={t("admin.application-detail.actions.confirmations.delete")}
         />
 
         {isLatest ? (
           <div className="space-y-6">
-            <form action={`/api/admin/applications/${application.id}/approve`} method="POST" className="max-w-xl space-y-3">
-              <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
-              <button className={buttonVariants({ variant: "success", size: "app" })}>
-                {t("admin.application-detail.actions.accept")}
-              </button>
-            </form>
+            {canAccept ? (
+              <form action={`/api/admin/applications/${application.id}/approve`} method="POST" className="max-w-xl space-y-3">
+                <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
+                <button className={buttonVariants({ variant: "success", size: "app" })}>
+                  {t("admin.application-detail.actions.accept")}
+                </button>
+              </form>
+            ) : null}
 
-            <form action={`/api/admin/applications/${application.id}/reject`} method="POST" className="max-w-xl space-y-3">
-              <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
-              <label className="block text-sm text-secondary">
-                {t("admin.application-detail.actions.reject-note-label")}
-                <Textarea
-                  name="note"
-                  required
-                  rows={5}
-                  className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                  placeholder={t("admin.application-detail.actions.reject-note-placeholder")}
-                />
-              </label>
-              <button className={buttonVariants({ size: "app" })}>
-                {t("admin.application-detail.actions.reject-with-note")}
-              </button>
-            </form>
+            {canReject ? (
+              <ConfirmSubmitForm
+                action={`/api/admin/applications/${application.id}/reject`}
+                method="POST"
+                className="max-w-xl space-y-3"
+                confirmationMessage={t("common.confirm-destructive")}
+              >
+                <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
+                <label className="block text-sm text-secondary">
+                  {t("admin.application-detail.actions.reject-note-label")}
+                  <Textarea
+                    name="note"
+                    required
+                    rows={5}
+                    className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    placeholder={t("admin.application-detail.actions.reject-note-placeholder")}
+                  />
+                </label>
+                <button className={buttonVariants({ size: "app" })}>
+                  {t("admin.application-detail.actions.reject-with-note")}
+                </button>
+              </ConfirmSubmitForm>
+            ) : null}
 
-            <form
-              action={`/api/admin/applications/${application.id}/reject-permanently`}
-              method="POST"
-              className="max-w-xl space-y-3"
-            >
-              <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
-              <label className="block text-sm text-secondary">
-                {t("admin.application-detail.actions.permanent-rejection-note-label")}
-                <Textarea
-                  name="note"
-                  rows={4}
-                  className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                  placeholder={t("admin.application-detail.actions.permanent-rejection-note-placeholder")}
-                />
-              </label>
-              <button className={buttonVariants({ size: "app" })}>
-                {t("admin.application-detail.actions.reject-permanently")}
-              </button>
-            </form>
+            {canRejectPermanently ? (
+              <ConfirmSubmitForm
+                action={`/api/admin/applications/${application.id}/reject-permanently`}
+                method="POST"
+                className="max-w-xl space-y-3"
+                confirmationMessage={t("common.confirm-destructive")}
+              >
+                <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
+                <label className="block text-sm text-secondary">
+                  {t("admin.application-detail.actions.permanent-rejection-note-label")}
+                  <Textarea
+                    name="note"
+                    rows={4}
+                    className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    placeholder={t("admin.application-detail.actions.permanent-rejection-note-placeholder")}
+                  />
+                </label>
+                <button className={buttonVariants({ size: "app" })}>
+                  {t("admin.application-detail.actions.reject-permanently")}
+                </button>
+              </ConfirmSubmitForm>
+            ) : null}
 
             <form
               action={`/api/admin/applications/${application.id}/tshirt-shipped`}
@@ -533,8 +559,16 @@ function AttachmentAnswer({
   attachments: unknown;
   label: string;
 }) {
-  const normalizedAttachments =
-    typeof attachments === "string" ? tryParseJson(attachments) : attachments;
+  let normalizedAttachments = attachments;
+
+  if (typeof attachments === "string") {
+    try {
+      normalizedAttachments = JSON.parse(attachments);
+    } catch {
+      normalizedAttachments = attachments;
+    }
+  }
+
   const items = Array.isArray(normalizedAttachments)
     ? normalizedAttachments.filter(
         (attachment): attachment is { filename?: string; id?: string; url?: string } =>

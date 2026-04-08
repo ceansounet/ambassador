@@ -1,11 +1,12 @@
 import {
+  DuplicateReviewDecisionError,
   getLatestApplicationForApplicationId,
   isUserAdmin,
   reviewApplication,
-} from "@/lib/admin";
+} from "@/lib/applications/review";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
-import { APPLICATION_STATUS_ACCEPTED } from "@/lib/applications";
-import { ensureSchema } from "@/lib/ensure-schema";
+import { APPLICATION_STATUS_ACCEPTED } from "@/lib/applications/status";
+import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
 
 export async function POST(
@@ -34,10 +35,18 @@ export async function POST(
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
-  await reviewApplication(target.id, {
-    status: APPLICATION_STATUS_ACCEPTED,
-    reviewedBy: session.sub,
-  });
+  try {
+    await reviewApplication(target.id, {
+      status: APPLICATION_STATUS_ACCEPTED,
+      reviewedBy: session.sub,
+    });
+  } catch (error) {
+    if (error instanceof DuplicateReviewDecisionError) {
+      return Response.json({ error: "already_in_status" }, { status: 409 });
+    }
+
+    throw error;
+  }
 
   return Response.redirect(
     new URL(
