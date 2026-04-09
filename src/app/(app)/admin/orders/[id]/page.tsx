@@ -38,6 +38,7 @@ type OrderDetailRow = {
   address: HackClubAddress | null;
   warehouse_order_id: string | null;
   warehouse_status: string | null;
+  warehouse_payload: unknown | null;
   note: string | null;
   internal_fail_reason: string | null;
   reviewed_at: string | null;
@@ -64,7 +65,8 @@ export default async function AdminOrderDetailPage({
 
   const [order] = (await sql`
     SELECT o.id, o.user_id, o.status, o.sku, o.variant, o.quantity, o.address,
-           o.warehouse_order_id, o.warehouse_status, o.note, o.internal_fail_reason,
+           o.warehouse_order_id, o.warehouse_status, o.warehouse_payload,
+           o.note, o.internal_fail_reason,
            o.reviewed_at, o.created_at, o.updated_at,
            u.display_name AS user_name, u.email AS user_email,
            u.slack_id AS user_slack_id, u.slack_name AS user_slack_name,
@@ -79,7 +81,11 @@ export default async function AdminOrderDetailPage({
   if (!order) notFound();
 
   const redirectTo = `/admin/orders/${order.id}`;
-  const addressString = order.address ? formatHackClubAddress(order.address) : null;
+  const warehousePayload = parseWarehouseOrderPayload(order.warehouse_payload);
+  const addressString =
+    formatHackClubAddress(order.address) ||
+    formatHackClubAddress(warehousePayload?.address) ||
+    null;
   const [latestOrder] = order.user_id
     ? await sql`
         SELECT id
@@ -90,12 +96,17 @@ export default async function AdminOrderDetailPage({
       `
     : [null];
   const isLatestOrder = latestOrder?.id === order.id;
-  const warehouseUrl = order.warehouse_order_id
-    ? buildWarehouseTrackingUrl(order.warehouse_order_id)
+  const warehouseOrderId = order.warehouse_order_id ?? warehousePayload?.id ?? null;
+  const warehouseUrl = warehouseOrderId ? buildWarehouseTrackingUrl(warehouseOrderId) : null;
+  const publicOrderUrl = warehouseOrderId
+    ? buildWarehousePublicOrderUrl(warehouseOrderId)
     : null;
-  const publicOrderUrl = order.warehouse_order_id
-    ? buildWarehousePublicOrderUrl(order.warehouse_order_id)
-    : null;
+  const warehouseStatus = order.warehouse_status ?? warehousePayload?.status ?? null;
+  const warehouseAddress = formatHackClubAddress(warehousePayload?.address) || null;
+  const warehouseTags =
+    warehousePayload?.tags && warehousePayload.tags.length > 0
+      ? warehousePayload.tags.join(", ")
+      : null;
 
   return (
     <div className="space-y-10">
@@ -142,10 +153,14 @@ export default async function AdminOrderDetailPage({
       >
         {isLatestOrder ? (
           <div className="space-y-6">
-            <form
+            <ConfirmSubmitForm
               action={`/api/admin/orders/${order.id}/approve`}
               method="POST"
               className="max-w-xl space-y-3"
+              confirmationMessages={[
+                t("admin.order-detail.actions.approve-confirmation-first"),
+                t("admin.order-detail.actions.approve-confirmation-second"),
+              ]}
             >
               <input type="hidden" name="redirectTo" value={redirectTo} />
               <button className={buttonVariants({ variant: "success", size: "app" })}>
@@ -153,7 +168,7 @@ export default async function AdminOrderDetailPage({
                   ? t("admin.order-detail.actions.approve-existing")
                   : t("admin.order-detail.actions.approve")}
               </button>
-            </form>
+            </ConfirmSubmitForm>
 
             <ConfirmSubmitForm
               action={`/api/admin/orders/${order.id}/reject`}
@@ -212,12 +227,46 @@ export default async function AdminOrderDetailPage({
       >
         <DetailFieldRow
           label={t("admin.order-detail.fields.warehouse-order-id")}
-          value={order.warehouse_order_id}
+          value={warehouseOrderId}
           mono
         />
         <DetailFieldRow
           label={t("admin.order-detail.fields.warehouse-status")}
-          value={order.warehouse_status}
+          value={warehouseStatus}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.warehouse-address")}
+          value={warehouseAddress}
+          multiline
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.recipient-email")}
+          value={warehousePayload?.recipient_email}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.tracking-number")}
+          value={warehousePayload?.tracking_number}
+          mono
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.carrier")}
+          value={warehousePayload?.carrier}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.service")}
+          value={warehousePayload?.service}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.dispatched-at")}
+          value={formatDateTime(warehousePayload?.dispatched_at ?? null, locale)}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.mailed-at")}
+          value={formatDateTime(warehousePayload?.mailed_at ?? null, locale)}
+        />
+        <DetailFieldRow
+          label={t("admin.order-detail.fields.warehouse-tags")}
+          value={warehouseTags}
         />
         <DetailFieldRow
           label={t("admin.order-detail.fields.internal-fail-reason")}
@@ -292,4 +341,52 @@ function OrderStatusBadge({ status }: { status: string }) {
         : "black";
 
   return <span className={pillVariants({ tone })}>{status}</span>;
+}
+
+type WarehouseOrderPayload = {
+  id?: string;
+  status?: string;
+  address?: HackClubAddress | null;
+  tags?: string[];
+  recipient_email?: string;
+  dispatched_at?: string;
+  mailed_at?: string;
+  tracking_number?: string;
+  carrier?: string;
+  service?: string;
+};
+
+function parseWarehouseOrderPayload(value: unknown): WarehouseOrderPayload | null {
+  if (typeof value === "string") {
+    try {
+      return parseWarehouseOrderPayload(JSON.parse(value) as unknown);
+    } catch {
+      return null;
+    }
+  }
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const payload = value as Record<string, unknown>;
+
+  return {
+    id: typeof payload.id === "string" ? payload.id : undefined,
+    status: typeof payload.status === "string" ? payload.status : undefined,
+    address:
+      payload.address && typeof payload.address === "object" ? (payload.address as HackClubAddress) : null,
+    tags: Array.isArray(payload.tags)
+      ? payload.tags.filter((tag): tag is string => typeof tag === "string")
+      : undefined,
+    recipient_email:
+      typeof payload.recipient_email === "string" ? payload.recipient_email : undefined,
+    dispatched_at:
+      typeof payload.dispatched_at === "string" ? payload.dispatched_at : undefined,
+    mailed_at: typeof payload.mailed_at === "string" ? payload.mailed_at : undefined,
+    tracking_number:
+      typeof payload.tracking_number === "string" ? payload.tracking_number : undefined,
+    carrier: typeof payload.carrier === "string" ? payload.carrier : undefined,
+    service: typeof payload.service === "string" ? payload.service : undefined,
+  };
 }

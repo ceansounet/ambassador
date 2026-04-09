@@ -158,7 +158,7 @@ shirt:
   heading: Order a shirt!
   subheading-main: A completely free of cost shirt, just for you!
   subheading-footnote: Customs will apply if you live outside the US, refer to local import duties.
-  unavailable: Shirt ordering is not enabled for this account yet.
+  unavailable: Coming soon.. sit tight
   refresh-addresses:
     body: Refresh with Hack Club Auth to load your latest shipping addresses.
     cta: Refresh addresses
@@ -177,6 +177,8 @@ shirt:
     pending-body: "Your size {size} shirt is queued for review. We'll ship it once a teammate approves it."
     approved-title: Order approved
     approved-body: "Your size {size} shirt has been sent to the warehouse. Track shipping below."
+    approved-message: "Your order is on the way. Track shipping <link>here</link>."
+    approved-message-no-link: Your order is on the way.
     rejected-title: Order rejected
     rejected-body: We couldn't fulfil this order. You can place a new shirt order below.
     failed-title: Order failed
@@ -360,8 +362,10 @@ admin:
     actions:
       approve: Approve & ship
       approve-existing: Mark approved
+      approve-confirmation-first: Are you sure?
+      approve-confirmation-second: Are you really sure? Warehouse orders mostly cannot be cancelled.
       reject: Reject with note
-      reject-note-label: Reject note
+      reject-note-label: Reject note (Optional)
       reject-note-placeholder: Why this order is being rejected
       historical-order: Only the latest order for this user can be modified. Historical orders stay read-only once a newer order exists.
       open-warehouse-order: Open warehouse order
@@ -375,6 +379,14 @@ admin:
       note: Note
       warehouse-order-id: Warehouse order ID
       warehouse-status: Warehouse status
+      warehouse-address: Warehouse address
+      recipient-email: Recipient email
+      tracking-number: Tracking number
+      carrier: Carrier
+      service: Service
+      dispatched-at: Dispatched at
+      mailed-at: Mailed at
+      warehouse-tags: Warehouse tags
       internal-fail-reason: Internal fail reason
       placed: Placed
       last-updated: Last updated

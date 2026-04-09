@@ -96,7 +96,7 @@ export default async function AdminOrdersPage() {
                   ) : null}
                 </td>
                 <td className="px-5 py-4 max-w-xs font-body text-sm text-white">
-                  {order.address ? formatHackClubAddress(order.address) : "-"}
+                  {formatHackClubAddress(order.address) || "-"}
                 </td>
                 <td className="px-5 py-4">
                   <OrderStatusBadge status={order.status} />

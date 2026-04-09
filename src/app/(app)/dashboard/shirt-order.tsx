@@ -50,20 +50,13 @@ export default function ShirtOrderSection(props: ShirtOrderSectionProps) {
   return (
     <section>
       <h2 className="font-sub text-2xl text-white md:text-3xl">{t("heading")}</h2>
-      <p className="mt-2 text-base text-muted-foreground">
-        {t("subheading-main")}
-        {retryableReason ? (
-          <>
-            {" "}
-            <span className="text-rejection">
-              {t("order.retryable-warning", { reason: retryableReason })}
-            </span>
-          </>
-        ) : null}
-      </p>
-      <p className="mt-0.5 font-body text-[0.72rem] leading-tight text-muted-foreground">
-        {t("subheading-footnote")}
-      </p>
+      {retryableReason ? (
+        <p className="mt-2 text-base text-muted-foreground">
+          <span className="text-rejection">
+            {t("order.retryable-warning", { reason: retryableReason })}
+          </span>
+        </p>
+      ) : null}
       <ShirtOrderBody {...props} />
     </section>
   );
@@ -317,11 +310,35 @@ function useAddressRefreshRedirect(needsAddressRefresh: boolean) {
 
 function LatestOrderCard({ order }: { order: ShirtOrderState }) {
   const t = useTranslations("shirt");
+  const approvedTrackingUrl = order.publicOrderUrl ?? order.warehouseUrl;
+
+  if (order.status === ORDER_STATUS_APPROVED) {
+    return (
+      <div>
+        <p className="font-body text-base text-muted-foreground">
+          {approvedTrackingUrl ? (
+            t.rich("order.approved-message", {
+              link: (chunks) => (
+                <a
+                  href={approvedTrackingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="!text-primary !underline hover:!opacity-80"
+                >
+                  {chunks}
+                </a>
+              ),
+            })
+          ) : (
+            t("order.approved-message-no-link")
+          )}
+        </p>
+      </div>
+    );
+  }
 
   const title =
-    order.status === ORDER_STATUS_APPROVED
-      ? t("order.approved-title")
-      : order.status === ORDER_STATUS_REJECTED
+    order.status === ORDER_STATUS_REJECTED
         ? t("order.rejected-title")
         : order.status === ORDER_STATUS_FAILED
           ? t("order.failed-title")
@@ -329,9 +346,7 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
             ? t("order.cancelled-title")
             : t("order.pending-title");
   const body =
-    order.status === ORDER_STATUS_APPROVED
-      ? t("order.approved-body", { size: order.size ?? "" })
-      : order.status === ORDER_STATUS_REJECTED
+    order.status === ORDER_STATUS_REJECTED
         ? t("order.rejected-body")
         : order.status === ORDER_STATUS_FAILED
           ? t("order.failed-body")
