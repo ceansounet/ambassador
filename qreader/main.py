@@ -16,6 +16,7 @@ register_heif_opener()
 
 # Initialize QReader once at startup
 qreader = QReader()
+MAX_UPLOAD_BYTES = 20971520
 
 
 def is_admin_request(request: Request) -> bool:
@@ -67,11 +68,11 @@ def decode_qr_codes(img: Image.Image) -> list[str]:
 @app.post("/read")
 @limiter.limit("1000/hour")
 async def read(request: Request, file: UploadFile = File(...)):
-    if file.size and file.size > 20 * 1024 * 1024:
+    if file.size and file.size > MAX_UPLOAD_BYTES:
         return JSONResponse(status_code=413, content={"error": "file too large (max 20MB)"})
 
     data = await file.read()
-    if len(data) > 20 * 1024 * 1024:
+    if len(data) > MAX_UPLOAD_BYTES:
         return JSONResponse(status_code=413, content={"error": "file too large (max 20MB)"})
 
     if len(data) == 0:

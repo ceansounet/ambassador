@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently -k --names app,sync --prefix-colors cyan,green \"pnpm dev:next\" \"pnpm airtable:sync-loop\"",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/start-with-airtable-sync.mjs",
+    "start:server": "next start",
     "lint": "pnpm lint:js && pnpm lint:ts && pnpm lint:css && pnpm lint:html",
     "lint:js": "eslint . --cache --cache-location .eslintcache --ext .js,.jsx,.cjs,.mjs",
     "lint:ts": "eslint . --cache --cache-location .eslintcache --ext .ts,.tsx,.cts,.mts",

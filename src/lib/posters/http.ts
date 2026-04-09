@@ -1,10 +1,10 @@
-import { getRequestIp } from "@/lib/http";
+import { getRequestIp, isSameOriginRequest } from "@/lib/http";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
 
-export { getRequestIp };
-const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+export { getRequestIp, isSameOriginRequest };
+const MAX_IMAGE_UPLOAD_BYTES = 10485760;
 
 export class PosterRequestError extends Error {
   constructor(

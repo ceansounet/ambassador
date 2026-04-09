@@ -39,6 +39,7 @@ COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/src ./src
 
 STOPSIGNAL SIGTERM
@@ -48,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 EXPOSE 7171
 
-CMD ["sh", "-c", "exec pnpm start -p ${PORT:-7171}"]
+CMD ["pnpm", "start"]
