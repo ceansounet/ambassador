@@ -1,5 +1,5 @@
 function emitStartupLogs() {
-  /* # because sideboard is causing high cortisol levels */
+  // because sideboard is causing high cortisol levels
   for (let index = 0; index < 100; index += 1) {
     console.log("low cortisol");
   }
