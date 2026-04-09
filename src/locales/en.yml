@@ -658,8 +658,7 @@ landing:
     start: --- START OF MESSAGE ---
     0: At Hack Club, we help teens to discover the joy of code, together. We run events for teen hackers to make cool things, and earn prizes - from iPads, MacBooks and Raspberry Pis, to flights to in-person hackathons around the world. Along the way, they'll find a space online made for them, and maybe make a few friends too.
     1: This summer, we're partnering with NASA, AMD, and GitHub to run <strong>the world's biggest engineering challenge</strong>, and we want your help.
-    2: We're looking for young people like you to advertise Hack Club in your country. We want even more teens to sign up and take part in our events, and we want you to make it happen.
-    3: You can send emails to schools, put up posters, post on social media, or do anything really - how you do outreach is up to you.
+    2: We're looking for young people like you to advertise Hack Club in your country. We want even more teens to sign up and take part in our events, and we want you to put up posters all around your city to make that happen.
     4: In return, we'll give you Hack Club t-shirts and merch. Plus, for every poster you put up, and every signup you get, <strong>we give you money.</strong> Real money. To your bank account. <partyparrot></partyparrot>
     5: Ready?
     end: <<EOF
