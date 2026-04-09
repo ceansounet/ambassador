@@ -65,10 +65,13 @@ export default async function LoginPage() {
           </button>
         </div>
       </div>
-      <button className="mt-4 w-full max-w-md h-12 text-white gap-3 flex items-center justify-center bg-primary">
+      <a
+        href="/api/auth/login"
+        className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white"
+      >
         <Image src={hackClub} alt="" className="size-6 w-auto drop-shadow-sm" />
         <span className="font-bold">{t("app.login.alt-login-link")}</span>
-      </button>
+      </a>
     </main>
   );
 }
