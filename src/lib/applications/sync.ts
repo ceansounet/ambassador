@@ -55,22 +55,19 @@ function getStringField(
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function getBooleanField(
-  record: AirtableApplicationRecord,
-  key: Parameters<typeof resolveApplicationFieldName>[1],
-) {
-  const value = getRecordField(record, key);
+function getApplicationName(record: AirtableApplicationRecord) {
+  const explicitName = getStringField(record, "name");
+  if (explicitName) return explicitName;
 
-  return typeof value === "boolean" ? value : false;
-}
+  const preferredName = getStringField(record, "preferredName");
+  const firstName = getStringField(record, "firstName");
+  const lastName = getStringField(record, "lastName");
 
-function getAttachmentsField(
-  record: AirtableApplicationRecord,
-  key: Parameters<typeof resolveApplicationFieldName>[1],
-) {
-  const value = getRecordField(record, key);
+  const parts = [preferredName ?? firstName, lastName].filter(
+    (value): value is string => Boolean(value),
+  );
 
-  return Array.isArray(value) ? value : [];
+  return parts.length > 0 ? parts.join(" ") : null;
 }
 
 async function findMatchedUser(record: AirtableApplicationRecord): Promise<MatchedUser | null> {
@@ -231,7 +228,7 @@ export async function syncAirtableApplicationsToPostgres(
         UPDATE applications
         SET user_id = ${userId},
             status = ${status},
-            name = ${getStringField(record, "name")},
+            name = ${getApplicationName(record)},
             applicant_email = ${getStringField(record, "email")},
             applicant_slack_id = ${getStringField(record, "slackId")},
             applicant_hca_id = ${matchedUser?.hca_id ?? null},
@@ -243,9 +240,6 @@ export async function syncAirtableApplicationsToPostgres(
             address_state = ${getStringField(record, "addressState")},
             address_zip = ${getStringField(record, "addressZip")},
             address_country = ${getStringField(record, "addressCountry")},
-            tshirt_size = ${getStringField(record, "tshirtSize")},
-            bio = ${getStringField(record, "bio")},
-            headshot_attachments = ${JSON.stringify(getAttachmentsField(record, "headshot"))},
             github_url = ${getStringField(record, "githubUrl")},
             portfolio_url = ${getStringField(record, "portfolioUrl")},
             application_first_thing_do = ${getStringField(
@@ -257,7 +251,6 @@ export async function syncAirtableApplicationsToPostgres(
               "applicationBestPlacePoster",
             )},
             idv_status = ${getStringField(record, "idvStatus")},
-            tshirt_shipped = ${getBooleanField(record, "tshirtShipped")},
             rejection_reason = ${rejectionReason},
             decision_note = ${rejectionReason},
             airtable_created_time = ${createdAt},
@@ -289,15 +282,11 @@ export async function syncAirtableApplicationsToPostgres(
         address_state,
         address_zip,
         address_country,
-        tshirt_size,
-        bio,
-        headshot_attachments,
         github_url,
         portfolio_url,
         application_first_thing_do,
         application_best_place_poster,
         idv_status,
-        tshirt_shipped,
         rejection_reason,
         decision_note,
         airtable_record_id,
@@ -311,7 +300,7 @@ export async function syncAirtableApplicationsToPostgres(
         ${crypto.randomUUID()},
         ${userId},
         ${status},
-        ${getStringField(record, "name")},
+        ${getApplicationName(record)},
         ${getStringField(record, "email")},
         ${getStringField(record, "slackId")},
         ${matchedUser?.hca_id ?? null},
@@ -323,15 +312,11 @@ export async function syncAirtableApplicationsToPostgres(
         ${getStringField(record, "addressState")},
         ${getStringField(record, "addressZip")},
         ${getStringField(record, "addressCountry")},
-        ${getStringField(record, "tshirtSize")},
-        ${getStringField(record, "bio")},
-        ${JSON.stringify(getAttachmentsField(record, "headshot"))},
         ${getStringField(record, "githubUrl")},
         ${getStringField(record, "portfolioUrl")},
         ${getStringField(record, "applicationFirstThingDo")},
         ${getStringField(record, "applicationBestPlacePoster")},
         ${getStringField(record, "idvStatus")},
-        ${getBooleanField(record, "tshirtShipped")},
         ${rejectionReason},
         ${rejectionReason},
         ${record.id},

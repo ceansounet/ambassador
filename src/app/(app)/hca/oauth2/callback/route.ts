@@ -12,10 +12,10 @@ import {
 } from "@/lib/auth";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
-import { geocodeIp, linkAnonymousVisits } from "@/lib/geo";
+import { fetchGeo, geocodeIp, linkAnonymousVisits } from "@/lib/geo";
 import { getRequestIp } from "@/lib/http";
 import { createToken, setSession } from "@/lib/session";
-import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
+import { normalizeHackClubAddresses, resolveAmbassadorRegion } from "@/lib/settings";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -44,8 +44,6 @@ export async function GET(request: Request) {
     [userInfo.identity.first_name, userInfo.identity.last_name]
       .filter(Boolean)
       .join(" ") || "Hacker";
-  const allAddresses = userInfo.identity.addresses ?? [];
-  const primaryAddress = allAddresses[0];
 
   const hcaId = userInfo.identity.id;
   const email = userInfo.identity.primary_email;
@@ -62,11 +60,16 @@ export async function GET(request: Request) {
     userInfo.identity.photo ??
     null;
   const verificationStatus = userInfo.identity.verification_status;
+  const allAddresses = normalizeHackClubAddresses(userInfo.identity.addresses ?? []);
+  const primaryAddress = allAddresses[0] ?? null;
 
   const ip = getRequestIp(request);
+  const addressCountry = primaryAddress?.country?.trim() || null;
+  const signupGeo = addressCountry ? null : await fetchGeo(ip);
+  const detectedCountry = addressCountry ?? signupGeo?.country_name ?? null;
+  const ambassadorRegion = resolveAmbassadorRegion(null, detectedCountry);
 
   await ensureSchema();
-  await ensureUserAddressSchema();
 
   const existingUsers = await sql<{ id: string }[]>`
     SELECT id
@@ -82,7 +85,8 @@ export async function GET(request: Request) {
       id, hca_id, email, display_name, hca_first_name, hca_last_name,
       hca_street_address, hca_locality, hca_region, hca_postal_code, hca_country,
       slack_id, slack_name, slack_avatar_url, verification_status, last_ip,
-      hca_addresses
+      latitude, longitude, city, region, country_code, country_name, postal_code,
+      timezone, org, geocoded_at, hca_addresses, ambassador_region, hca_access_token
     )
     VALUES (
       ${id},
@@ -101,7 +105,19 @@ export async function GET(request: Request) {
       ${slackAvatarUrl},
       ${verificationStatus ?? null},
       ${ip},
-      ${JSON.stringify(allAddresses)}
+      ${signupGeo?.latitude ?? null},
+      ${signupGeo?.longitude ?? null},
+      ${signupGeo?.city ?? null},
+      ${signupGeo?.region ?? null},
+      ${signupGeo?.country_code ?? null},
+      ${detectedCountry},
+      ${signupGeo?.postal_code ?? null},
+      ${signupGeo?.timezone ?? null},
+      ${signupGeo?.org ?? null},
+      ${signupGeo ? new Date() : null},
+      ${JSON.stringify(allAddresses)},
+      ${ambassadorRegion},
+      ${tokenData.access_token}
     )
     ON CONFLICT (hca_id) DO UPDATE SET
       email = EXCLUDED.email,
@@ -118,7 +134,19 @@ export async function GET(request: Request) {
       slack_avatar_url = EXCLUDED.slack_avatar_url,
       verification_status = EXCLUDED.verification_status,
       last_ip = EXCLUDED.last_ip,
+      latitude = COALESCE(EXCLUDED.latitude, users.latitude),
+      longitude = COALESCE(EXCLUDED.longitude, users.longitude),
+      city = COALESCE(EXCLUDED.city, users.city),
+      region = COALESCE(EXCLUDED.region, users.region),
+      country_code = COALESCE(EXCLUDED.country_code, users.country_code),
+      country_name = COALESCE(EXCLUDED.country_name, users.country_name),
+      postal_code = COALESCE(EXCLUDED.postal_code, users.postal_code),
+      timezone = COALESCE(EXCLUDED.timezone, users.timezone),
+      org = COALESCE(EXCLUDED.org, users.org),
+      geocoded_at = COALESCE(EXCLUDED.geocoded_at, users.geocoded_at),
       hca_addresses = EXCLUDED.hca_addresses,
+      ambassador_region = COALESCE(users.ambassador_region, EXCLUDED.ambassador_region),
+      hca_access_token = EXCLUDED.hca_access_token,
       updated_at = NOW()
     RETURNING id, is_admin
   `;
@@ -142,16 +170,36 @@ export async function GET(request: Request) {
   }
 
   await sql`
-    INSERT INTO ip_visits (id, ip, user_id, visit_type)
-    VALUES (${crypto.randomUUID()}, ${ip}, ${user.id}, 'signup')
+    INSERT INTO ip_visits (
+      id, ip, user_id, visit_type, latitude, longitude, city, region,
+      country_code, country_name, postal_code, timezone, org, geocoded_at
+    )
+    VALUES (
+      ${crypto.randomUUID()},
+      ${ip},
+      ${user.id},
+      'signup',
+      ${signupGeo?.latitude ?? null},
+      ${signupGeo?.longitude ?? null},
+      ${signupGeo?.city ?? null},
+      ${signupGeo?.region ?? null},
+      ${signupGeo?.country_code ?? null},
+      ${signupGeo?.country_name ?? null},
+      ${signupGeo?.postal_code ?? null},
+      ${signupGeo?.timezone ?? null},
+      ${signupGeo?.org ?? null},
+      ${signupGeo ? new Date() : null}
+    )
   `;
 
-  void geocodeIp(ip, "users", user.id).catch((error) => {
-    console.error("Failed to geocode signed-in user", { userId: user.id, error });
-  });
-  void geocodeIp(ip, "ip_visits", null, user.id, "signup").catch((error) => {
-    console.error("Failed to geocode signup visit", { userId: user.id, error });
-  });
+  if (!signupGeo) {
+    void geocodeIp(ip, "users", user.id).catch((error) => {
+      console.error("Failed to geocode signed-in user", { userId: user.id, error });
+    });
+    void geocodeIp(ip, "ip_visits", null, user.id, "signup").catch((error) => {
+      console.error("Failed to geocode signup visit", { userId: user.id, error });
+    });
+  }
   void linkAnonymousVisits(ip, user.id).catch((error) => {
     console.error("Failed to link anonymous visits", { userId: user.id, error });
   });

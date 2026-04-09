@@ -4,14 +4,6 @@ import {
   type ApplicationStatus,
 } from "@/lib/applications/status";
 
-export type AirtableAttachment = {
-  id?: string;
-  url?: string;
-  filename?: string;
-  type?: string;
-  size?: number;
-};
-
 export type AirtableApplicationFields = Record<string, unknown>;
 
 export type AirtableApplicationRecord = {
@@ -43,6 +35,9 @@ const applicationFieldCandidates = {
   rejectionReason: ["rejection_reason", "Rejection Reason", "rejection reason"],
   tshirtShipped: ["tshirt-shipped", "tshirt_shipped", "T-Shirt Shipped"],
   name: ["name", "Name"],
+  preferredName: ["preferred_name", "Preferred Name", "preferred name"],
+  firstName: ["first_name", "First Name", "first name"],
+  lastName: ["last_name", "Last Name", "last name"],
   email: ["email", "Email"],
   slackId: ["slack_id", "Slack ID", "slack id"],
   birthdate: ["birthdate", "Birthdate", "Date of Birth"],
@@ -53,9 +48,6 @@ const applicationFieldCandidates = {
   addressZip: ["address_zip", "ZIP", "Postal Code"],
   addressCountry: ["address_country", "Country"],
   phone: ["phone", "Phone"],
-  tshirtSize: ["tshirt-size", "tshirt_size", "T-Shirt Size"],
-  bio: ["bio", "Bio"],
-  headshot: ["headshot", "Headshot"],
   githubUrl: ["github_url", "GitHub URL", "GitHub"],
   portfolioUrl: ["portfolio_url", "Portfolio URL", "Portfolio"],
   applicationFirstThingDo: [

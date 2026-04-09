@@ -3,6 +3,7 @@ import { requireEnv } from "@/lib/env";
 
 const PRIVATE_RANGES = [
   /^10\./,
+  /^169\.254\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
   /^192\.168\./,
   /^127\./,
@@ -16,30 +17,59 @@ function isPrivateIp(ip: string): boolean {
   return ip === "unknown" || PRIVATE_RANGES.some((r) => r.test(ip));
 }
 
-type GeoResult = {
+type GeocoderResponse = {
+  lat?: number;
+  lng?: number;
+  city?: string;
+  region?: string;
+  country_name?: string;
+  country_code?: string;
+  postal_code?: string;
+  timezone?: string;
+  org?: string;
+  error?: string;
+};
+
+export type GeoResult = {
   latitude: number;
   longitude: number;
-  city: string;
-  region: string;
-  country_name: string;
-  country_code: string;
+  city: string | null;
+  region: string | null;
+  country_name: string | null;
+  country_code: string | null;
   postal_code?: string;
   timezone?: string;
   org?: string;
 };
 
-async function fetchGeo(ip: string): Promise<GeoResult | null> {
+export async function fetchGeo(ip: string): Promise<GeoResult | null> {
   if (isPrivateIp(ip)) return null;
 
   const res = await fetch(
-    `https://geocoder.hackclub.com/v1/geoip?ip=${encodeURIComponent(ip)}`,
+    `https://geocoder.hackclub.com/v1/geoip?ip=${encodeURIComponent(ip)}&key=${encodeURIComponent(requireEnv("GEOCODER_KEY"))}`,
     {
-      headers: { Authorization: `Bearer ${requireEnv("GEOCODER_KEY")}` },
+      cache: "no-store",
     },
   );
 
   if (!res.ok) return null;
-  return res.json();
+
+  const geo = (await res.json()) as GeocoderResponse;
+  if (geo.error || typeof geo.lat !== "number" || typeof geo.lng !== "number") {
+    return null;
+  }
+
+  return {
+    latitude: geo.lat,
+    longitude: geo.lng,
+    city: geo.city?.trim() || null,
+    region: geo.region?.trim() || null,
+    country_name: geo.country_name?.trim() || null,
+    country_code: geo.country_code?.trim() || null,
+    postal_code: geo.postal_code?.trim() || undefined,
+    timezone: geo.timezone?.trim() || undefined,
+    org: geo.org?.trim() || undefined,
+  };
 }
 
 export async function geocodeIp(

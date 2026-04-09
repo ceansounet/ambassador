@@ -52,12 +52,6 @@ export async function Navbar({
             {t("app.navbar.posters-link")}
           </a>
           <a
-            href="/shirt"
-            className="inline-flex h-9 items-center rounded-lg px-3 text-base tracking-wide text-white transition-opacity hover:opacity-70"
-          >
-            {t("app.navbar.shirt-link")}
-          </a>
-          <a
             href="/settings"
             aria-label={t("app.navbar.settings-label")}
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-70"

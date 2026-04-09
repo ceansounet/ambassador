@@ -34,13 +34,24 @@ function posterTemplateRoots() {
 }
 
 export function normalizeCampaignSlug(campaignSlug?: string | null) {
-  const normalized = campaignSlug
+  const normalized =
+    campaignSlug
     ?.trim()
     .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/[^a-z0-9-_]+/g, "-") ?? "";
 
-  return normalized || DEFAULT_POSTER_CAMPAIGN;
+  let start = 0;
+  let end = normalized.length;
+
+  while (normalized.charAt(start) === "-") {
+    start += 1;
+  }
+
+  while (end > start && normalized.charAt(end - 1) === "-") {
+    end -= 1;
+  }
+
+  return normalized.slice(start, end) || DEFAULT_POSTER_CAMPAIGN;
 }
 
 function resolveCampaignConfigPath(campaignSlug: string) {

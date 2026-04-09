@@ -35,7 +35,8 @@ export type ShopOrderRow = {
   address: HackClubAddress | null;
   warehouse_order_id: string | null;
   warehouse_status: string | null;
-  rejection_note: string | null;
+  note: string | null;
+  internal_fail_reason: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
   created_at: string;
@@ -44,6 +45,10 @@ export type ShopOrderRow = {
 
 export function buildWarehouseTrackingUrl(warehouseOrderId: string) {
   return `https://mail.hackclub.com/warehouse_orders/${encodeURIComponent(warehouseOrderId)}`;
+}
+
+export function buildWarehousePublicOrderUrl(warehouseOrderId: string) {
+  return `https://mail.hackclub.com/packages/${encodeURIComponent(warehouseOrderId)}`;
 }
 
 export function canPlaceAnotherShirtOrder(status: string | null | undefined) {

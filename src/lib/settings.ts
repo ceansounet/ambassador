@@ -99,6 +99,16 @@ export function normalizeHackClubAddresses(value: unknown): HackClubAddress[] {
   }
 }
 
+export function isCompleteHackClubAddress(address: HackClubAddress) {
+  return Boolean(
+    address.line_1?.trim() &&
+      address.city?.trim() &&
+      address.state?.trim() &&
+      address.postal_code?.trim() &&
+      address.country?.trim(),
+  );
+}
+
 export function formatHackClubAddress(address: HackClubAddress) {
   return [
     address.line_1,

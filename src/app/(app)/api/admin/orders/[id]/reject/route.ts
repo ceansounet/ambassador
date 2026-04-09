@@ -1,9 +1,11 @@
+import { revalidatePath } from "next/cache";
+
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
-import { ORDER_STATUS_PENDING, ORDER_STATUS_REJECTED } from "@/lib/shop";
+import { ORDER_STATUS_REJECTED } from "@/lib/shop";
 
 export async function POST(
   request: Request,
@@ -28,24 +30,39 @@ export async function POST(
   const note = (formData.get("note") as string | null)?.trim() || null;
 
   const [order] = await sql`
-    SELECT id, status FROM orders WHERE id = ${id} LIMIT 1
+    SELECT id, user_id FROM orders WHERE id = ${id} LIMIT 1
   `;
   if (!order) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
-  if (order.status !== ORDER_STATUS_PENDING) {
-    return Response.json({ error: "already_reviewed" }, { status: 409 });
+
+  const [latestOrder] = await sql`
+    SELECT id
+    FROM orders
+    WHERE user_id = ${order.user_id}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `;
+
+  if (latestOrder?.id !== order.id) {
+    return Response.json({ error: "historical_order" }, { status: 409 });
   }
 
   await sql`
     UPDATE orders
     SET status = ${ORDER_STATUS_REJECTED},
-        rejection_note = ${note},
+        note = ${note},
+        internal_fail_reason = NULL,
         reviewed_at = NOW(),
         reviewed_by = ${session.sub},
         updated_at = NOW()
     WHERE id = ${id}
   `;
+
+  revalidatePath(`/admin/orders/${id}`);
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/users/${order.user_id}`);
+  revalidatePath("/dashboard");
 
   return Response.redirect(
     new URL(

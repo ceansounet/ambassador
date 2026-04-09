@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
@@ -6,7 +7,6 @@ import { getTranslatedPageMetadata } from "@/i18n/metadata";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import {
-  buildWarehouseTrackingUrl,
   ORDER_STATUS_APPROVED,
   ORDER_STATUS_CANCELLED,
   ORDER_STATUS_FAILED,
@@ -17,14 +17,11 @@ import { formatHackClubAddress, type HackClubAddress } from "@/lib/settings";
 
 type OrderRow = {
   id: string;
-  user_id: string;
   status: string;
   sku: string | null;
   variant: string | null;
   address: HackClubAddress | null;
-  warehouse_order_id: string | null;
-  warehouse_status: string | null;
-  rejection_note: string | null;
+  note: string | null;
   created_at: string;
   user_name: string | null;
   user_email: string | null;
@@ -39,8 +36,7 @@ export default async function AdminOrdersPage() {
   await ensureSchema();
 
   const orders = (await sql`
-    SELECT o.id, o.user_id, o.status, o.sku, o.variant, o.address,
-           o.warehouse_order_id, o.warehouse_status, o.rejection_note, o.created_at,
+    SELECT o.id, o.status, o.sku, o.variant, o.address, o.note, o.created_at,
            u.display_name AS user_name, u.email AS user_email
     FROM orders o
     LEFT JOIN users u ON u.id = o.user_id
@@ -76,7 +72,7 @@ export default async function AdminOrdersPage() {
                 {t("admin.orders.columns.placed")}
               </th>
               <th className="px-5 py-4 font-body text-base text-secondary">
-                {t("admin.orders.columns.actions")}
+                {t("admin.orders.columns.open")}
               </th>
             </tr>
           </thead>
@@ -104,19 +100,9 @@ export default async function AdminOrdersPage() {
                 </td>
                 <td className="px-5 py-4">
                   <OrderStatusBadge status={order.status} />
-                  {order.status === ORDER_STATUS_APPROVED && order.warehouse_order_id ? (
-                    <a
-                      href={buildWarehouseTrackingUrl(order.warehouse_order_id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-2 inline-flex font-body text-sm !text-primary !underline hover:!opacity-80"
-                    >
-                      {t("admin.orders.warehouse-link")}
-                    </a>
-                  ) : null}
-                  {order.rejection_note ? (
-                    <p className="mt-2 font-body text-sm text-rejection">
-                      {order.rejection_note}
+                  {order.note ? (
+                    <p className="mt-2 max-w-xs font-body text-sm text-rejection">
+                      {order.note}
                     </p>
                   ) : null}
                 </td>
@@ -124,45 +110,13 @@ export default async function AdminOrdersPage() {
                   {new Date(order.created_at).toLocaleDateString(locale)}
                 </td>
                 <td className="px-5 py-4">
-                  {order.status === ORDER_STATUS_PENDING ? (
-                    <div className="flex flex-col gap-2">
-                      <form
-                        action={`/api/admin/orders/${order.id}/approve`}
-                        method="post"
-                      >
-                        <input type="hidden" name="redirectTo" value="/admin/orders" />
-                        <button
-                          type="submit"
-                          className="bg-acceptance px-4 py-2 font-body text-sm text-white hover:opacity-80"
-                        >
-                          {t("admin.orders.actions.approve")}
-                        </button>
-                      </form>
-                      <form
-                        action={`/api/admin/orders/${order.id}/reject`}
-                        method="post"
-                        className="flex flex-col gap-2"
-                      >
-                        <input type="hidden" name="redirectTo" value="/admin/orders" />
-                        <input
-                          type="text"
-                          name="note"
-                          placeholder={t("admin.orders.actions.note-placeholder")}
-                          className="ui-input-surface h-10 px-3 font-body text-sm text-white"
-                        />
-                        <button
-                          type="submit"
-                          className="bg-rejection px-4 py-2 font-body text-sm text-white hover:opacity-80"
-                        >
-                          {t("admin.orders.actions.reject")}
-                        </button>
-                      </form>
-                    </div>
-                  ) : (
-                    <span className="font-body text-sm text-white/50">
-                      {t("admin.orders.actions.none")}
-                    </span>
-                  )}
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    aria-label={t("admin.orders.view-order")}
+                    className="ui-open-link inline-flex font-body text-lg leading-none"
+                  >
+                    <span aria-hidden="true">↗</span>
+                  </Link>
                 </td>
               </tr>
             ))}

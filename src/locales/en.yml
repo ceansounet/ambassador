@@ -22,7 +22,6 @@ app:
     logo-alt: Ambassador
     admin-link: Admin
     posters-link: Posters
-    shirt-link: Shirt
     refresh-session: Refresh session
     settings-label: Settings
     sign-out-label: Sign out
@@ -156,18 +155,16 @@ posters:
     geolocation-denied: Precise location access was denied. Please enable it in your browser settings.
 
 shirt:
-  metadata:
-    title: Shirt
-  heading: Shirt
-  subheading: Free Hack Club merch for ambassadors.
+  heading: Order a shirt!
+  subheading-main: A completely free of cost shirt, just for you!
+  subheading-footnote: Customs will apply if you live outside the US, refer to local import duties.
   unavailable: Shirt ordering is not enabled for this account yet.
-  not-ambassador: The shirt page is only available to approved ambassadors.
+  refresh-addresses:
+    body: Refresh with Hack Club Auth to load your latest shipping addresses.
+    cta: Refresh addresses
   manage-addresses: Manage addresses on Hack Club Auth
-  product:
-    title: Hack Club Ambassador shirt
-    subtitle: Pick a size and we'll ship it to you, on us.
   labels:
-    size: Size
+    size: Size (US Sizing)
     shipping-address: Shipping address
   no-address:
     body: You don't have a shipping address on file yet. Add one on Hack Club Auth, then come back here.
@@ -186,10 +183,14 @@ shirt:
     failed-body: We couldn't send this order through. You can place a new shirt order below.
     cancelled-title: Order cancelled
     cancelled-body: This order was cancelled. You can place a new shirt order below.
+    retryable-warning: "Your last order failed because: {reason} but you can order again!"
+    no-reason: No reason provided
     track-cta: Track on mail.hackclub.com
+    public-cta: Open public order page
   errors:
     generic: Something went wrong.
     not-ambassador: Only approved ambassadors can order a shirt.
+    refresh-addresses: Refresh with Hack Club Auth, then try again.
     unavailable: Shirt ordering is not enabled for this account.
     no-address: You need a shipping address on Hack Club Auth first.
     already-ordered: You've already ordered an ambassador shirt.
@@ -330,18 +331,56 @@ admin:
     empty: No orders yet
     size: "Size {size}"
     warehouse-link: View on mail.hackclub.com ↗
+    view-order: View order
     columns:
       user: User
       item: Item
       address: Address
       status: Status
       placed: Placed
-      actions: Actions
+      open: Open
+  order-detail:
+    page-title: Order details
+    breadcrumb: Orders
+    unknown-user: Unknown user
+    open-user-page: Open user page ↗
+    sections:
+      review-actions:
+        title: Review Actions
+        description: Approve this order to dispatch it to the warehouse, or reject with a note.
+      order:
+        title: Order
+        description: What the ambassador ordered.
+      warehouse:
+        title: Warehouse
+        description: Warehouse dispatch state for this order.
+      metadata:
+        title: Metadata
+        description: Timestamps and reviewer info.
     actions:
       approve: Approve & ship
-      reject: Reject
-      note-placeholder: Optional rejection note
-      none: No actions
+      approve-existing: Mark approved
+      reject: Reject with note
+      reject-note-label: Reject note
+      reject-note-placeholder: Why this order is being rejected
+      historical-order: Only the latest order for this user can be modified. Historical orders stay read-only once a newer order exists.
+      open-warehouse-order: Open warehouse order
+      open-public-order: Open public order page
+    fields:
+      order-id: Order ID
+      sku: SKU
+      variant: Variant
+      quantity: Quantity
+      address: Shipping address
+      note: Note
+      warehouse-order-id: Warehouse order ID
+      warehouse-status: Warehouse status
+      internal-fail-reason: Internal fail reason
+      placed: Placed
+      last-updated: Last updated
+      reviewed: Reviewed
+      reviewed-by: Reviewed by
+      user-email: User email
   applications-list:
     metadata:
       title: Applications
@@ -492,6 +531,9 @@ admin:
       user-actions:
         title: User Actions
         description: All of these controls target the newest application on file.
+      dashboard-state:
+        title: Dashboard State
+        description: Manual fallback state for users without an application. If they apply later, the latest application status takes precedence automatically.
       flags:
         title: Flags
         description: Enable or disable per-user feature flags.
@@ -527,6 +569,15 @@ admin:
     flags:
       posters-enabled: Enable posters page
       shirt-enabled: Enable shirt page
+    dashboard-state:
+      current-manual-state: Current manual state
+      no-manual-state: No manual state set
+      application-precedence: This user has an application on file, so its status currently takes precedence over the manual fallback state.
+      fallback-mode: This manual state is the current dashboard state until the user submits an application.
+      set-approved: Set approved
+      set-rejected: Set rejected
+      set-banned: Set banned
+      clear-state: Clear manual state
     profile-fields:
       display-name: Display name
       first-name: First name
@@ -549,6 +600,7 @@ admin:
       admin: Admin
       posters-enabled: Posters enabled
       shirt-enabled: Shirt enabled
+      manual-dashboard-state: Manual dashboard state
       created: Created
       updated: Updated
     applications:

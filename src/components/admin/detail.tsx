@@ -37,6 +37,7 @@ export function DetailFieldRow({
       <div
         className={[
           mono ? "font-body text-sm text-white" : "font-body text-base text-white",
+          "break-words [overflow-wrap:anywhere]",
           multiline ? "whitespace-pre-line" : "",
         ]
           .filter(Boolean)

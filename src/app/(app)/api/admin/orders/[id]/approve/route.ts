@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache";
+
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -5,8 +7,10 @@ import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
 import {
   ORDER_STATUS_APPROVED,
+  ORDER_STATUS_CANCELLED,
   ORDER_STATUS_FAILED,
   ORDER_STATUS_PENDING,
+  ORDER_STATUS_REJECTED,
 } from "@/lib/shop";
 import { sendWarehouseSku, WarehouseApiError } from "@/lib/warehouse";
 
@@ -32,7 +36,7 @@ export async function POST(
   const formData = await request.formData();
 
   const [order] = await sql`
-    SELECT o.id, o.user_id, o.status, o.sku, o.variant, o.address,
+    SELECT o.id, o.user_id, o.status, o.sku, o.variant, o.address, o.warehouse_order_id,
            u.email, u.display_name
     FROM orders o
     JOIN users u ON u.id = o.user_id
@@ -42,40 +46,73 @@ export async function POST(
   if (!order) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
-  if (order.status !== ORDER_STATUS_PENDING) {
-    return Response.json({ error: "already_reviewed" }, { status: 409 });
+
+  const [latestOrder] = await sql`
+    SELECT id
+    FROM orders
+    WHERE user_id = ${order.user_id}
+    ORDER BY created_at DESC, id DESC
+    LIMIT 1
+  `;
+
+  if (latestOrder?.id !== order.id) {
+    return Response.json({ error: "historical_order" }, { status: 409 });
+  }
+  if (
+    order.status !== ORDER_STATUS_PENDING &&
+    order.status !== ORDER_STATUS_REJECTED &&
+    order.status !== ORDER_STATUS_FAILED &&
+    order.status !== ORDER_STATUS_CANCELLED &&
+    order.status !== ORDER_STATUS_APPROVED
+  ) {
+    return Response.json({ error: "invalid_order_status" }, { status: 409 });
   }
   if (!order.sku || !order.address) {
     return Response.json({ error: "invalid_order" }, { status: 400 });
   }
 
   try {
-    const result = await sendWarehouseSku({
-      sku: order.sku,
-      quantity: 1,
-      name: order.display_name,
-      email: order.email,
-      orderNumber: order.id,
-      address: order.address,
-      userFacingTitle: `Hack Club Ambassador shirt (${order.variant ?? ""})`.trim(),
-      tags: ["Ambassadors"],
-      metadata: {
-        ambassador_order_id: order.id,
-        ambassador_user_id: order.user_id,
-      },
-    });
+    if (order.warehouse_order_id) {
+      await sql`
+        UPDATE orders
+        SET status = ${ORDER_STATUS_APPROVED},
+            note = NULL,
+            internal_fail_reason = NULL,
+            reviewed_at = NOW(),
+            reviewed_by = ${session.sub},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    } else {
+      const result = await sendWarehouseSku({
+        sku: order.sku,
+        quantity: 1,
+        name: order.display_name,
+        email: order.email,
+        orderNumber: order.id,
+        address: order.address,
+        userFacingTitle: `Hack Club Ambassador shirt (${order.variant ?? ""})`.trim(),
+        tags: ["Ambassadors"],
+        metadata: {
+          ambassador_order_id: order.id,
+          ambassador_user_id: order.user_id,
+        },
+      });
 
-    await sql`
-      UPDATE orders
-      SET status = ${ORDER_STATUS_APPROVED},
-          warehouse_order_id = ${result.id ?? null},
-          warehouse_status = ${result.status ?? null},
-          warehouse_payload = CAST(${JSON.stringify(result)} AS JSONB),
-          reviewed_at = NOW(),
-          reviewed_by = ${session.sub},
-          updated_at = NOW()
-      WHERE id = ${id}
-    `;
+      await sql`
+        UPDATE orders
+        SET status = ${ORDER_STATUS_APPROVED},
+            warehouse_order_id = ${result.id ?? null},
+            warehouse_status = ${result.status ?? null},
+            warehouse_payload = CAST(${JSON.stringify(result)} AS JSONB),
+            note = NULL,
+            internal_fail_reason = NULL,
+            reviewed_at = NOW(),
+            reviewed_by = ${session.sub},
+            updated_at = NOW()
+        WHERE id = ${id}
+      `;
+    }
   } catch (error) {
     const message =
       error instanceof WarehouseApiError
@@ -88,10 +125,18 @@ export async function POST(
       UPDATE orders
       SET status = ${ORDER_STATUS_FAILED},
           warehouse_status = 'error',
-          rejection_note = ${message},
+          note = NULL,
+          internal_fail_reason = ${message},
+          reviewed_at = NOW(),
+          reviewed_by = ${session.sub},
           updated_at = NOW()
       WHERE id = ${id}
     `;
+
+    revalidatePath(`/admin/orders/${id}`);
+    revalidatePath("/admin/orders");
+    revalidatePath(`/admin/users/${order.user_id}`);
+    revalidatePath("/dashboard");
 
     return Response.redirect(
       new URL(
@@ -100,6 +145,11 @@ export async function POST(
       ),
     );
   }
+
+  revalidatePath(`/admin/orders/${id}`);
+  revalidatePath("/admin/orders");
+  revalidatePath(`/admin/users/${order.user_id}`);
+  revalidatePath("/dashboard");
 
   return Response.redirect(
     new URL(

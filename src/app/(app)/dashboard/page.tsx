@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { fetchHackClubAddresses } from "@/lib/auth";
 import { DevAdminSelector } from "@/components/dev-admin-selector";
 import { Navbar } from "@/components/navbar";
 import { buttonVariants } from "@/components/ui/button";
@@ -19,8 +20,23 @@ import sql from "@/lib/database/client";
 import { canShowDevAdminSelector, isDevelopmentEnvironment, isDevState, type DevState } from "@/lib/dev-admin-selector";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
-import { resolveAmbassadorRegion } from "@/lib/settings";
+import {
+  isCompleteHackClubAddress,
+  resolveAmbassadorRegion,
+  type HackClubAddress,
+} from "@/lib/settings";
+import {
+  buildWarehousePublicOrderUrl,
+  buildWarehouseTrackingUrl,
+  SHIRT_SKU_PREFIX,
+} from "@/lib/shop";
+import { isUserManualDashboardState } from "@/lib/user-dashboard-state";
 import { cn } from "@/lib/utils";
+
+import ShirtOrderSection, {
+  type ShirtOrderSectionProps,
+  type ShirtOrderState,
+} from "./shirt-order";
 
 type DashboardTranslations = (key: string, values?: Record<string, number | string>) => string;
 type IconGlyph = NonNullable<ComponentProps<typeof Icon>["glyph"]>;
@@ -43,6 +59,14 @@ const toneBg: Record<Tone, string> = {
 
 const STEP_ORDER: StepKey[] = ["apply", "verify", "review", "decision"];
 
+type ShirtOrderRow = {
+  id: string;
+  status: string;
+  variant: string | null;
+  warehouse_order_id: string | null;
+  note: string | null;
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("dashboard.metadata.title");
 }
@@ -61,27 +85,88 @@ export default async function DashboardPage({
     searchParams,
   ]);
 
-  const [[application], [user]] = await Promise.all([
+  const [[application], [user], [existingOrderRow]] = await Promise.all([
     sql`
       SELECT id, status, name, created_at
       FROM applications WHERE user_id = ${session.sub}
       ORDER BY created_at DESC LIMIT 1
     `,
     sql`
-      SELECT balance_cents, is_admin, ambassador_region, country_name FROM users WHERE id = ${session.sub}
+      SELECT balance_cents, is_admin, ambassador_region, country_name,
+             shirt_enabled, hca_access_token, manual_dashboard_state
+      FROM users WHERE id = ${session.sub}
+    `,
+    sql<ShirtOrderRow[]>`
+      SELECT id, status, variant, warehouse_order_id, note
+      FROM orders
+      WHERE user_id = ${session.sub} AND sku LIKE ${`${SHIRT_SKU_PREFIX}%`}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
     `,
   ]);
+
+  const shouldLoadShirtAddresses =
+    Boolean((user as { shirt_enabled?: boolean | null } | undefined)?.shirt_enabled) &&
+    Boolean(application && isAcceptedApplicationStatus(application.status));
+  let shirtNeedsAddressRefresh = false;
+  let shirtAddresses: HackClubAddress[] = [];
+
+  if (shouldLoadShirtAddresses) {
+    const hcaAccessToken = (user as { hca_access_token?: string | null } | undefined)
+      ?.hca_access_token;
+
+    if (!hcaAccessToken) {
+      shirtNeedsAddressRefresh = true;
+    } else {
+      shirtAddresses = await fetchHackClubAddresses(hcaAccessToken).catch((error) => {
+        console.error("Failed to load live Hack Club Auth addresses", {
+          userId: session.sub,
+          error,
+        });
+        shirtNeedsAddressRefresh = true;
+        return [];
+      });
+      shirtAddresses = shirtAddresses.filter(isCompleteHackClubAddress);
+    }
+  }
+  const shirtExistingOrder: ShirtOrderState | null = existingOrderRow
+    ? {
+        id: existingOrderRow.id,
+        status: existingOrderRow.status,
+        size: existingOrderRow.variant,
+        warehouseUrl: existingOrderRow.warehouse_order_id
+          ? buildWarehouseTrackingUrl(existingOrderRow.warehouse_order_id)
+          : null,
+        publicOrderUrl: existingOrderRow.warehouse_order_id
+          ? buildWarehousePublicOrderUrl(existingOrderRow.warehouse_order_id)
+          : null,
+        note: existingOrderRow.note,
+      }
+    : null;
+  const shirt: ShirtOrderSectionProps = {
+    shirtEnabled: Boolean(
+      (user as { shirt_enabled?: boolean | null } | undefined)?.shirt_enabled,
+    ),
+    addresses: shirtAddresses,
+    needsAddressRefresh: shirtNeedsAddressRefresh,
+    existingOrder: shirtExistingOrder,
+  };
 
   const fakeDate = new Date().toISOString();
   const baseResolved = resolveState({
     activeDevState: null,
     application: application as { status: string; created_at: string } | undefined,
     user: user as
-      | { ambassador_region?: string | null; country_name?: string | null }
+      | {
+          ambassador_region?: string | null;
+          country_name?: string | null;
+          manual_dashboard_state?: string | null;
+        }
       | undefined,
     locale,
     fakeDate,
     t,
+    shirt,
   });
   const selectedDevState = normalizeDevState(devState);
   const resolved = isDevelopmentEnvironment && selectedDevState
@@ -89,11 +174,16 @@ export default async function DashboardPage({
         activeDevState: selectedDevState,
         application: application as { status: string; created_at: string } | undefined,
         user: user as
-          | { ambassador_region?: string | null; country_name?: string | null }
+          | {
+              ambassador_region?: string | null;
+              country_name?: string | null;
+              manual_dashboard_state?: string | null;
+            }
           | undefined,
         locale,
         fakeDate,
         t,
+        shirt,
       })
     : baseResolved;
   const canUseSelector = canShowDevAdminSelector(Boolean(user?.is_admin ?? session.isAdmin));
@@ -114,12 +204,12 @@ export default async function DashboardPage({
         </header>
 
         {resolved.activeStep ? (
-          <div className="mt-10">
+          <div className="mt-8">
             <JourneyStepper activeStep={resolved.activeStep} decision={resolved.decision} t={t} />
           </div>
         ) : null}
 
-        <div className="mt-8">{resolved.node}</div>
+        <div className="mt-6">{resolved.node}</div>
       </div>
       {canUseSelector && <DevAdminSelector current={devSwitcherCurrent} />}
     </main>
@@ -133,13 +223,21 @@ function resolveState({
   locale,
   fakeDate,
   t,
+  shirt,
 }: {
   activeDevState: DevState | null;
   application: { status: string; created_at: string } | undefined;
-  user: { ambassador_region?: string | null; country_name?: string | null } | undefined;
+  user:
+    | {
+        ambassador_region?: string | null;
+        country_name?: string | null;
+        manual_dashboard_state?: string | null;
+      }
+    | undefined;
   locale: string;
   fakeDate: string;
   t: DashboardTranslations;
+  shirt: ShirtOrderSectionProps;
 }): { node: ReactNode; activeStep: StepKey | null; decision: Decision; devState: DevState } {
   const ineligible = { node: <IneligibleRegion t={t} />, activeStep: "apply" as const, decision: null, devState: "ineligible" as const };
   const apply = { node: <NoApplication t={t} />, activeStep: "apply" as const, decision: null, devState: "apply" as const };
@@ -156,7 +254,7 @@ function resolveState({
     devState: "pending" as const,
   });
   const approved = {
-    node: <ApprovedApplication t={t} />,
+    node: <ApprovedApplication t={t} shirt={shirt} />,
     activeStep: "decision" as const,
     decision: "approved" as const,
     devState: "approved" as const,
@@ -181,7 +279,14 @@ function resolveState({
     user?.ambassador_region ?? null,
     user?.country_name ?? null,
   );
+  const manualDashboardStateValue = user?.manual_dashboard_state ?? null;
+  const manualDashboardState = isUserManualDashboardState(manualDashboardStateValue)
+    ? manualDashboardStateValue
+    : null;
 
+  if (!application && manualDashboardState === "approved") return approved;
+  if (!application && manualDashboardState === "rejected") return rejected;
+  if (!application && manualDashboardState === "banned") return banned;
   if (!application && resolvedRegion === "Other") return ineligible;
   if (!application) return apply;
   if (application.status === APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS) return verify;
@@ -299,35 +404,34 @@ function StatusCard({
 }: StatusCardProps) {
   return (
     <section>
-      <div className="flex gap-4 sm:gap-6">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center",
-            toneText[tone],
-          )}
-        >
-          <Icon glyph={glyph} size={28} />
+      <div className="min-w-0">
+        <div className="flex items-center gap-3">
+          <h2 className="font-sub text-2xl text-white md:text-3xl">{title}</h2>
+          <span
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center",
+              toneText[tone],
+            )}
+            aria-hidden
+          >
+            <Icon glyph={glyph} size={28} />
+          </span>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <h2 className="font-sub text-2xl text-white md:text-3xl">
-            {title}
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-muted-foreground md:text-lg">
-            {body}
-          </p>
+        <p className="mt-2 text-base leading-relaxed text-muted-foreground md:text-lg">
+          {body}
+        </p>
 
-          {action ? (
-            <a
-              href={action.href}
-              className={cn(buttonVariants({ size: "app" }), "mt-6")}
-              target={action.external ? "_blank" : undefined}
-              rel={action.external ? "noreferrer" : undefined}
-            >
-              {action.label}
-            </a>
-          ) : null}
-        </div>
+        {action ? (
+          <a
+            href={action.href}
+            className={cn(buttonVariants({ size: "app" }), "mt-5")}
+            target={action.external ? "_blank" : undefined}
+            rel={action.external ? "noreferrer" : undefined}
+          >
+            {action.label}
+          </a>
+        ) : null}
       </div>
     </section>
   );
@@ -403,14 +507,23 @@ function PendingAutomaticChecksApplication({ t }: { t: DashboardTranslations }) 
   );
 }
 
-function ApprovedApplication({ t }: { t: DashboardTranslations }) {
+function ApprovedApplication({
+  t,
+  shirt,
+}: {
+  t: DashboardTranslations;
+  shirt: ShirtOrderSectionProps;
+}) {
   return (
-    <StatusCard
-      tone="acceptance"
-      glyph="checkbox-checked"
-      title={t("dashboard.approved.title")}
-      body={t("dashboard.approved.body")}
-    />
+    <div className="space-y-8">
+      <StatusCard
+        tone="acceptance"
+        glyph="checkbox-checked"
+        title={t("dashboard.approved.title")}
+        body={t("dashboard.approved.body")}
+      />
+      <ShirtOrderSection {...shirt} />
+    </div>
   );
 }
 

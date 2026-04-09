@@ -1,9 +1,11 @@
-import { isUserAdmin } from "@/lib/applications/review";
 import { revalidatePath } from "next/cache";
+
+import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
+import { isUserManualDashboardState } from "@/lib/user-dashboard-state";
 
 export async function POST(
   request: Request,
@@ -25,13 +27,17 @@ export async function POST(
 
   const { id } = await params;
   const formData = await request.formData();
-  const postersEnabled = formData.has("postersEnabled");
-  const shirtEnabled = formData.has("shirtEnabled");
+  const rawState = formData.get("state");
+  const trimmedState = typeof rawState === "string" ? rawState.trim() : "";
+  const nextState = trimmedState.length === 0 ? null : trimmedState;
+
+  if (nextState && !isUserManualDashboardState(nextState)) {
+    return Response.json({ error: "invalid_state" }, { status: 400 });
+  }
 
   const [updatedUser] = await sql<{ id: string }[]>`
     UPDATE users
-    SET posters_enabled = ${postersEnabled},
-        shirt_enabled = ${shirtEnabled},
+    SET manual_dashboard_state = ${nextState},
         updated_at = NOW()
     WHERE id = ${id}
     RETURNING id
@@ -42,7 +48,6 @@ export async function POST(
   }
 
   revalidatePath(`/admin/users/${id}`);
-  revalidatePath("/posters");
   revalidatePath("/dashboard");
 
   return Response.redirect(

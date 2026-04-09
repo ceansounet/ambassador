@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { pillVariants } from "@/components/ui/pill";
 import { Textarea } from "@/components/ui/textarea";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import { fetchHackClubAddresses } from "@/lib/auth";
 import {
   APPLICATION_STATUS_ACCEPTED,
   APPLICATION_STATUS_REJECTED,
@@ -22,6 +23,7 @@ import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
 import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
+import type { HackClubAddress } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.application-detail.page-title");
@@ -52,15 +54,13 @@ export default async function AdminApplicationDetailPage({
            a.applicant_hca_id,
            a.applicant_phone, a.date_of_birth, a.address_line_1, a.address_line_2,
            a.address_city, a.address_state, a.address_zip, a.address_country,
-           a.tshirt_size, a.bio, a.headshot_attachments, a.github_url, a.portfolio_url,
-           a.application_first_thing_do, a.application_best_place_poster, a.idv_status,
-           a.tshirt_shipped, a.airtable_record_id, a.field_3, a.field_4, a.field_5, a.field_6,
+           a.github_url, a.portfolio_url, a.application_first_thing_do,
+           a.application_best_place_poster, a.idv_status, a.tshirt_shipped, a.airtable_record_id,
            a.submitted_ip, a.latitude, a.longitude, a.city, a.region, a.country_code, a.country_name,
            a.decision_note, a.rejection_reason, a.reviewed_at, a.created_at, a.updated_at, a.reviewed_by,
            COALESCE(latest.id, a.id) AS latest_application_id,
            u.display_name AS user_name, u.email AS user_email, u.hca_first_name, u.hca_last_name,
-           u.hca_street_address, u.hca_locality, u.hca_region, u.hca_postal_code, u.hca_country,
-           u.hca_addresses,
+           u.hca_addresses, u.hca_access_token,
            u.slack_id AS user_slack_id, u.slack_name AS user_slack_name,
            u.slack_avatar_url AS user_slack_avatar_url, u.hca_id AS user_hca_id, u.verification_status,
            u.last_ip AS user_last_ip, u.city AS user_city, u.region AS user_region,
@@ -82,6 +82,24 @@ export default async function AdminApplicationDetailPage({
   `;
 
   if (!application) notFound();
+
+  const storedAddresses = Array.isArray(application.hca_addresses)
+    ? application.hca_addresses.filter(
+        (address): address is Record<string, unknown> =>
+          !!address && typeof address === "object",
+      )
+    : [];
+  const liveAddresses = application.hca_access_token
+    ? await fetchHackClubAddresses(application.hca_access_token).catch((error) => {
+        console.error("Failed to load live Hack Club Auth addresses", {
+          applicationId: application.id,
+          userId: application.user_id,
+          error,
+        });
+        return [];
+      })
+    : [];
+  const addresses = (liveAddresses.length > 0 ? liveAddresses : storedAddresses) as HackClubAddress[];
 
   const [history, visitCountResult, visits, orders] = await Promise.all([
     application.user_id
@@ -127,12 +145,6 @@ export default async function AdminApplicationDetailPage({
   const isLatest = application.latest_application_id === application.id;
   const totalVisitPages = Math.max(1, Math.ceil(visitCountResult / 3));
   const currentVisitPage = Math.min(visitsPage, totalVisitPages);
-  const addresses = Array.isArray(application.hca_addresses)
-    ? application.hca_addresses.filter(
-        (address): address is Record<string, unknown> =>
-          !!address && typeof address === "object",
-      )
-    : [];
   const canAccept = canChangeApplicationReviewStatus(application.status, APPLICATION_STATUS_ACCEPTED);
   const canReject = canChangeApplicationReviewStatus(application.status, APPLICATION_STATUS_REJECTED);
   const canRejectPermanently = canChangeApplicationReviewStatus(
@@ -321,14 +333,8 @@ export default async function AdminApplicationDetailPage({
             application.address_country,
           )}
         />
-        <DetailFieldRow label={t("admin.application-detail.answers.tshirt-size")} value={application.tshirt_size} />
-        <TextAnswer label={t("admin.application-detail.answers.bio")} value={application.bio} />
         <DetailFieldRow label={t("admin.application-detail.answers.github-url")} value={application.github_url} />
         <DetailFieldRow label={t("admin.application-detail.answers.portfolio-url")} value={application.portfolio_url} />
-        <AttachmentAnswer
-          attachments={application.headshot_attachments}
-          label={t("admin.application-detail.answers.headshot")}
-        />
         <TextAnswer
           label={t("admin.application-detail.answers.first-thing-do")}
           value={application.application_first_thing_do}
@@ -337,10 +343,6 @@ export default async function AdminApplicationDetailPage({
           label={t("admin.application-detail.answers.best-place-poster")}
           value={application.application_best_place_poster}
         />
-        <TextAnswer label={t("admin.application-detail.answers.something-else")} value={application.field_3} />
-        <TextAnswer label={t("admin.application-detail.answers.background")} value={application.field_4} />
-        <TextAnswer label={t("admin.application-detail.answers.why-ambassador")} value={application.field_5} />
-        <TextAnswer label={t("admin.application-detail.answers.anything-else")} value={application.field_6} />
       </DetailSection>
 
       <DetailSection
@@ -398,13 +400,9 @@ export default async function AdminApplicationDetailPage({
         />
         <DetailFieldRow label={t("admin.application-detail.applicant-fields.hca-id")} value={application.user_hca_id} mono />
         <DetailFieldRow label={t("admin.application-detail.applicant-fields.verification-status")} value={application.verification_status} />
-        <DetailFieldRow label={t("admin.application-detail.applicant-fields.street-address")} value={application.hca_street_address} />
-        <DetailFieldRow label={t("admin.application-detail.applicant-fields.hca-city-and-region")} value={joinNonEmpty(application.hca_locality, application.hca_region)} />
-        <DetailFieldRow label={t("admin.application-detail.applicant-fields.hca-postal-code")} value={application.hca_postal_code} />
-        <DetailFieldRow label={t("admin.application-detail.applicant-fields.hca-country")} value={application.hca_country} />
         <DetailFieldRow
           label={t("admin.application-detail.applicant-fields.hca-addresses")}
-          value={addresses.length > 0 ? addresses.map(formatAddress).join("\n\n") : null}
+          value={addresses.length > 0 ? formatAddressList(addresses) : null}
           multiline
         />
         <DetailFieldRow
@@ -526,85 +524,32 @@ export default async function AdminApplicationDetailPage({
   );
 }
 
-function formatAddress(address: Record<string, unknown>) {
+function formatAddress(address: HackClubAddress) {
   return [
-    typeof address.line_1 === "string" ? address.line_1 : null,
-    typeof address.line_2 === "string" ? address.line_2 : null,
+    address.line_1 ?? null,
+    address.line_2 ?? null,
     joinNonEmpty(
-      typeof address.city === "string" ? address.city : null,
-      typeof address.state === "string" ? address.state : null,
-      typeof address.postal_code === "string" ? address.postal_code : null,
-      typeof address.country === "string" ? address.country : null,
+      address.city ?? null,
+      address.state ?? null,
+      address.postal_code ?? null,
+      address.country ?? null,
     ),
   ]
     .filter((part): part is string => !!part)
     .join("\n");
 }
 
+function formatAddressList(addresses: HackClubAddress[]) {
+  return addresses.map((address, index) => `(${index + 1})\n${formatAddress(address)}`).join("\n\n");
+}
+
 function TextAnswer({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div className="space-y-1">
       <div className="text-sm text-secondary">{label}</div>
-      <p className="whitespace-pre-wrap font-body text-base leading-relaxed text-white">
+      <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
         {value ?? "-"}
       </p>
-    </div>
-  );
-}
-
-function AttachmentAnswer({
-  attachments,
-  label,
-}: {
-  attachments: unknown;
-  label: string;
-}) {
-  let normalizedAttachments = attachments;
-
-  if (typeof attachments === "string") {
-    try {
-      normalizedAttachments = JSON.parse(attachments);
-    } catch {
-      normalizedAttachments = attachments;
-    }
-  }
-
-  const items = Array.isArray(normalizedAttachments)
-    ? normalizedAttachments.filter(
-        (attachment): attachment is { filename?: string; id?: string; url?: string } =>
-          !!attachment && typeof attachment === "object",
-      )
-    : [];
-
-  return (
-    <div className="space-y-1">
-      <div className="text-sm text-secondary">{label}</div>
-      {items.length > 0 ? (
-        <div className="space-y-2">
-          {items.map((attachment) => (
-            attachment.url ? (
-              <a
-                key={attachment.id ?? attachment.url ?? attachment.filename}
-                href={attachment.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block font-body text-base text-white underline hover:opacity-80"
-              >
-                {attachment.filename ?? attachment.url}
-              </a>
-            ) : (
-              <p
-                key={attachment.id ?? attachment.filename}
-                className="font-body text-base text-white"
-              >
-                {attachment.filename ?? "-"}
-              </p>
-            )
-          ))}
-        </div>
-      ) : (
-        <p className="font-body text-base leading-relaxed text-white">-</p>
-      )}
     </div>
   );
 }

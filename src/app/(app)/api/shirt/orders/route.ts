@@ -1,3 +1,4 @@
+import { fetchHackClubAddresses } from "@/lib/auth";
 import { isAcceptedApplicationStatus } from "@/lib/applications/status";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -10,7 +11,7 @@ import {
   SHIRT_SKU_PREFIX,
   shirtSku,
 } from "@/lib/shop";
-import { normalizeHackClubAddresses } from "@/lib/settings";
+import { isCompleteHackClubAddress, type HackClubAddress } from "@/lib/settings";
 
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   const [user] = await sql`
-    SELECT id, hca_addresses, selected_address_index, shirt_enabled
+    SELECT id, shirt_enabled, hca_access_token
     FROM users
     WHERE id = ${session.sub}
   `;
@@ -56,7 +57,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "not_ambassador" }, { status: 403 });
   }
 
-  const addresses = normalizeHackClubAddresses(user.hca_addresses);
+  if (!user.hca_access_token) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  let addresses: HackClubAddress[] = [];
+  try {
+    addresses = await fetchHackClubAddresses(user.hca_access_token);
+  } catch (error) {
+    console.error("Failed to load live Hack Club Auth addresses for shirt order", {
+      userId: session.sub,
+      error,
+    });
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  addresses = addresses.filter(isCompleteHackClubAddress);
+
   if (addresses.length === 0) {
     return Response.json({ error: "no_address" }, { status: 400 });
   }
@@ -64,9 +81,7 @@ export async function POST(request: Request) {
   const requestedIndex =
     Number.isInteger(body.addressIndex) && (body.addressIndex as number) >= 0
       ? (body.addressIndex as number)
-      : Number.isInteger(user.selected_address_index)
-        ? user.selected_address_index
-        : 0;
+      : 0;
   const addressIndex = Math.min(Math.max(requestedIndex, 0), addresses.length - 1);
   const address = addresses[addressIndex];
 

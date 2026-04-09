@@ -1,7 +1,6 @@
 "use client";
 
-import Icon from "@hackclub/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -31,25 +30,59 @@ export type ShirtOrderState = {
   status: string;
   size: string | null;
   warehouseUrl: string | null;
-  rejectionNote: string | null;
+  publicOrderUrl: string | null;
+  note: string | null;
 };
 
-export default function ShirtClient({
-  addresses,
-  selectedAddressIndex,
-  existingOrder,
-}: {
+export type ShirtOrderSectionProps = {
+  shirtEnabled: boolean;
   addresses: HackClubAddress[];
-  selectedAddressIndex: number;
+  needsAddressRefresh: boolean;
   existingOrder: ShirtOrderState | null;
-}) {
+};
+
+export default function ShirtOrderSection(props: ShirtOrderSectionProps) {
   const t = useTranslations("shirt");
+  const retryableReason =
+    props.existingOrder && canPlaceAnotherShirtOrder(props.existingOrder.status)
+      ? props.existingOrder.note?.trim() || t("order.no-reason")
+      : null;
+  return (
+    <section>
+      <h2 className="font-sub text-2xl text-white md:text-3xl">{t("heading")}</h2>
+      <p className="mt-2 text-base text-muted-foreground">
+        {t("subheading-main")}
+        {retryableReason ? (
+          <>
+            {" "}
+            <span className="text-rejection">
+              {t("order.retryable-warning", { reason: retryableReason })}
+            </span>
+          </>
+        ) : null}
+      </p>
+      <p className="mt-0.5 font-body text-[0.72rem] leading-tight text-muted-foreground">
+        {t("subheading-footnote")}
+      </p>
+      <ShirtOrderBody {...props} />
+    </section>
+  );
+}
+
+function ShirtOrderBody({
+  shirtEnabled,
+  addresses,
+  needsAddressRefresh,
+  existingOrder,
+}: ShirtOrderSectionProps) {
+  const t = useTranslations("shirt");
+  useAddressRefreshRedirect(needsAddressRefresh);
   const [size, setSize] = useState<ShirtSize>(
     existingOrder?.size && SHIRT_SIZES.includes(existingOrder.size as ShirtSize)
       ? (existingOrder.size as ShirtSize)
       : "M",
   );
-  const [addressIndex, setAddressIndex] = useState(selectedAddressIndex);
+  const [addressIndex, setAddressIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [order, setOrder] = useState<ShirtOrderState | null>(existingOrder);
@@ -66,9 +99,24 @@ export default function ShirtClient({
   const selectContentClass =
     "!rounded-none [border-radius:0!important] border-white/10 bg-black text-white !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
 
+  if (!shirtEnabled) {
+    return <p className="mt-5 font-body text-base text-white">{t("unavailable")}</p>;
+  }
+
+  if (needsAddressRefresh && !order) {
+    return (
+      <div className="mt-5 space-y-3">
+        <p className="font-body text-base text-white">{t("refresh-addresses.body")}</p>
+        <a href="/api/auth/login" className={buttonVariants({ size: "app" })}>
+          {t("refresh-addresses.cta")}
+        </a>
+      </div>
+    );
+  }
+
   if (addresses.length === 0 && !order) {
     return (
-      <div className="mt-8 space-y-4">
+      <div className="mt-5 space-y-3">
         <p className="font-body text-base text-white">{t("no-address.body")}</p>
         <ExternalArrowLink
           href="https://auth.hackclub.com/addresses"
@@ -94,7 +142,8 @@ export default function ShirtClient({
           status: ORDER_STATUS_PENDING,
           size,
           warehouseUrl: null,
-          rejectionNote: null,
+          publicOrderUrl: null,
+          note: null,
         });
       } else {
         const data = (await res.json().catch(() => null)) as {
@@ -105,6 +154,8 @@ export default function ShirtClient({
             ? t("errors.no-address")
             : data?.error === "not_ambassador"
               ? t("errors.not-ambassador")
+              : data?.error === "unauthorized"
+                ? t("errors.refresh-addresses")
               : data?.error === "shirt_unavailable"
                 ? t("errors.unavailable")
                 : data?.error === "already_ordered"
@@ -123,32 +174,31 @@ export default function ShirtClient({
 
   if (order && !canPlaceOrder) {
     return (
-      <div className="mt-8">
+      <div className="mt-5">
         <LatestOrderCard order={order} />
       </div>
     );
   }
 
   return (
-    <div className="mt-8 space-y-6">
-      {order ? <LatestOrderCard order={order} /> : null}
-
-      <div className="flex items-center gap-3">
-        <Icon glyph="shirt-fill" size={28} className="text-primary" />
-        <div>
-          <h2 className="font-sub text-2xl text-white">{t("product.title")}</h2>
-          <p className="font-body text-sm text-muted-foreground">{t("product.subtitle")}</p>
-        </div>
-      </div>
-
+    <div className="mt-5 space-y-5">
       {addresses.length === 0 ? (
-        <div className="space-y-4">
-          <p className="font-body text-base text-white">{t("no-address.body")}</p>
-          <ExternalArrowLink
-            href="https://auth.hackclub.com/addresses"
-            label={t("no-address.cta")}
-          />
-        </div>
+        needsAddressRefresh ? (
+          <div className="space-y-4">
+            <p className="font-body text-base text-white">{t("refresh-addresses.body")}</p>
+            <a href="/api/auth/login" className={buttonVariants({ size: "app" })}>
+              {t("refresh-addresses.cta")}
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="font-body text-base text-white">{t("no-address.body")}</p>
+            <ExternalArrowLink
+              href="https://auth.hackclub.com/addresses"
+              label={t("no-address.cta")}
+            />
+          </div>
+        )
       ) : (
         <>
           <div>
@@ -221,7 +271,7 @@ export default function ShirtClient({
                 </SelectContent>
               </Select>
             )}
-            <div className="mt-3 text-right">
+            <div className="mt-2 text-right">
               <ExternalArrowLink
                 href="https://auth.hackclub.com/addresses"
                 label={t("manage-addresses")}
@@ -245,6 +295,24 @@ export default function ShirtClient({
       )}
     </div>
   );
+}
+
+function useAddressRefreshRedirect(needsAddressRefresh: boolean) {
+  useEffect(() => {
+    const storageKey = "shirt-address-refresh-attempted";
+
+    if (!needsAddressRefresh) {
+      window.sessionStorage.removeItem(storageKey);
+      return;
+    }
+
+    if (window.sessionStorage.getItem(storageKey) === "1") {
+      return;
+    }
+
+    window.sessionStorage.setItem(storageKey, "1");
+    window.location.assign("/api/auth/login");
+  }, [needsAddressRefresh]);
 }
 
 function LatestOrderCard({ order }: { order: ShirtOrderState }) {
@@ -272,33 +340,41 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
             : t("order.pending-body", { size: order.size ?? "" });
 
   return (
-    <div className="flex items-start gap-4">
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center text-acceptance">
-        <Icon glyph="shirt-fill" size={36} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <h2 className="font-sub text-2xl text-white">{title}</h2>
-        <p className="mt-2 font-body text-base text-muted-foreground">{body}</p>
+    <div>
+      <h3 className="font-sub text-2xl text-white">{title}</h3>
+      <p className="mt-2 font-body text-base text-muted-foreground">{body}</p>
 
-        {(order.status === ORDER_STATUS_REJECTED ||
-          order.status === ORDER_STATUS_FAILED ||
-          order.status === ORDER_STATUS_CANCELLED) &&
-        order.rejectionNote ? (
-          <p className="mt-3 font-body text-sm text-rejection">{order.rejectionNote}</p>
-        ) : null}
+      {(order.status === ORDER_STATUS_REJECTED ||
+        order.status === ORDER_STATUS_FAILED ||
+        order.status === ORDER_STATUS_CANCELLED) &&
+      order.note ? (
+        <p className="mt-3 font-body text-sm text-rejection">{order.note}</p>
+      ) : null}
 
-        {order.warehouseUrl ? (
-          <a
-            href={order.warehouseUrl}
-            target="_blank"
-            rel="noreferrer"
-            className={cn(buttonVariants({ size: "app" }), "mt-6")}
-          >
-            {t("order.track-cta")}
-            <Icon glyph="external-fill" size={16} />
-          </a>
-        ) : null}
-      </div>
+      {order.warehouseUrl || order.publicOrderUrl ? (
+        <div className="mt-6 flex flex-wrap gap-3">
+          {order.warehouseUrl ? (
+            <a
+              href={order.warehouseUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ size: "app" })}
+            >
+              {t("order.track-cta")}
+            </a>
+          ) : null}
+          {order.publicOrderUrl ? (
+            <a
+              href={order.publicOrderUrl}
+              target="_blank"
+              rel="noreferrer"
+              className={buttonVariants({ size: "app" })}
+            >
+              {t("order.public-cta")}
+            </a>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -309,10 +385,9 @@ function ExternalArrowLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1 !text-primary !underline hover:!opacity-80"
+      className="inline-flex items-center !text-primary !underline hover:!opacity-80"
     >
-      {label}
-      <Icon glyph="external-fill" size={14} />
+      <span>{label} ↗</span>
     </a>
   );
 }

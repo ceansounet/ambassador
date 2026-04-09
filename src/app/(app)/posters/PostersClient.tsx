@@ -67,6 +67,14 @@ type VerifyTarget =
 
 const POSTER_STYLES: PosterStyle[] = ["color", "bw", "printer_efficient"];
 
+function isSafePreviewUrl(value: string) {
+  try {
+    return new URL(value).protocol === "blob:";
+  } catch {
+    return false;
+  }
+}
+
 export function PostersClient({
   campaigns,
   initialCampaignSlug,
@@ -534,6 +542,7 @@ function VerifyModal({
     target.kind === "group"
       ? target.group.name || t("groups.unnamed")
       : t("poster-card.referral", { code: target.poster.referral_code });
+  const safePreviewUrl = previewUrl && isSafePreviewUrl(previewUrl) ? previewUrl : null;
 
   const handleSubmit = useCallback(async () => {
     if (geoState.kind !== "ok" || !file) return;
@@ -606,10 +615,10 @@ function VerifyModal({
               </div>
 
               <div className="space-y-3">
-                {previewUrl ? (
+                {safePreviewUrl ? (
                   <div className="overflow-hidden rounded-lg border border-white/10">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewUrl} alt="" className="h-48 w-full object-cover" />
+                    <img src={safePreviewUrl} alt="" className="h-48 w-full object-cover" />
                   </div>
                 ) : null}
                 <div className="flex flex-wrap gap-2">

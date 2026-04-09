@@ -62,7 +62,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     traceback.print_exc()
     return JSONResponse(
         status_code=500,
-        content={"error": f"Internal server error: {error_detail}", "results": [], "count": 0}
+        content={"error": "internal server error", "results": [], "count": 0}
     )
 
 

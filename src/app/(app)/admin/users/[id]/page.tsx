@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { pillVariants } from "@/components/ui/pill";
 import { Textarea } from "@/components/ui/textarea";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
+import { fetchHackClubAddresses } from "@/lib/auth";
 import {
   APPLICATION_STATUS_ACCEPTED,
   APPLICATION_STATUS_REJECTED,
@@ -22,6 +23,11 @@ import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
 import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
+import {
+  getUserManualDashboardStateLabel,
+  isUserManualDashboardState,
+} from "@/lib/user-dashboard-state";
+import type { HackClubAddress } from "@/lib/settings";
 
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.user-detail.metadata.title");
@@ -49,11 +55,11 @@ export default async function AdminUserDetailPage({
   await ensureUserAddressSchema();
 
   const [user] = await sql`
-    SELECT id, hca_id, email, display_name, hca_first_name, hca_last_name, hca_street_address,
-           hca_locality, hca_region, hca_postal_code, hca_country, slack_id, slack_name,
+    SELECT id, hca_id, email, display_name, hca_first_name, hca_last_name, slack_id, slack_name,
            slack_avatar_url, verification_status, is_admin, last_ip, latitude, longitude, city,
            region, country_code, country_name, postal_code, timezone, org, hca_addresses,
-           posters_enabled, shirt_enabled,
+           hca_access_token,
+           posters_enabled, shirt_enabled, manual_dashboard_state,
            permanently_rejected_at, permanent_rejection_note, created_at, updated_at
     FROM users
     WHERE id = ${id}
@@ -62,12 +68,22 @@ export default async function AdminUserDetailPage({
 
   if (!user) notFound();
 
-  const addresses = Array.isArray(user.hca_addresses)
+  const storedAddresses = Array.isArray(user.hca_addresses)
     ? user.hca_addresses.filter(
         (address): address is Record<string, unknown> =>
           !!address && typeof address === "object",
       )
     : [];
+  const liveAddresses = user.hca_access_token
+    ? await fetchHackClubAddresses(user.hca_access_token).catch((error) => {
+        console.error("Failed to load live Hack Club Auth addresses", {
+          userId: user.id,
+          error,
+        });
+        return [];
+      })
+    : [];
+  const addresses = (liveAddresses.length > 0 ? liveAddresses : storedAddresses) as HackClubAddress[];
 
   const [latestApplication, applications, visitCountResult, visits, orders] = await Promise.all([
     sql`
@@ -124,6 +140,14 @@ export default async function AdminUserDetailPage({
         APPLICATION_STATUS_REJECTED_PERMANENT,
       )
     : false;
+  const manualDashboardState = isUserManualDashboardState(
+    user.manual_dashboard_state ?? null,
+  )
+    ? user.manual_dashboard_state
+    : null;
+  const manualDashboardStateLabel = manualDashboardState
+    ? getUserManualDashboardStateLabel(t, manualDashboardState)
+    : t("admin.user-detail.dashboard-state.no-manual-state");
 
   return (
     <div className="space-y-10">
@@ -268,6 +292,51 @@ export default async function AdminUserDetailPage({
       </DetailSection>
 
       <DetailSection
+        title={t("admin.user-detail.sections.dashboard-state.title")}
+        description={t("admin.user-detail.sections.dashboard-state.description")}
+      >
+        <DetailFieldRow
+          label={t("admin.user-detail.dashboard-state.current-manual-state")}
+          value={manualDashboardStateLabel}
+        />
+        <p className="max-w-3xl font-body text-sm text-white">
+          {latestApplication
+            ? t("admin.user-detail.dashboard-state.application-precedence")
+            : t("admin.user-detail.dashboard-state.fallback-mode")}
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <form action={`/api/admin/users/${user.id}/state`} method="POST">
+            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+            <input type="hidden" name="state" value="approved" />
+            <button className={buttonVariants({ variant: "success", size: "app-sm" })}>
+              {t("admin.user-detail.dashboard-state.set-approved")}
+            </button>
+          </form>
+          <form action={`/api/admin/users/${user.id}/state`} method="POST">
+            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+            <input type="hidden" name="state" value="rejected" />
+            <button className={buttonVariants({ size: "app-sm" })}>
+              {t("admin.user-detail.dashboard-state.set-rejected")}
+            </button>
+          </form>
+          <form action={`/api/admin/users/${user.id}/state`} method="POST">
+            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+            <input type="hidden" name="state" value="banned" />
+            <button className={buttonVariants({ variant: "destructive", size: "app-sm" })}>
+              {t("admin.user-detail.dashboard-state.set-banned")}
+            </button>
+          </form>
+          <form action={`/api/admin/users/${user.id}/state`} method="POST">
+            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+            <input type="hidden" name="state" value="" />
+            <button className={buttonVariants({ variant: "outline", size: "app-sm" })}>
+              {t("admin.user-detail.dashboard-state.clear-state")}
+            </button>
+          </form>
+        </div>
+      </DetailSection>
+
+      <DetailSection
         title={t("admin.user-detail.sections.flags.title")}
         description={t("admin.user-detail.sections.flags.description")}
       >
@@ -319,13 +388,9 @@ export default async function AdminUserDetailPage({
         />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.hca-id")} value={user.hca_id} mono />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.verification-status")} value={user.verification_status} />
-        <DetailFieldRow label={t("admin.user-detail.profile-fields.street-address")} value={user.hca_street_address} />
-        <DetailFieldRow label={t("admin.user-detail.profile-fields.hca-city-and-region")} value={joinNonEmpty(user.hca_locality, user.hca_region)} />
-        <DetailFieldRow label={t("admin.user-detail.profile-fields.hca-postal-code")} value={user.hca_postal_code} />
-        <DetailFieldRow label={t("admin.user-detail.profile-fields.hca-country")} value={user.hca_country} />
         <DetailFieldRow
           label={t("admin.user-detail.profile-fields.hca-addresses")}
-          value={addresses.length > 0 ? addresses.map(formatAddress).join("\n\n") : null}
+          value={addresses.length > 0 ? formatAddressList(addresses) : null}
           multiline
         />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.location")} value={joinNonEmpty(user.city, user.region, user.country_name, user.country_code)} />
@@ -345,6 +410,7 @@ export default async function AdminUserDetailPage({
         <DetailFieldRow label={t("admin.user-detail.profile-fields.admin")} value={user.is_admin ? t("common.yes") : t("common.no")} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.posters-enabled")} value={user.posters_enabled ? t("common.yes") : t("common.no")} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.shirt-enabled")} value={user.shirt_enabled ? t("common.yes") : t("common.no")} />
+        <DetailFieldRow label={t("admin.user-detail.profile-fields.manual-dashboard-state")} value={manualDashboardStateLabel} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.created")} value={formatDateTime(user.created_at, locale)} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.updated")} value={formatDateTime(user.updated_at, locale)} />
       </DetailSection>
@@ -483,17 +549,21 @@ export default async function AdminUserDetailPage({
   );
 }
 
-function formatAddress(address: Record<string, unknown>) {
+function formatAddress(address: HackClubAddress) {
   return [
-    typeof address.line_1 === "string" ? address.line_1 : null,
-    typeof address.line_2 === "string" ? address.line_2 : null,
+    address.line_1 ?? null,
+    address.line_2 ?? null,
     joinNonEmpty(
-      typeof address.city === "string" ? address.city : null,
-      typeof address.state === "string" ? address.state : null,
-      typeof address.postal_code === "string" ? address.postal_code : null,
-      typeof address.country === "string" ? address.country : null,
+      address.city ?? null,
+      address.state ?? null,
+      address.postal_code ?? null,
+      address.country ?? null,
     ),
   ]
     .filter((part): part is string => !!part)
     .join("\n");
+}
+
+function formatAddressList(addresses: HackClubAddress[]) {
+  return addresses.map((address, index) => `(${index + 1})\n${formatAddress(address)}`).join("\n\n");
 }

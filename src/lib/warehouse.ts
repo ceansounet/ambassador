@@ -153,8 +153,51 @@ function requireField(fieldName: string, value?: string) {
   return normalized
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function readOptionalString(value: unknown) {
+  return typeof value === "string" ? value : undefined
+}
+
+function readOptionalBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : undefined
+}
+
+function coerceHackClubAuthAddress(value: unknown): HackClubAuthAddress | null {
+  if (typeof value === "string") {
+    try {
+      return coerceHackClubAuthAddress(JSON.parse(value) as unknown)
+    } catch {
+      return null
+    }
+  }
+
+  if (!isRecord(value)) {
+    return null
+  }
+
+  return {
+    first_name: readOptionalString(value.first_name),
+    last_name: readOptionalString(value.last_name),
+    line_1: readOptionalString(value.line_1),
+    line_2: readOptionalString(value.line_2),
+    city: readOptionalString(value.city),
+    state: readOptionalString(value.state),
+    postal_code: readOptionalString(value.postal_code),
+    country: readOptionalString(value.country),
+    phone_number: readOptionalString(value.phone_number),
+    primary: readOptionalBoolean(value.primary),
+  }
+}
+
 export function pickPrimaryHackClubAddress(addresses: HackClubAuthAddress[]) {
-  return addresses.find((address) => address.primary) ?? addresses[0] ?? null
+  const normalizedAddresses = addresses
+    .map((address) => coerceHackClubAuthAddress(address))
+    .filter((address): address is HackClubAuthAddress => !!address)
+
+  return normalizedAddresses.find((address) => address.primary) ?? normalizedAddresses[0] ?? null
 }
 
 export function normalizeHackClubAddress(input: WarehouseAddressInput): WarehouseOrderAddress {
@@ -180,7 +223,8 @@ export function buildAmbassadorIdempotencyKey(orderNumber: string, name: string)
 }
 
 export function buildWarehouseOrderPayload(input: SendWarehouseSkuInput): WarehouseCreatePayload {
-  const selectedAddress = input.address ?? pickPrimaryHackClubAddress(input.addresses || [])
+  const selectedAddress =
+    coerceHackClubAuthAddress(input.address) ?? pickPrimaryHackClubAddress(input.addresses || [])
 
   if (!selectedAddress) {
     throw new Error("A Hack Club Auth address is required to create a warehouse order")
