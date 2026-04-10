@@ -9,8 +9,8 @@ import { useTranslations } from "next-intl";
 
 const events = [
   { key: "flagship", image: campfireFlagship, decoration: false },
-  { key: "blueprint", image: blueprint, decoration: false },
   { key: "midnight", image: midnight, decoration: true },
+  { key: "blueprint", image: blueprint, decoration: false },
   { key: "siege", image: siege, decoration: false },
 ] as const;
 
@@ -32,7 +32,7 @@ export default function PastEvents() {
           })}
         </p>
       </div>
-      <div className="mt-8 lg:columns-2 gap-8 space-y-12 *:break-inside-avoid">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-12">
         {events.map((event) => (
           <section key={event.key}>
             <div className={event.decoration ? "relative" : undefined}>
