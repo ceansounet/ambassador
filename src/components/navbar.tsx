@@ -13,10 +13,12 @@ const usdFormatter = new Intl.NumberFormat("en-US", {
 export async function Navbar({
   isAdmin = false,
   balanceCents = 0,
+  showPostersLink = false,
   showBottomBorder = true,
 }: {
   isAdmin?: boolean;
   balanceCents?: number;
+  showPostersLink?: boolean;
   showBottomBorder?: boolean;
 }) {
   const t = await getTranslations();
@@ -51,12 +53,14 @@ export async function Navbar({
               {t("app.navbar.admin-link")}
             </a>
           )}
-          <a
-            href="/posters"
-            className="inline-flex h-9 items-center rounded-lg px-3 text-base tracking-wide text-white transition-opacity hover:opacity-70"
-          >
-            {t("app.navbar.posters-link")}
-          </a>
+          {showPostersLink ? (
+            <a
+              href="/posters"
+              className="inline-flex h-9 items-center rounded-lg px-3 text-base tracking-wide text-white transition-opacity hover:opacity-70"
+            >
+              {t("app.navbar.posters-link")}
+            </a>
+          ) : null}
           <a
             href="/settings"
             aria-label={t("app.navbar.settings-label")}

@@ -1,5 +1,5 @@
 import { getRequestIp, isSameOriginRequest } from "@/lib/http";
-import sql from "@/lib/database/client";
+import { canAccessPosters, getPosterAccessState } from "@/lib/posters/access";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSession } from "@/lib/session";
 
@@ -24,15 +24,19 @@ export async function requirePosterSession() {
   }
 
   await ensureSchema();
-  const [user] = await sql<{ posters_enabled: boolean | null }[]>`
-    SELECT posters_enabled
-    FROM users
-    WHERE id = ${session.sub}
-    LIMIT 1
-  `;
+  const user = await getPosterAccessState(session.sub);
 
   if (!user) {
     throw new PosterRequestError("Unauthorized", 401);
+  }
+
+  if (
+    !canAccessPosters({
+      latestApplicationStatus: user.latest_application_status ?? null,
+      manualDashboardState: user.manual_dashboard_state ?? null,
+    })
+  ) {
+    throw new PosterRequestError("Forbidden", 403);
   }
 
   if (!user.posters_enabled) {

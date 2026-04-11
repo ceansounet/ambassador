@@ -19,6 +19,7 @@ import sql from "@/lib/database/client";
 import { canShowDevAdminSelector, isDevState, type DevState } from "@/lib/dev-admin-selector";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { loadUserHackClubAddresses } from "@/lib/hca-addresses";
+import { canAccessPosters } from "@/lib/posters/access";
 import { getSession } from "@/lib/session";
 import {
   resolveAmbassadorRegion,
@@ -184,10 +185,18 @@ export default async function DashboardPage({
     : baseResolved;
   const devSwitcherCurrent = selectedDevState ?? baseResolved.devState;
   const showAmbassadorRing = resolved.decision === "approved";
+  const showPostersLink = canAccessPosters({
+    latestApplicationStatus: application?.status ?? null,
+    manualDashboardState: user?.manual_dashboard_state ?? null,
+  });
 
   return (
     <main className="page-shell">
-      <Navbar isAdmin={canAccessAdmin} balanceCents={user?.balance_cents ?? 0} />
+      <Navbar
+        isAdmin={canAccessAdmin}
+        balanceCents={user?.balance_cents ?? 0}
+        showPostersLink={showPostersLink}
+      />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="flex items-center gap-2 md:gap-3">
           <h1 className="font-sub text-4xl leading-none text-white md:text-5xl">

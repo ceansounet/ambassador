@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { Navbar } from "@/components/navbar";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
-import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
+import { canAccessPosters, getPosterAccessState } from "@/lib/posters/access";
 import { listPosterCampaigns } from "@/lib/posters/config";
 import { listPosterDataForUser } from "@/lib/posters/service";
 import { getSession } from "@/lib/session";
@@ -22,22 +22,25 @@ export default async function PostersPage() {
   await ensureSchema();
   const t = await getTranslations();
 
-  const [user] = await sql<{
-    balance_cents: number | null;
-    is_admin: boolean | null;
-    posters_enabled: boolean | null;
-  }[]>`
-    SELECT balance_cents, is_admin, posters_enabled
-    FROM users
-    WHERE id = ${session.sub}
-    LIMIT 1
-  `;
+  const user = await getPosterAccessState(session.sub);
   const canAccessAdmin = Boolean(session.impersonator) || Boolean(user?.is_admin ?? session.isAdmin);
+  const canUsePosters = canAccessPosters({
+    latestApplicationStatus: user?.latest_application_status ?? null,
+    manualDashboardState: user?.manual_dashboard_state ?? null,
+  });
+
+  if (!canUsePosters) {
+    forbidden();
+  }
 
   if (!user?.posters_enabled) {
     return (
       <main className="page-shell">
-        <Navbar isAdmin={canAccessAdmin} balanceCents={user?.balance_cents ?? 0} />
+        <Navbar
+          isAdmin={canAccessAdmin}
+          balanceCents={user?.balance_cents ?? 0}
+          showPostersLink
+        />
         <div className="mx-auto max-w-5xl px-6 py-12">
           <h1 className="text-4xl text-white">{t("posters.unavailable")}</h1>
         </div>
@@ -51,7 +54,11 @@ export default async function PostersPage() {
 
   return (
     <main className="page-shell">
-      <Navbar isAdmin={canAccessAdmin} balanceCents={user?.balance_cents ?? 0} />
+      <Navbar
+        isAdmin={canAccessAdmin}
+        balanceCents={user?.balance_cents ?? 0}
+        showPostersLink
+      />
       <div className="mx-auto max-w-5xl px-6 py-12">
         <header className="mb-10">
           <h1 className="text-4xl text-white">{t("posters.heading")}</h1>
