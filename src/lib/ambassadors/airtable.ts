@@ -12,6 +12,7 @@ const onboardingCompleteFieldCandidates = [
   "onboarding complete",
   "onboardingComplete",
 ];
+const tshirtSentFieldCandidates = ["tshirt-sent", "tshirt_sent", "T-Shirt Sent"];
 
 function getAirtableAmbassadorsClient() {
   const token = process.env.AIRTABLE_PAT?.trim();
@@ -97,6 +98,41 @@ function getAmbassadorRecordIdsFromApplicationPayload(payload: unknown) {
     : [];
 }
 
+async function getAmbassadorRecordIds(input: {
+  client: AirtableClient;
+  applicationAirtableRecordId?: string | null;
+  applicationAirtablePayload?: unknown;
+}) {
+  const applicationAirtableRecordId = input.applicationAirtableRecordId?.trim();
+  let ambassadorRecordIds = getAmbassadorRecordIdsFromApplicationPayload(
+    input.applicationAirtablePayload,
+  );
+
+  if (ambassadorRecordIds.length === 0 && applicationAirtableRecordId) {
+    try {
+      const applicationRecord = await getRecordById(
+        input.client,
+        getAirtableApplicationsTableId(),
+        applicationAirtableRecordId,
+      );
+
+      ambassadorRecordIds = applicationRecord
+        ? getAmbassadorRecordIdsFromApplicationPayload(applicationRecord.fields)
+        : [];
+    } catch (error) {
+      if (error instanceof AirtableError) {
+        console.warn(
+          `[airtable] unable to load application record ${applicationAirtableRecordId}: ${error.message}`,
+        );
+      } else {
+        console.warn("[airtable] unable to load application record for ambassador sync", error);
+      }
+    }
+  }
+
+  return ambassadorRecordIds;
+}
+
 export async function getAmbassadorOnboardingStatus(input: {
   applicationAirtableRecordId?: string | null;
   applicationAirtablePayload?: unknown;
@@ -114,29 +150,11 @@ export async function getAmbassadorOnboardingStatus(input: {
     };
   }
 
-  let ambassadorRecordIds = cachedAmbassadorRecordIds;
-
-  if (ambassadorRecordIds.length === 0 && applicationAirtableRecordId) {
-    try {
-      const applicationRecord = await getRecordById(
-        client,
-        getAirtableApplicationsTableId(),
-        applicationAirtableRecordId,
-      );
-
-      ambassadorRecordIds = applicationRecord
-        ? getAmbassadorRecordIdsFromApplicationPayload(applicationRecord.fields)
-        : [];
-    } catch (error) {
-      if (error instanceof AirtableError) {
-        console.warn(
-          `[airtable] unable to load application record ${applicationAirtableRecordId}: ${error.message}`,
-        );
-      } else {
-        console.warn("[airtable] unable to load application record for onboarding status", error);
-      }
-    }
-  }
+  const ambassadorRecordIds = await getAmbassadorRecordIds({
+    client,
+    applicationAirtableRecordId,
+    applicationAirtablePayload: input.applicationAirtablePayload,
+  });
 
   if (ambassadorRecordIds.length === 0) {
     return {
@@ -185,5 +203,58 @@ export async function getAmbassadorOnboardingStatus(input: {
   return {
     hasAmbassadorRecord: true,
     onboardingComplete,
+  };
+}
+
+export async function syncAmbassadorTshirtSentToAirtable(input: {
+  applicationAirtableRecordId?: string | null;
+  applicationAirtablePayload?: unknown;
+  sent: boolean;
+}) {
+  const client = getAirtableAmbassadorsClient();
+
+  if (!client) return null;
+
+  const ambassadorRecordIds = await getAmbassadorRecordIds({
+    client,
+    applicationAirtableRecordId: input.applicationAirtableRecordId,
+    applicationAirtablePayload: input.applicationAirtablePayload,
+  });
+
+  if (ambassadorRecordIds.length === 0) return null;
+
+  let updatedCount = 0;
+
+  await Promise.all(
+    ambassadorRecordIds.map(async (recordId) => {
+      try {
+        const record = await getRecordById(client, getAirtableAmbassadorsTableId(), recordId);
+
+        if (!record) return;
+
+        const tshirtSentFieldName = resolveFieldName(record.fields, tshirtSentFieldCandidates)
+          ?? tshirtSentFieldCandidates[0];
+
+        await client.updateRecord(getAirtableAmbassadorsTableId(), record.id, {
+          [tshirtSentFieldName]: input.sent,
+        });
+        updatedCount += 1;
+      } catch (error) {
+        if (error instanceof AirtableError) {
+          console.warn(
+            `[airtable] unable to sync ambassador tshirt-sent for ${recordId}: ${error.message}`,
+          );
+          return;
+        }
+
+        throw error;
+      }
+    }),
+  );
+
+  return {
+    recordIds: ambassadorRecordIds,
+    updatedCount,
+    syncedAt: new Date(),
   };
 }

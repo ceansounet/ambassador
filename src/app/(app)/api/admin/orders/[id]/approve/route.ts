@@ -1,6 +1,9 @@
 import { revalidatePath } from "next/cache";
 
-import { isUserAdmin } from "@/lib/applications/review";
+import {
+  isUserAdmin,
+  setLatestApplicationTshirtShippedForUser,
+} from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
@@ -11,6 +14,7 @@ import {
   ORDER_STATUS_FAILED,
   ORDER_STATUS_PENDING,
   ORDER_STATUS_REJECTED,
+  SHIRT_SKU_PREFIX,
 } from "@/lib/shop";
 import {
   parseWarehouseOrderResponse,
@@ -152,6 +156,14 @@ export async function POST(
     revalidatePath("/dashboard");
 
     return Response.redirect(getSafeRedirectUrl(request, formData.get("redirectTo"), `/admin/orders`));
+  }
+
+  if (order.sku.startsWith(SHIRT_SKU_PREFIX)) {
+    try {
+      await setLatestApplicationTshirtShippedForUser(order.user_id, true);
+    } catch (error) {
+      console.error(`[orders] unable to sync tshirt-sent for order ${order.id}`, error);
+    }
   }
 
   revalidatePath(`/admin/orders/${id}`);

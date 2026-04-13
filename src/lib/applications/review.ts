@@ -1,6 +1,6 @@
+import { syncAmbassadorTshirtSentToAirtable } from "@/lib/ambassadors/airtable";
 import {
   syncApplicationReviewDecisionToAirtable,
-  syncApplicationTshirtShippedToAirtable,
 } from "@/lib/applications/airtable";
 import {
   canChangeApplicationReviewStatus,
@@ -152,7 +152,7 @@ export async function setApplicationTshirtShipped(
   shipped: boolean,
 ) {
   const [application] = await sql`
-    SELECT id, airtable_record_id
+    SELECT id, airtable_record_id, airtable_payload
     FROM applications
     WHERE id = ${applicationId}
     LIMIT 1
@@ -160,16 +160,17 @@ export async function setApplicationTshirtShipped(
 
   if (!application) return null;
 
-  const airtableSync = await syncApplicationTshirtShippedToAirtable({
-    airtableRecordId: application.airtable_record_id,
-    shipped,
+  const ambassadorAirtableSync = await syncAmbassadorTshirtSentToAirtable({
+    applicationAirtableRecordId: application.airtable_record_id,
+    applicationAirtablePayload: application.airtable_payload ?? null,
+    sent: shipped,
   });
 
   const [updatedApplication] = await sql`
     UPDATE applications
     SET tshirt_shipped = ${shipped},
         airtable_last_synced_at = COALESCE(
-          ${airtableSync?.syncedAt?.toISOString() ?? null},
+          ${ambassadorAirtableSync?.syncedAt?.toISOString() ?? null},
           airtable_last_synced_at
         ),
         updated_at = NOW()
@@ -178,4 +179,15 @@ export async function setApplicationTshirtShipped(
   `;
 
   return updatedApplication ?? null;
+}
+
+export async function setLatestApplicationTshirtShippedForUser(
+  userId: string,
+  shipped: boolean,
+) {
+  const latestApplication = await getLatestApplicationForUser(userId);
+
+  if (!latestApplication) return null;
+
+  return setApplicationTshirtShipped(latestApplication.id, shipped);
 }
