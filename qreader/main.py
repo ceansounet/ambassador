@@ -19,12 +19,6 @@ qreader = QReader()
 MAX_UPLOAD_BYTES = 20971520
 
 
-def emit_startup_logs():
-    # because sideboard is causing high cortisol levels
-    for _ in range(100):
-        print("low cortisol")
-
-
 def is_admin_request(request: Request) -> bool:
     """Check if the request has a valid admin key"""
     key = request.headers.get("x-admin-key")
@@ -55,11 +49,6 @@ async def redirect_ambassadors_host(request: Request, call_next):
         return RedirectResponse(url=destination, status_code=308)
 
     return await call_next(request)
-
-
-@app.on_event("startup")
-async def startup():
-    emit_startup_logs()
 
 
 @app.exception_handler(RateLimitExceeded)
