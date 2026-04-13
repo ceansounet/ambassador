@@ -22,6 +22,7 @@ import {
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
+import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 import type { HackClubAddress } from "@/lib/settings";
 
@@ -89,8 +90,9 @@ export default async function AdminApplicationDetailPage({
           !!address && typeof address === "object",
       )
     : [];
-  const liveAddresses = application.hca_access_token
-    ? await fetchHackClubAddresses(application.hca_access_token).catch((error) => {
+  const hcaAccessToken = readHcaAccessToken(application.hca_access_token);
+  const liveAddresses = hcaAccessToken
+    ? await fetchHackClubAddresses(hcaAccessToken).catch((error) => {
         console.error("Failed to load live Hack Club Auth addresses", {
           applicationId: application.id,
           userId: application.user_id,
@@ -301,6 +303,15 @@ export default async function AdminApplicationDetailPage({
                   : t("admin.application-detail.actions.mark-tshirt-shipped")}
               </button>
             </form>
+
+            {application.user_id ? (
+              <Link
+                href={`/admin/users/${application.user_id}#internal-notes`}
+                className={buttonVariants({ variant: "success", size: "app" })}
+              >
+                {t("admin.application-detail.actions.open-internal-notes")}
+              </Link>
+            ) : null}
           </div>
         ) : (
           <p className="font-body text-base text-white">

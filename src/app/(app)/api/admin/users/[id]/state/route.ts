@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -35,16 +36,34 @@ export async function POST(
     return Response.json({ error: "invalid_state" }, { status: 400 });
   }
 
-  const [updatedUser] = await sql<{ id: string }[]>`
+  const [currentUser] = await sql<{ id: string; manual_dashboard_state: string | null }[]>`
+    SELECT id, manual_dashboard_state
+    FROM users
+    WHERE id = ${id}
+    LIMIT 1
+  `;
+
+  if (!currentUser) {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
+
+  await sql`
     UPDATE users
     SET manual_dashboard_state = ${nextState},
         updated_at = NOW()
     WHERE id = ${id}
-    RETURNING id
   `;
 
-  if (!updatedUser) {
-    return Response.json({ error: "not_found" }, { status: 404 });
+  if ((currentUser.manual_dashboard_state ?? null) !== nextState) {
+    await logAdminActionEvent({
+      actorUserId: session.sub,
+      targetUserId: id,
+      action: "user_manual_dashboard_state_updated",
+      metadata: {
+        previousState: currentUser.manual_dashboard_state ?? null,
+        nextState,
+      },
+    });
   }
 
   revalidatePath(`/admin/users/${id}`);

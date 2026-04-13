@@ -1,3 +1,4 @@
+import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -68,14 +69,24 @@ export async function POST(
     slackId: user.slack_id ?? undefined,
     isAdmin: Boolean(user.is_admin),
   };
+  const startedAt = new Date().toISOString();
   const token = await createImpersonationToken({
     actor,
     subject,
-    startedAt: new Date().toISOString(),
+    startedAt,
   });
 
   await setSession(await createToken(actor));
   await setImpersonationSession(token);
+  await logAdminActionEvent({
+    actorUserId: session.sub,
+    targetUserId: user.id,
+    action: "user_impersonation_started",
+    metadata: {
+      targetIsAdmin: Boolean(user.is_admin),
+    },
+    createdAt: startedAt,
+  });
 
   return Response.redirect(getSafeRedirectUrl(request, formData.get("redirectTo"), "/dashboard"));
 }

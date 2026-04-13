@@ -1,3 +1,4 @@
+import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isUserAdmin } from "@/lib/applications/review";
 import { revalidatePath } from "next/cache";
 import sql from "@/lib/database/client";
@@ -26,19 +27,34 @@ export async function POST(
   const { id } = await params;
   const formData = await request.formData();
   const postersEnabled = formData.has("postersEnabled");
-  const shirtEnabled = formData.has("shirtEnabled");
-
-  const [updatedUser] = await sql<{ id: string }[]>`
-    UPDATE users
-    SET posters_enabled = ${postersEnabled},
-        shirt_enabled = ${shirtEnabled},
-        updated_at = NOW()
+  const [currentUser] = await sql<{ id: string; posters_enabled: boolean | null }[]>`
+    SELECT id, posters_enabled
+    FROM users
     WHERE id = ${id}
-    RETURNING id
+    LIMIT 1
   `;
 
-  if (!updatedUser) {
+  if (!currentUser) {
     return Response.json({ error: "not_found" }, { status: 404 });
+  }
+
+  await sql`
+    UPDATE users
+    SET posters_enabled = ${postersEnabled},
+        updated_at = NOW()
+    WHERE id = ${id}
+  `;
+
+  if (Boolean(currentUser.posters_enabled) !== postersEnabled) {
+    await logAdminActionEvent({
+      actorUserId: session.sub,
+      targetUserId: id,
+      action: "user_posters_enabled_updated",
+      metadata: {
+        previousPostersEnabled: Boolean(currentUser.posters_enabled),
+        nextPostersEnabled: postersEnabled,
+      },
+    });
   }
 
   revalidatePath(`/admin/users/${id}`);

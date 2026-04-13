@@ -14,6 +14,7 @@ import {
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { fetchGeo, geocodeIp, linkAnonymousVisits } from "@/lib/geo";
+import { encryptHcaAccessToken } from "@/lib/hca-access-token";
 import { getRequestIp, getSafeRedirectPath } from "@/lib/http";
 import { createToken, setSession } from "@/lib/session";
 import {
@@ -72,6 +73,7 @@ export async function GET(request: Request) {
   const verificationStatus = userInfo.identity.verification_status;
   const allAddresses = normalizeHackClubAddresses(userInfo.identity.addresses ?? []);
   const primaryAddress = allAddresses[0] ?? null;
+  const encryptedAccessToken = encryptHcaAccessToken(tokenData.access_token);
 
   const ip = getRequestIp(request);
   const addressCountry = primaryAddress?.country?.trim() || null;
@@ -104,7 +106,8 @@ export async function GET(request: Request) {
       hca_street_address, hca_locality, hca_region, hca_postal_code, hca_country,
       slack_id, slack_name, slack_avatar_url, verification_status, last_ip,
       latitude, longitude, city, region, country_code, country_name, postal_code,
-      timezone, org, geocoded_at, hca_addresses, ambassador_region, hca_access_token
+      timezone, org, geocoded_at, hca_addresses, ambassador_region, hca_access_token,
+      hca_access_token_encrypted_at
     )
     VALUES (
       ${id},
@@ -135,7 +138,8 @@ export async function GET(request: Request) {
       ${signupGeo ? new Date() : null},
       ${JSON.stringify(allAddresses)},
       ${ambassadorRegion},
-      ${tokenData.access_token}
+      ${encryptedAccessToken},
+      ${new Date()}
     )
     ON CONFLICT (hca_id) DO UPDATE SET
       email = EXCLUDED.email,
@@ -171,6 +175,7 @@ export async function GET(request: Request) {
         ELSE users.ambassador_region
       END,
       hca_access_token = EXCLUDED.hca_access_token,
+      hca_access_token_encrypted_at = NOW(),
       updated_at = NOW()
     RETURNING id, is_admin
   `;

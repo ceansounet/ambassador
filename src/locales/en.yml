@@ -482,6 +482,7 @@ admin:
       reject-permanently: Reject permanently
       mark-tshirt-shipped: Mark T-shirt shipped
       mark-tshirt-unshipped: Mark T-shirt not shipped
+      open-internal-notes: Open internal notes
       historical-disabled: This application is historical, so review actions are disabled here.
       delete: Delete from our side
       confirmations:
@@ -611,7 +612,6 @@ admin:
       unknown-actor: Unknown admin
     flags:
       posters-enabled: Enable posters page
-      shirt-enabled: Enable shirt page
     dashboard-state:
       current-manual-state: Current manual state
       no-manual-state: No manual state set
@@ -642,7 +642,6 @@ admin:
       last-seen-ip: Last seen IP
       admin: Admin
       posters-enabled: Posters enabled
-      shirt-enabled: Shirt enabled
       manual-dashboard-state: Manual dashboard state
       created: Created
       updated: Updated

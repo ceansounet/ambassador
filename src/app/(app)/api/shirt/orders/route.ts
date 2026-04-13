@@ -2,6 +2,7 @@ import sql from "@/lib/database/client";
 import { getAmbassadorOnboardingStatus } from "@/lib/ambassadors/airtable";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { loadUserHackClubAddresses } from "@/lib/hca-addresses";
+import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
 import { canAccessShirts } from "@/lib/shirt/access";
@@ -70,7 +71,7 @@ export async function POST(request: Request) {
   const { addresses, needsAddressRefresh } = await loadUserHackClubAddresses({
     userId: session.sub,
     storedAddresses: user.hca_addresses ?? [],
-    accessToken: user.hca_access_token ?? null,
+    accessToken: readHcaAccessToken(user.hca_access_token ?? null),
   });
 
   if (needsAddressRefresh) {

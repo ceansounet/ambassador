@@ -1,3 +1,4 @@
+import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isUserAdmin } from "@/lib/applications/review";
 import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -28,12 +29,22 @@ export async function POST(
   const [deleted] = await sql`
     DELETE FROM applications
     WHERE id = ${id}
-    RETURNING id
+    RETURNING id, user_id, status
   `;
 
   if (!deleted) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
+
+  await logAdminActionEvent({
+    actorUserId: session.sub,
+    targetUserId: deleted.user_id ?? null,
+    action: "application_deleted",
+    metadata: {
+      applicationId: deleted.id,
+      status: deleted.status ?? null,
+    },
+  });
 
   return Response.redirect(
     getSafeRedirectUrl(request, formData.get("redirectTo"), "/admin/applications"),

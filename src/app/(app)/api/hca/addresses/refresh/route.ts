@@ -1,5 +1,6 @@
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import sql from "@/lib/database/client";
+import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { refreshHackClubAddresses } from "@/lib/hca-addresses";
 import { isSameOriginRequest } from "@/lib/http";
 import { getSession } from "@/lib/session";
@@ -27,12 +28,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  if (!user.hca_access_token) {
+  const hcaAccessToken = readHcaAccessToken(user.hca_access_token ?? null);
+
+  if (!hcaAccessToken) {
     return Response.json({ error: "reauth_required" }, { status: 401 });
   }
 
   try {
-    const addresses = await refreshHackClubAddresses(session.sub, user.hca_access_token);
+    const addresses = await refreshHackClubAddresses(session.sub, hcaAccessToken);
 
     return Response.json({
       ok: true,

@@ -20,6 +20,7 @@ import sql from "@/lib/database/client";
 import { canShowDevAdminSelector, isDevState, type DevState } from "@/lib/dev-admin-selector";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { loadUserHackClubAddresses } from "@/lib/hca-addresses";
+import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { canAccessPosters } from "@/lib/posters/access";
 import { getSession } from "@/lib/session";
 import { canAccessShirts } from "@/lib/shirt/access";
@@ -156,12 +157,13 @@ export default async function DashboardPage({
   const shouldLoadShirtAddresses = canUseShirts && !shirtRequiresOnboarding;
   let shirtNeedsAddressRefresh = false;
   let shirtAddresses: HackClubAddress[] = [];
+  const hcaAccessToken = readHcaAccessToken(user?.hca_access_token ?? null);
 
   if (shouldLoadShirtAddresses) {
     const addressState = await loadUserHackClubAddresses({
       userId: session.sub,
       storedAddresses: user?.hca_addresses ?? [],
-      accessToken: user?.hca_access_token ?? null,
+      accessToken: hcaAccessToken,
     });
 
     shirtAddresses = addressState.addresses;

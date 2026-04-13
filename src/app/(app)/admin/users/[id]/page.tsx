@@ -22,6 +22,7 @@ import {
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
+import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
 import {
   getUserManualDashboardStateLabel,
@@ -39,7 +40,7 @@ export default async function AdminUserDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ visitsPage?: string }>;
+  searchParams: Promise<{ visitsPage?: string; notesPage?: string }>;
 }) {
   const [{ id }, query, t, locale, actorSession] = await Promise.all([
     params,
@@ -52,6 +53,10 @@ export default async function AdminUserDetailPage({
   const visitsPage = Number.isFinite(requestedVisitsPage) && requestedVisitsPage > 0
     ? Math.floor(requestedVisitsPage)
     : 1;
+  const requestedNotesPage = Number(query.notesPage ?? "1");
+  const notesPage = Number.isFinite(requestedNotesPage) && requestedNotesPage > 0
+    ? Math.floor(requestedNotesPage)
+    : 1;
 
   await ensureSchema();
   await ensureUserAddressSchema();
@@ -61,7 +66,7 @@ export default async function AdminUserDetailPage({
            slack_avatar_url, verification_status, is_admin, last_ip, latitude, longitude, city,
            region, country_code, country_name, postal_code, timezone, org, hca_addresses,
            hca_access_token,
-           posters_enabled, shirt_enabled, manual_dashboard_state,
+           posters_enabled, manual_dashboard_state,
            permanently_rejected_at, permanent_rejection_note, created_at, updated_at
     FROM users
     WHERE id = ${id}
@@ -76,8 +81,9 @@ export default async function AdminUserDetailPage({
           !!address && typeof address === "object",
       )
     : [];
-  const liveAddresses = user.hca_access_token
-    ? await fetchHackClubAddresses(user.hca_access_token).catch((error) => {
+  const hcaAccessToken = readHcaAccessToken(user.hca_access_token);
+  const liveAddresses = hcaAccessToken
+    ? await fetchHackClubAddresses(hcaAccessToken).catch((error) => {
         console.error("Failed to load live Hack Club Auth addresses", {
           userId: user.id,
           error,
@@ -87,7 +93,16 @@ export default async function AdminUserDetailPage({
     : [];
   const addresses = (liveAddresses.length > 0 ? liveAddresses : storedAddresses) as HackClubAddress[];
 
-  const [latestApplication, applications, visitCountResult, visits, orders, noteHistory] = await Promise.all([
+  const [
+    latestApplication,
+    applications,
+    visitCountResult,
+    visits,
+    orders,
+    latestNoteEvent,
+    noteCountResult,
+    noteHistory,
+  ] = await Promise.all([
     sql`
       SELECT id, status, name, date_of_birth, decision_note, created_at, updated_at
       FROM applications
@@ -122,22 +137,37 @@ export default async function AdminUserDetailPage({
       LIMIT 10
     `,
     sql`
+      SELECT note
+      FROM user_note_events
+      WHERE user_id = ${user.id}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `.then((rows) => rows[0] ?? null),
+    sql`
+      SELECT COUNT(*)::int AS count
+      FROM user_note_events
+      WHERE user_id = ${user.id}
+    `.then((rows) => rows[0]?.count ?? 0),
+    sql`
       SELECT une.id, une.note, une.created_at, une.created_by,
              actor.display_name AS actor_display_name, actor.email AS actor_email
       FROM user_note_events une
       LEFT JOIN users actor ON actor.id = une.created_by
       WHERE une.user_id = ${user.id}
       ORDER BY une.created_at DESC, une.id DESC
-      LIMIT 20
+      LIMIT 3
+      OFFSET ${(notesPage - 1) * 3}
     `,
   ]);
   const currentUserNote =
-    typeof noteHistory[0]?.note === "string" && noteHistory[0].note.trim().length > 0
-      ? noteHistory[0].note
+    typeof latestNoteEvent?.note === "string" && latestNoteEvent.note.trim().length > 0
+      ? latestNoteEvent.note
       : null;
 
   const totalVisitPages = Math.max(1, Math.ceil(visitCountResult / 3));
   const currentVisitPage = Math.min(visitsPage, totalVisitPages);
+  const totalNotePages = Math.max(1, Math.ceil(noteCountResult / 3));
+  const currentNotePage = Math.min(notesPage, totalNotePages);
   const shouldShowPermanentRejectionLabel =
     !!user.permanently_rejected_at &&
     !isRejectedPermanentlyApplicationStatus(latestApplication?.status);
@@ -171,6 +201,29 @@ export default async function AdminUserDetailPage({
     !!latestApplication &&
     !shouldShowPermanentRejectionLabel;
   const canImpersonateUser = Boolean(actorSession && actorSession.sub !== user.id);
+  const buildPageHref = ({
+    nextVisitsPage = currentVisitPage,
+    nextNotesPage = currentNotePage,
+    hash,
+  }: {
+    nextVisitsPage?: number;
+    nextNotesPage?: number;
+    hash?: string;
+  }) => {
+    const nextQuery = new URLSearchParams();
+
+    if (nextVisitsPage > 1) {
+      nextQuery.set("visitsPage", String(nextVisitsPage));
+    }
+
+    if (nextNotesPage > 1) {
+      nextQuery.set("notesPage", String(nextNotesPage));
+    }
+
+    const search = nextQuery.toString();
+
+    return `${search ? `?${search}` : ""}${hash ?? ""}`;
+  };
 
   return (
     <div className="space-y-10">
@@ -234,137 +287,147 @@ export default async function AdminUserDetailPage({
         title={t("admin.user-detail.sections.user-actions.title")}
         description={t("admin.user-detail.sections.user-actions.description")}
       >
-        {canImpersonateUser ? (
-          <form action={`/api/admin/users/${user.id}/impersonate`} method="POST">
-            <input type="hidden" name="redirectTo" value="/dashboard" />
-            <button className={buttonVariants({ size: "app" })}>
-              {t("admin.user-detail.actions.impersonate")}
-            </button>
-          </form>
-        ) : null}
+        <div className="space-y-6">
+          {canImpersonateUser ? (
+            <form action={`/api/admin/users/${user.id}/impersonate`} method="POST">
+              <input type="hidden" name="redirectTo" value="/dashboard" />
+              <button className={buttonVariants({ size: "app" })}>
+                {t("admin.user-detail.actions.impersonate")}
+              </button>
+            </form>
+          ) : null}
 
-        {!user.is_admin ? (
-          <ConfirmSubmitForm
-            action={`/api/admin/users/${user.id}/make-admin`}
-            method="POST"
-            className="max-w-xl"
-            confirmationMessage={t("admin.user-detail.actions.make-admin-confirmation")}
-          >
-            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-            <button className={buttonVariants({ variant: "success", size: "app" })}>
-              {t("admin.user-detail.actions.make-admin")}
-            </button>
-          </ConfirmSubmitForm>
-        ) : null}
+          {!user.is_admin ? (
+            <ConfirmSubmitForm
+              action={`/api/admin/users/${user.id}/make-admin`}
+              method="POST"
+              className="max-w-xl"
+              confirmationMessage={t("admin.user-detail.actions.make-admin-confirmation")}
+            >
+              <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+              <button className={buttonVariants({ variant: "success", size: "app" })}>
+                {t("admin.user-detail.actions.make-admin")}
+              </button>
+            </ConfirmSubmitForm>
+          ) : null}
 
-        {latestApplication ? (
-          <div className="space-y-6">
-            <div className="pb-2">
-              <div className="text-sm text-secondary">{t("admin.user-detail.actions.current-review-target")}</div>
-              <div className="mt-1 flex flex-wrap items-center gap-3">
-                <span className="font-body text-sm text-white">{latestApplication.id}</span>
-                <StatusBadge status={latestApplication.status} />
-                {shouldShowHeaderLatestApplicationLabel ? (
-                  <span className={pillVariants({ tone: "green" })}>
-                    {t("admin.user-detail.latest-application")}
-                  </span>
-                ) : null}
+          {latestApplication ? (
+            <div className="space-y-6">
+              <div className="pb-2">
+                <div className="text-sm text-secondary">{t("admin.user-detail.actions.current-review-target")}</div>
+                <div className="mt-1 flex flex-wrap items-center gap-3">
+                  <span className="font-body text-sm text-white">{latestApplication.id}</span>
+                  <StatusBadge status={latestApplication.status} />
+                  {shouldShowHeaderLatestApplicationLabel ? (
+                    <span className={pillVariants({ tone: "green" })}>
+                      {t("admin.user-detail.latest-application")}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-            </div>
 
-            {canAccept ? (
-              <form action={`/api/admin/users/${user.id}/approve`} method="POST" className="max-w-xl space-y-3">
+              {canAccept ? (
+                <form action={`/api/admin/users/${user.id}/approve`} method="POST" className="max-w-xl space-y-3">
+                  <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                  <button className={buttonVariants({ variant: "success", size: "app" })}>
+                    {t("admin.user-detail.actions.bypass-approval")}
+                  </button>
+                </form>
+              ) : null}
+
+              {canReject ? (
+                <ConfirmSubmitForm
+                  action={`/api/admin/users/${user.id}/reject`}
+                  method="POST"
+                  className="max-w-xl space-y-3"
+                  confirmationMessage={t("common.confirm-destructive")}
+                >
+                  <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                  <label className="block text-sm text-secondary">
+                    {t("admin.user-detail.actions.reject-note-label")}
+                    <Textarea
+                      name="note"
+                      required
+                      rows={5}
+                      className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                      placeholder={t("admin.user-detail.actions.reject-note-placeholder")}
+                    />
+                  </label>
+                  <button className={buttonVariants({ size: "app" })}>
+                    {t("admin.user-detail.actions.reject")}
+                  </button>
+                </ConfirmSubmitForm>
+              ) : null}
+
+              {canRejectPermanently ? (
+                <ConfirmSubmitForm
+                  action={`/api/admin/users/${user.id}/reject-permanently`}
+                  method="POST"
+                  className="max-w-xl space-y-3"
+                  confirmationMessage={t("common.confirm-destructive")}
+                >
+                  <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                  <label className="block text-sm text-secondary">
+                    {t("admin.user-detail.actions.permanent-rejection-note-label")}
+                    <Textarea
+                      name="note"
+                      rows={4}
+                      className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                      placeholder={t("admin.user-detail.actions.permanent-rejection-note-placeholder")}
+                    />
+                  </label>
+                  <button className={buttonVariants({ size: "app" })}>
+                    {t("admin.user-detail.actions.reject-permanently")}
+                  </button>
+                </ConfirmSubmitForm>
+              ) : null}
+            </div>
+          ) : (
+            <p className="font-body text-base text-white">
+              {t("admin.user-detail.actions.no-review-target")}
+            </p>
+          )}
+
+          <div className="space-y-4 border-t border-white/10 pt-6">
+            <div className="space-y-2">
+              <h3 className="text-2xl text-white">
+                {t("admin.user-detail.sections.dashboard-state.title")}
+              </h3>
+              <p className="max-w-3xl font-body text-base text-white">
+                {t("admin.user-detail.sections.dashboard-state.description")}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <form action={`/api/admin/users/${user.id}/state`} method="POST">
                 <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-                <button className={buttonVariants({ variant: "success", size: "app" })}>
-                  {t("admin.user-detail.actions.bypass-approval")}
+                <input type="hidden" name="state" value="approved" />
+                <button className={buttonVariants({ variant: "success", size: "app-sm" })}>
+                  {t("admin.user-detail.dashboard-state.set-approved")}
                 </button>
               </form>
-            ) : null}
-
-            {canReject ? (
-              <ConfirmSubmitForm
-                action={`/api/admin/users/${user.id}/reject`}
-                method="POST"
-                className="max-w-xl space-y-3"
-                confirmationMessage={t("common.confirm-destructive")}
-              >
+              <form action={`/api/admin/users/${user.id}/state`} method="POST">
                 <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-                <label className="block text-sm text-secondary">
-                  {t("admin.user-detail.actions.reject-note-label")}
-                  <Textarea
-                    name="note"
-                    required
-                    rows={5}
-                    className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                    placeholder={t("admin.user-detail.actions.reject-note-placeholder")}
-                  />
-                </label>
-                <button className={buttonVariants({ size: "app" })}>
-                  {t("admin.user-detail.actions.reject")}
+                <input type="hidden" name="state" value="rejected" />
+                <button className={buttonVariants({ size: "app-sm" })}>
+                  {t("admin.user-detail.dashboard-state.set-rejected")}
                 </button>
-              </ConfirmSubmitForm>
-            ) : null}
-
-            {canRejectPermanently ? (
-              <ConfirmSubmitForm
-                action={`/api/admin/users/${user.id}/reject-permanently`}
-                method="POST"
-                className="max-w-xl space-y-3"
-                confirmationMessage={t("common.confirm-destructive")}
-              >
+              </form>
+              <form action={`/api/admin/users/${user.id}/state`} method="POST">
                 <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-                <label className="block text-sm text-secondary">
-                  {t("admin.user-detail.actions.permanent-rejection-note-label")}
-                  <Textarea
-                    name="note"
-                    rows={4}
-                    className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-                    placeholder={t("admin.user-detail.actions.permanent-rejection-note-placeholder")}
-                  />
-                </label>
-                <button className={buttonVariants({ size: "app" })}>
-                  {t("admin.user-detail.actions.reject-permanently")}
+                <input type="hidden" name="state" value="banned" />
+                <button className={buttonVariants({ size: "app-sm" })}>
+                  {t("admin.user-detail.dashboard-state.set-banned")}
                 </button>
-              </ConfirmSubmitForm>
-            ) : null}
+              </form>
+              <form action={`/api/admin/users/${user.id}/state`} method="POST">
+                <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
+                <input type="hidden" name="state" value="" />
+                <button className={buttonVariants({ size: "app-sm" })}>
+                  {t("admin.user-detail.dashboard-state.clear-state")}
+                </button>
+              </form>
+            </div>
           </div>
-        ) : (
-          <p className="font-body text-base text-white">
-            {t("admin.user-detail.actions.no-review-target")}
-          </p>
-        )}
-      </DetailSection>
-
-      <DetailSection title={t("admin.user-detail.sections.dashboard-state.title")}>
-        <div className="flex flex-wrap gap-3">
-          <form action={`/api/admin/users/${user.id}/state`} method="POST">
-            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-            <input type="hidden" name="state" value="approved" />
-            <button className={buttonVariants({ variant: "success", size: "app-sm" })}>
-              {t("admin.user-detail.dashboard-state.set-approved")}
-            </button>
-          </form>
-          <form action={`/api/admin/users/${user.id}/state`} method="POST">
-            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-            <input type="hidden" name="state" value="rejected" />
-            <button className={buttonVariants({ size: "app-sm" })}>
-              {t("admin.user-detail.dashboard-state.set-rejected")}
-            </button>
-          </form>
-          <form action={`/api/admin/users/${user.id}/state`} method="POST">
-            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-            <input type="hidden" name="state" value="banned" />
-            <button className={buttonVariants({ size: "app-sm" })}>
-              {t("admin.user-detail.dashboard-state.set-banned")}
-            </button>
-          </form>
-          <form action={`/api/admin/users/${user.id}/state`} method="POST">
-            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-            <input type="hidden" name="state" value="" />
-            <button className={buttonVariants({ size: "app-sm" })}>
-              {t("admin.user-detail.dashboard-state.clear-state")}
-            </button>
-          </form>
         </div>
       </DetailSection>
 
@@ -386,79 +449,75 @@ export default async function AdminUserDetailPage({
               {t("admin.user-detail.flags.posters-enabled")}
             </span>
           </label>
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              name="shirtEnabled"
-              value="true"
-              defaultChecked={Boolean(user.shirt_enabled)}
-              className="h-4 w-4 accent-primary"
-            />
-            <span className="font-body text-sm text-white">
-              {t("admin.user-detail.flags.shirt-enabled")}
-            </span>
-          </label>
           <button className={buttonVariants({ size: "app" })}>
             {t("admin.user-detail.actions.save-flags")}
           </button>
         </form>
       </DetailSection>
 
-      <DetailSection
-        title={t("admin.user-detail.sections.notes.title")}
-        description={t("admin.user-detail.sections.notes.description")}
-      >
-        <DetailFieldRow
-          label={t("admin.user-detail.notes.current-note")}
-          value={currentUserNote}
-          multiline
-        />
+      <div id="internal-notes">
+        <DetailSection
+          title={t("admin.user-detail.sections.notes.title")}
+          description={t("admin.user-detail.sections.notes.description")}
+        >
+          <DetailFieldRow
+            label={t("admin.user-detail.notes.current-note")}
+            value={currentUserNote}
+            multiline
+          />
 
-        <form action={`/api/admin/users/${user.id}/note`} method="POST" className="max-w-xl space-y-3">
-          <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
-          <label className="block text-sm text-secondary">
-            {t("admin.user-detail.notes.note-label")}
-            <Textarea
-              name="note"
-              rows={5}
-              defaultValue={currentUserNote ?? ""}
-              className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
-              placeholder={t("admin.user-detail.notes.note-placeholder")}
-            />
-          </label>
-          <button className={buttonVariants({ size: "app" })}>
-            {t("admin.user-detail.actions.save-note")}
-          </button>
-        </form>
+          <form action={`/api/admin/users/${user.id}/note`} method="POST" className="max-w-xl space-y-3">
+            <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}#internal-notes`} />
+            <label className="block text-sm text-secondary">
+              {t("admin.user-detail.notes.note-label")}
+              <Textarea
+                name="note"
+                rows={5}
+                defaultValue={currentUserNote ?? ""}
+                className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                placeholder={t("admin.user-detail.notes.note-placeholder")}
+              />
+            </label>
+            <button className={buttonVariants({ size: "app" })}>
+              {t("admin.user-detail.actions.save-note")}
+            </button>
+          </form>
 
-        <div className="space-y-4">
-          <h3 className="font-body text-sm text-secondary">
-            {t("admin.user-detail.notes.history-title")}
-          </h3>
-          {noteHistory.length > 0 ? (
-            noteHistory.map((entry) => (
-              <div key={entry.id} className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="font-body text-sm text-white">
-                    {entry.actor_display_name ??
-                      entry.actor_email ??
-                      entry.created_by ??
-                      t("admin.user-detail.notes.unknown-actor")}
-                  </span>
-                  <span className="text-xs text-secondary">
-                    {formatDateTime(entry.created_at, locale)}
-                  </span>
+          <div className="space-y-4">
+            <h3 className="font-body text-sm text-secondary">
+              {t("admin.user-detail.notes.history-title")}
+            </h3>
+            {noteHistory.length > 0 ? (
+              noteHistory.map((entry) => (
+                <div key={entry.id} className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="font-body text-sm text-white">
+                      {entry.actor_display_name ??
+                        entry.actor_email ??
+                        entry.created_by ??
+                        t("admin.user-detail.notes.unknown-actor")}
+                    </span>
+                    <span className="text-xs text-secondary">
+                      {formatDateTime(entry.created_at, locale)}
+                    </span>
+                  </div>
+                  <div className="mt-2 whitespace-pre-line font-body text-base text-white break-words [overflow-wrap:anywhere]">
+                    {entry.note?.trim() ? entry.note : t("admin.user-detail.notes.cleared")}
+                  </div>
                 </div>
-                <div className="mt-2 whitespace-pre-line font-body text-base text-white break-words [overflow-wrap:anywhere]">
-                  {entry.note?.trim() ? entry.note : t("admin.user-detail.notes.cleared")}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="font-body text-base text-white">{t("admin.user-detail.notes.empty")}</p>
-          )}
-        </div>
-      </DetailSection>
+              ))
+            ) : (
+              <p className="font-body text-base text-white">{t("admin.user-detail.notes.empty")}</p>
+            )}
+          </div>
+          <DetailPager
+            label={t("common.page-fraction", { page: currentNotePage, totalPages: totalNotePages })}
+            page={currentNotePage}
+            totalPages={totalNotePages}
+            href={(page) => buildPageHref({ nextNotesPage: page, hash: "#internal-notes" })}
+          />
+        </DetailSection>
+      </div>
 
       <DetailSection
         title={t("admin.user-detail.sections.user-profile.title")}
@@ -497,7 +556,6 @@ export default async function AdminUserDetailPage({
         <DetailFieldRow label={t("admin.user-detail.profile-fields.last-seen-ip")} value={user.last_ip} mono />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.admin")} value={user.is_admin ? t("common.yes") : t("common.no")} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.posters-enabled")} value={user.posters_enabled ? t("common.yes") : t("common.no")} />
-        <DetailFieldRow label={t("admin.user-detail.profile-fields.shirt-enabled")} value={user.shirt_enabled ? t("common.yes") : t("common.no")} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.manual-dashboard-state")} value={manualDashboardStateLabel} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.created")} value={formatDateTime(user.created_at, locale)} />
         <DetailFieldRow label={t("admin.user-detail.profile-fields.updated")} value={formatDateTime(user.updated_at, locale)} />
@@ -609,7 +667,7 @@ export default async function AdminUserDetailPage({
           label={t("common.page-fraction", { page: currentVisitPage, totalPages: totalVisitPages })}
           page={currentVisitPage}
           totalPages={totalVisitPages}
-          href={(page) => `?visitsPage=${page}`}
+          href={(page) => buildPageHref({ nextVisitsPage: page })}
         />
       </DetailSection>
 

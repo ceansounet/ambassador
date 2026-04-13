@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -26,17 +27,30 @@ export async function POST(
 
   const { id } = await params;
   const formData = await request.formData();
+  const [existingUser] = await sql<{ id: string; is_admin: boolean | null }[]>`
+    SELECT id, is_admin
+    FROM users
+    WHERE id = ${id}
+    LIMIT 1
+  `;
 
-  const [updatedUser] = await sql<{ id: string }[]>`
+  if (!existingUser) {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
+
+  await sql`
     UPDATE users
     SET is_admin = TRUE,
         updated_at = NOW()
     WHERE id = ${id}
-    RETURNING id
   `;
 
-  if (!updatedUser) {
-    return Response.json({ error: "not_found" }, { status: 404 });
+  if (!existingUser.is_admin) {
+    await logAdminActionEvent({
+      actorUserId: session.sub,
+      targetUserId: id,
+      action: "user_promoted_to_admin",
+    });
   }
 
   revalidatePath(`/admin/users/${id}`);
