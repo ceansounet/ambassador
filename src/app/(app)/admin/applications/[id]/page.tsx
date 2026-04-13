@@ -175,11 +175,11 @@ export default async function AdminApplicationDetailPage({
   const storedAddresses = Array.isArray(application.hca_addresses)
     ? application.hca_addresses.filter(
         (address): address is Record<string, unknown> =>
-          !!address && typeof address === "object",
+          address !== null && typeof address === "object",
       )
     : [];
   const hcaAccessToken = readHcaAccessToken(application.hca_access_token);
-  const liveAddresses = hcaAccessToken
+  const liveAddresses = hcaAccessToken !== null
     ? await fetchHackClubAddresses(hcaAccessToken).catch((error) => {
         console.error("Failed to load live Hack Club Auth addresses", {
           applicationId: application.id,
@@ -192,14 +192,14 @@ export default async function AdminApplicationDetailPage({
   const addresses = normalizeHackClubAddresses(liveAddresses.length > 0 ? liveAddresses : storedAddresses);
 
   const [history, visitCountResult, visits, orders] = await Promise.all([
-    application.user_id
+    application.user_id !== null
       ? sql<ApplicationHistoryRow[]>`
           SELECT id, status, name, decision_note, created_at
           FROM applications
           WHERE user_id = ${application.user_id}
           ORDER BY created_at DESC, id DESC
         `
-      : application.applicant_email
+      : application.applicant_email !== null && application.applicant_email.trim() !== ""
         ? sql<ApplicationHistoryRow[]>`
             SELECT id, status, name, decision_note, created_at
             FROM applications
@@ -211,14 +211,14 @@ export default async function AdminApplicationDetailPage({
             FROM applications
             WHERE id = ${application.id}
           `,
-    application.user_id
+    application.user_id !== null
       ? sql<CountRow[]>`
           SELECT COUNT(*)::int AS count
           FROM ip_visits
           WHERE user_id = ${application.user_id}
         `.then((rows) => rows.at(0)?.count ?? 0)
       : Promise.resolve(0),
-    application.user_id
+    application.user_id !== null
       ? sql<VisitRow[]>`
           SELECT id, ip, visit_type, city, region, country_code, org, created_at
           FROM ip_visits
@@ -228,7 +228,7 @@ export default async function AdminApplicationDetailPage({
           OFFSET ${(visitsPage - 1) * 3}
         `
       : Promise.resolve([]),
-    application.user_id
+    application.user_id !== null
       ? sql<OrderRow[]>`
           SELECT id, status, created_at
           FROM orders
@@ -281,7 +281,7 @@ export default async function AdminApplicationDetailPage({
               )}
             </div>
           </div>
-          {application.user_id ? (
+          {application.user_id !== null ? (
             <Link
               href={`/admin/users/${application.user_id}`}
               aria-label={t("admin.application-detail.open-user-page")}
@@ -399,7 +399,7 @@ export default async function AdminApplicationDetailPage({
               </button>
             </form>
 
-            {application.user_id ? (
+            {application.user_id !== null ? (
               <Link
                 href={`/admin/users/${application.user_id}#internal-notes`}
                 className={buttonVariants({ variant: "success", size: "app" })}
@@ -531,7 +531,7 @@ export default async function AdminApplicationDetailPage({
                           address.country ?? null,
                         ),
                       ]
-                        .filter((part): part is string => !!part)
+                        .filter((part): part is string => part !== null && part !== "")
                         .join("\n")}`,
                   )
                   .join("\n\n")

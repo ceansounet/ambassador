@@ -48,7 +48,7 @@ export async function generatePosterPdf(options: {
 }) {
   const templatePath = resolvePosterTemplatePath(options.campaignSlug, options.style);
 
-  if (!templatePath) {
+  if (templatePath === null) {
     return createFallbackPosterPdf(options.content);
   }
 

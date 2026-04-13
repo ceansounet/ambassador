@@ -58,7 +58,7 @@ export function DevAdminSelector({
             return;
           }
 
-          const baseUrl = targetPath
+            const baseUrl = targetPath !== undefined && targetPath !== ""
             ? new URL(targetPath, window.location.origin)
             : new URL(window.location.href);
           baseUrl.searchParams.set("devState", e.target.value);

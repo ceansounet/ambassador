@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
   ].some((prefix) => pathname.startsWith(prefix));
 
   if (isProtected) {
-    if (!token) {
+    if (token === undefined || token === "") {
       return NextResponse.redirect(new URL("/", request.url));
     }
 

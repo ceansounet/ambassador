@@ -4,6 +4,7 @@ export const dynamic = "force-dynamic";
 
 async function getHealthResponse() {
   const startedAt = Date.now();
+  const deploymentVersion = process.env.DEPLOYMENT_VERSION?.trim() ?? "";
 
   try {
     await sql`SELECT 1`;
@@ -11,7 +12,7 @@ async function getHealthResponse() {
     return Response.json(
       {
         ok: true,
-        deploymentVersion: process.env.DEPLOYMENT_VERSION?.trim() || null,
+        deploymentVersion: deploymentVersion !== "" ? deploymentVersion : null,
         durationMs: Date.now() - startedAt,
         services: {
           database: "ok",

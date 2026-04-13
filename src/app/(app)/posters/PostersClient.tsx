@@ -109,7 +109,7 @@ export function PostersClient({
   initialData: ClientPosterData;
 }) {
   const t = useTranslations("posters");
-  const [data, setData] = useState<ClientPosterData>(initialData);
+  const data = initialData;
   const [campaignSlug, setCampaignSlug] = useState<string | null>(initialCampaignSlug);
   const [posterType, setPosterType] = useState<PosterStyle>("color");
   const [groupName, setGroupName] = useState("");
@@ -135,7 +135,7 @@ export function PostersClient({
   }, []);
 
   const createPoster = useCallback(async () => {
-    if (!campaignSlug) return;
+    if (campaignSlug === null) return;
     setBusy(true);
     setError(null);
     try {
@@ -156,7 +156,7 @@ export function PostersClient({
   }, [campaignSlug, posterType, refresh, t]);
 
   const createGroup = useCallback(async () => {
-    if (!campaignSlug) return;
+    if (campaignSlug === null) return;
     setBusy(true);
     setError(null);
     try {
@@ -190,7 +190,7 @@ export function PostersClient({
 
   return (
     <div className="flex flex-col gap-10">
-      {error ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
+      {error !== null ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
 
       <CreateSection
         campaigns={campaigns}
@@ -320,7 +320,7 @@ function CreateSection({
       <div className="mt-6 grid gap-4 border-t border-white/10 pt-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-white">{t("singles.title")}</p>
-          <Button size="app" onClick={createPoster} disabled={busy || !campaignSlug}>
+          <Button size="app" onClick={createPoster} disabled={busy || campaignSlug === null}>
             <Icon glyph="plus" size={16} />
             {t("actions.create-poster")}
           </Button>
@@ -345,7 +345,7 @@ function CreateSection({
               className="w-24"
             />
           </div>
-          <Button size="app" onClick={createGroup} disabled={busy || !campaignSlug}>
+          <Button size="app" onClick={createGroup} disabled={busy || campaignSlug === null}>
             <Icon glyph="plus" size={16} />
             {t("actions.create-group")}
           </Button>
@@ -378,7 +378,9 @@ function GroupsSection({
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg text-white">{group.name || t("groups.unnamed")}</h3>
+                  <h3 className="text-lg text-white">
+                    {group.name !== null && group.name.trim() !== "" ? group.name : t("groups.unnamed")}
+                  </h3>
                   <p className="text-xs text-muted-foreground">
                     {t("groups.count", { count: group.poster_count })} · {group.campaign_slug}
                   </p>
@@ -474,7 +476,7 @@ function useGeolocation(enabled: boolean) {
   const t = useTranslations("posters");
   const [state, setState] = useState<GeoState>({ kind: "idle" });
   const [attempt, setAttempt] = useState(0);
-  const geolocationUnavailable = typeof navigator === "undefined" || !navigator.geolocation;
+  const geolocation = typeof navigator === "undefined" ? null : navigator.geolocation;
   const unavailableState: GeoState = { kind: "error", message: t("errors.geolocation-unavailable") };
 
   const retry = useCallback(() => {
@@ -484,11 +486,11 @@ function useGeolocation(enabled: boolean) {
 
   useEffect(() => {
     if (!enabled) return;
-    if (geolocationUnavailable) return;
+    if (geolocation === null) return;
 
     let cancelled = false;
 
-    const watchId = navigator.geolocation.watchPosition(
+    const watchId = geolocation.watchPosition(
       (position) => {
         if (cancelled) return;
         setState({
@@ -511,13 +513,13 @@ function useGeolocation(enabled: boolean) {
 
     return () => {
       cancelled = true;
-      navigator.geolocation.clearWatch(watchId);
+      geolocation.clearWatch(watchId);
     };
-  }, [enabled, attempt, geolocationUnavailable, t]);
+  }, [enabled, attempt, geolocation, t]);
 
   const resolvedState: GeoState = !enabled
     ? { kind: "idle" }
-    : geolocationUnavailable
+    : geolocation === null
       ? unavailableState
       : state.kind === "idle"
         ? { kind: "pending" }
@@ -547,7 +549,7 @@ function VerifyModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!file) {
+    if (file === null) {
       setPreviewUrl(null);
       return;
     }
@@ -564,9 +566,11 @@ function VerifyModal({
 
   const targetLabel =
     target.kind === "group"
-      ? target.group.name || t("groups.unnamed")
+      ? target.group.name !== null && target.group.name.trim() !== ""
+        ? target.group.name
+        : t("groups.unnamed")
       : t("poster-card.referral", { code: target.poster.referral_code });
-  const safePreviewUrl = previewUrl && isSafePreviewUrl(previewUrl) ? previewUrl : null;
+  const safePreviewUrl = previewUrl !== null && isSafePreviewUrl(previewUrl) ? previewUrl : null;
   const handleSelectedFile = useCallback(
     (nextFile: File | null) => {
       if (!nextFile) {
@@ -680,7 +684,7 @@ function VerifyModal({
               </div>
 
               <div className="space-y-3">
-                {safePreviewUrl ? (
+                {safePreviewUrl !== null ? (
                   <div className="relative h-48 overflow-hidden rounded-lg border border-white/10">
                     <Image
                       src={safePreviewUrl}
@@ -738,7 +742,7 @@ function VerifyModal({
                 <p className="text-xs text-muted-foreground">{t("verify-modal.auto-detect")}</p>
               ) : null}
 
-              {error ? (
+              {error !== null ? (
                 <p className="text-sm text-primary">{error}</p>
               ) : null}
             </div>

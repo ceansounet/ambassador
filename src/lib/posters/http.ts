@@ -38,7 +38,7 @@ export async function requirePosterSession() {
     throw new PosterRequestError("Forbidden", 403);
   }
 
-  if (!user.posters_enabled) {
+  if (user.posters_enabled !== true) {
     throw new PosterRequestError("Coming soon!", 403);
   }
 

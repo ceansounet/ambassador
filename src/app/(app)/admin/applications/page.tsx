@@ -13,6 +13,26 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 
 type CountRow = { total: number };
 
+type ApplicationListRow = {
+  id: string;
+  status: string;
+  name: string | null;
+  applicant_email: string | null;
+  applicant_slack_id: string | null;
+  address_city: string | null;
+  address_state: string | null;
+  address_country: string | null;
+  submitted_ip: string | null;
+  city: string | null;
+  country_code: string | null;
+  created_at: string;
+  is_latest: boolean;
+  user_name: string | null;
+  user_email: string | null;
+  slack_id: string | null;
+  slack_name: string | null;
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.applications-list.metadata.title");
 }
@@ -31,7 +51,7 @@ export default async function AdminApplicationsPage({
   const searchFilter = search ? `%${search}%` : null;
 
   const [applications, countResult] = await Promise.all([
-    sql`
+    sql<ApplicationListRow[]>`
       SELECT a.id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
              a.address_city, a.address_state, a.address_country, a.submitted_ip,
              a.city, a.country_code, a.created_at,
@@ -121,7 +141,7 @@ export default async function AdminApplicationsPage({
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-2">
                     <StatusBadge status={application.status} />
-                    {application.is_latest ? (
+                    {application.is_latest === true ? (
                       <span className={pillVariants({ tone: "green" })}>
                         {t("admin.applications-list.latest")}
                       </span>
@@ -133,11 +153,11 @@ export default async function AdminApplicationsPage({
                   </div>
                 </td>
                 <td className="px-5 py-4 font-body text-base text-white">
-                  {application.city && application.country_code
+                  {application.city !== null && application.country_code !== null
                     ? `${application.city}, ${application.country_code}`
-                    : application.address_city && application.address_country
+                    : application.address_city !== null && application.address_country !== null
                       ? `${application.address_city}, ${application.address_country}`
-                    : "-"}
+                      : "-"}
                 </td>
                 <td className="px-5 py-4 font-body text-base text-white">
                   {new Date(application.created_at).toLocaleDateString(locale)}

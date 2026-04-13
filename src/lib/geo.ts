@@ -18,19 +18,6 @@ function isPrivateIp(ip: string): boolean {
   return ip === "unknown" || PRIVATE_RANGES.some((r) => r.test(ip));
 }
 
-type GeocoderResponse = {
-  lat?: number;
-  lng?: number;
-  city?: string;
-  region?: string;
-  country_name?: string;
-  country_code?: string;
-  postal_code?: string;
-  timezone?: string;
-  org?: string;
-  error?: string;
-};
-
 export type GeoResult = {
   latitude: number;
   longitude: number;
@@ -93,7 +80,7 @@ export async function geocodeIp(
   const ambassadorRegion =
     resolveDetectedAmbassadorRegion(geo.country_code, geo.country_name) ?? "United States";
 
-  if (table === "users" && id) {
+  if (table === "users" && id !== null) {
     await sql`
       UPDATE users SET
         latitude = ${geo.latitude},
@@ -115,7 +102,7 @@ export async function geocodeIp(
         geocoded_at = NOW()
       WHERE id = ${id}
     `;
-  } else if (table === "applications" && id) {
+  } else if (table === "applications" && id !== null) {
     await sql`
       UPDATE applications SET
         latitude = ${geo.latitude},
@@ -127,7 +114,13 @@ export async function geocodeIp(
         geocoded_at = NOW()
       WHERE id = ${id}
     `;
-  } else if (table === "ip_visits" && userId && visitType) {
+  } else if (
+    table === "ip_visits" &&
+    userId !== undefined &&
+    userId !== "" &&
+    visitType !== undefined &&
+    visitType !== ""
+  ) {
     const visit = (await sql<VisitIdRow[]>`
       SELECT id FROM ip_visits
       WHERE user_id = ${userId} AND visit_type = ${visitType}

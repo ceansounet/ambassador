@@ -68,7 +68,7 @@ export function readPosterCampaignConfig(campaignSlug: string): PosterCampaignCo
     }
   }
 
-  if (!configPath) {
+  if (configPath === null) {
     return {};
   }
 

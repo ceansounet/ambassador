@@ -38,12 +38,18 @@ export async function GET(request: Request) {
   cookieStore.delete(OAUTH_STATE_COOKIE_NAME);
   cookieStore.delete(OAUTH_REDIRECT_COOKIE_NAME);
 
-  if (!state || !expectedState || state !== expectedState) {
+  if (
+    state === null ||
+    state === "" ||
+    expectedState === undefined ||
+    expectedState === "" ||
+    state !== expectedState
+  ) {
     cookieStore.delete(AUTH_INTENT_COOKIE_NAME);
     return Response.redirect(`${process.env.CURRENT_DOMAIN}/?error=invalid_state`);
   }
 
-  if (!code) {
+  if (code === null || code === "") {
     cookieStore.delete(AUTH_INTENT_COOKIE_NAME);
     return Response.redirect(`${process.env.CURRENT_DOMAIN}/?error=no_code`);
   }
@@ -76,8 +82,9 @@ export async function GET(request: Request) {
   const encryptedAccessToken = encryptHcaAccessToken(tokenData.access_token);
 
   const ip = getRequestIp(request);
-  const addressCountry = primaryAddress?.country?.trim() || null;
-  const signupGeo = addressCountry ? null : await fetchGeo(ip);
+  const trimmedAddressCountry = primaryAddress?.country?.trim() ?? "";
+  const addressCountry = trimmedAddressCountry !== "" ? trimmedAddressCountry : null;
+  const signupGeo = addressCountry === null ? await fetchGeo(ip) : null;
 
   await ensureSchema();
 
@@ -180,7 +187,7 @@ export async function GET(request: Request) {
     RETURNING id, is_admin
   `;
 
-  if (authIntentId) {
+  if (authIntentId !== undefined && authIntentId !== "") {
     try {
       await markAuthLoginIntentCompleted({
         intentId: authIntentId,

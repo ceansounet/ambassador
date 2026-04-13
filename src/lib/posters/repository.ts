@@ -231,8 +231,8 @@ export async function getUserPendingPosters(userId: string, campaignSlug?: strin
     FROM posters
     WHERE user_id = ${userId}
       AND verification_status = 'pending'
-      ${campaignSlug ? sql`AND campaign_slug = ${campaignSlug}` : sql``}
-      ${excludeId ? sql`AND id != ${excludeId}` : sql``}
+      ${campaignSlug !== undefined && campaignSlug !== "" ? sql`AND campaign_slug = ${campaignSlug}` : sql``}
+      ${excludeId !== undefined && excludeId !== "" ? sql`AND id != ${excludeId}` : sql``}
     ORDER BY created_at ASC
   `;
 }

@@ -138,7 +138,7 @@ export default async function AdminOrdersPage({
                 </td>
                 <td className="px-5 py-4 font-body text-base text-white">
                   <div>{order.sku ?? "-"}</div>
-                  {order.variant ? (
+                  {order.variant !== null && order.variant !== "" ? (
                     <div className="font-body text-sm text-black">
                       {t("admin.orders.size", { size: order.variant })}
                     </div>
@@ -162,7 +162,7 @@ export default async function AdminOrdersPage({
                   >
                     {order.status}
                   </span>
-                  {order.note ? (
+                  {order.note !== null && order.note.trim() !== "" ? (
                     <p className="mt-2 max-w-xs font-body text-sm text-primary">
                       {order.note}
                     </p>

@@ -51,7 +51,17 @@ export function ErrorFrame({
 
         {primaryAction ? (
           <div className="mt-8">
-            <Button asChild size="app" data-icon={primaryAction.icon ? "inline-end" : undefined}>
+            <Button
+              asChild
+              size="app"
+              data-icon={
+                primaryAction.icon !== undefined &&
+                primaryAction.icon !== null &&
+                primaryAction.icon !== false
+                  ? "inline-end"
+                  : undefined
+              }
+            >
               <Link href={primaryAction.href}>
                 <span>{primaryAction.label}</span>
                 {primaryAction.icon}

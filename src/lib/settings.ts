@@ -132,7 +132,11 @@ export function resolveDetectedAmbassadorRegion(
   let sawCandidate = false;
 
   for (const detectedRegion of detectedRegions) {
-    if (!detectedRegion || !detectedRegion.trim()) {
+    if (
+      detectedRegion === null ||
+      detectedRegion === undefined ||
+      detectedRegion.trim() === ""
+    ) {
       continue;
     }
 
@@ -148,7 +152,7 @@ export function resolveDetectedAmbassadorRegion(
 }
 
 function isHackClubAddress(value: unknown): value is Record<string, unknown> {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
 function readAddressField(
@@ -205,7 +209,7 @@ export function coerceHackClubAddress(value: unknown): HackClubAddress | null {
     phone_number: readAddressField(value, "phone_number", "phoneNumber"),
   };
 
-  return Object.values(address).some(Boolean) ? address : null;
+  return Object.values(address).some((field) => field !== "") ? address : null;
 }
 
 export function normalizeHackClubAddresses(value: unknown): HackClubAddress[] {
@@ -237,13 +241,13 @@ export function isCompleteHackClubAddress(address: HackClubAddress) {
     return false;
   }
 
-  return Boolean(
-    normalizedAddress.line_1?.trim() &&
-      normalizedAddress.city?.trim() &&
-      normalizedAddress.state?.trim() &&
-      normalizedAddress.postal_code?.trim() &&
-      normalizedAddress.country?.trim(),
-  );
+  return [
+    normalizedAddress.line_1,
+    normalizedAddress.city,
+    normalizedAddress.state,
+    normalizedAddress.postal_code,
+    normalizedAddress.country,
+  ].every((field) => typeof field === "string" && field.trim() !== "");
 }
 
 export function formatHackClubAddress(address: unknown) {

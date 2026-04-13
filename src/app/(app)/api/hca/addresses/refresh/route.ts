@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   const hcaAccessToken = readHcaAccessToken(user.hca_access_token ?? null);
 
-  if (!hcaAccessToken) {
+  if (hcaAccessToken === null || hcaAccessToken === "") {
     return Response.json({ error: "reauth_required" }, { status: 401 });
   }
 

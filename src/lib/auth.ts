@@ -15,7 +15,7 @@ export function getAuthorizationUrl(state: string, loginHint?: string) {
     state,
   });
 
-  if (loginHint) {
+  if (loginHint !== undefined && loginHint !== "") {
     params.set("login_hint", loginHint);
   }
 

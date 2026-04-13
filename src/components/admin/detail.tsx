@@ -11,10 +11,12 @@ export function DetailSection({
   description?: string;
   children: React.ReactNode;
 }) {
+  const hasDescription = description !== undefined && description.trim() !== "";
+
   return (
     <section className="!rounded-none border border-white/10 bg-card p-5 md:p-6">
       <h2 className="text-2xl text-white">{title}</h2>
-      {description ? (
+      {hasDescription ? (
         <p className="mt-2 max-w-3xl font-body text-base text-white">{description}</p>
       ) : null}
       <div className="mt-5 space-y-5">{children}</div>
@@ -35,16 +37,16 @@ export function DetailFieldRow({
   mono?: boolean;
   multiline?: boolean;
 }) {
-  const displayValue = value?.trim() ? value : emptyValue;
+  const displayValue = value !== null && value !== undefined && value.trim() !== "" ? value : emptyValue;
 
   return (
     <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-5">
       <div className="text-sm text-secondary">{label}</div>
       <div
         className={cn(
-          mono ? "font-body text-sm text-white" : "font-body text-base text-white",
+          mono === true ? "font-body text-sm text-white" : "font-body text-base text-white",
           "break-words [overflow-wrap:anywhere]",
-          multiline && "whitespace-pre-line",
+          multiline === true && "whitespace-pre-line",
         )}
       >
         {displayValue}

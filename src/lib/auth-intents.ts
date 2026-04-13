@@ -93,10 +93,11 @@ export async function markAuthLoginIntentCompleted({
 }) {
   await ensureSchema();
 
-  const normalizedCompletedEmail = completedEmail ? normalizeEmail(completedEmail) : null;
-  const completedEmailHash = normalizedCompletedEmail ? hashEmail(normalizedCompletedEmail) : null;
-  const completedEmailDomain = normalizedCompletedEmail
-    ? normalizedCompletedEmail.split("@")[1] || null
+  const normalizedCompletedEmail =
+    completedEmail !== null && completedEmail !== "" ? normalizeEmail(completedEmail) : null;
+  const completedEmailHash = normalizedCompletedEmail !== null ? hashEmail(normalizedCompletedEmail) : null;
+  const completedEmailDomain = normalizedCompletedEmail !== null
+    ? normalizedCompletedEmail.split("@")[1] ?? null
     : null;
 
   await sql`

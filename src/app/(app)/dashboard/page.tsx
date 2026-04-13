@@ -165,10 +165,8 @@ export default async function DashboardPage({
         id: existingOrderRow.id,
         status: existingOrderRow.status,
         size: existingOrderRow.variant,
-        warehouseUrl: warehouseOrderId ? buildWarehouseTrackingUrl(warehouseOrderId) : null,
-        publicOrderUrl: warehouseOrderId
-          ? buildWarehousePublicOrderUrl(warehouseOrderId)
-          : null,
+        warehouseUrl: warehouseOrderId === null ? null : buildWarehouseTrackingUrl(warehouseOrderId),
+        publicOrderUrl: warehouseOrderId === null ? null : buildWarehousePublicOrderUrl(warehouseOrderId),
         note: existingOrderRow.note,
       }
     : null;
@@ -546,8 +544,8 @@ function StatusCard({
           <a
             href={action.href}
             className={cn(buttonVariants({ size: "app" }), "mt-5")}
-            target={action.external ? "_blank" : undefined}
-            rel={action.external ? "noreferrer" : undefined}
+            target={action.external === true ? "_blank" : undefined}
+            rel={action.external === true ? "noreferrer" : undefined}
           >
             {action.label}
           </a>
@@ -594,7 +592,8 @@ function AmbassadorCircleText({
   const textPathId = useId();
   const ringText = "Ambassador • Ambassador • ";
   const ringCircumference = 2 * Math.PI * 40;
-  const initial = fallbackName?.trim().charAt(0).toUpperCase() || "?";
+  const trimmedFallbackName = fallbackName?.trim() ?? "";
+  const initial = trimmedFallbackName !== "" ? trimmedFallbackName.charAt(0).toUpperCase() : "?";
 
   return (
     <div
@@ -618,7 +617,7 @@ function AmbassadorCircleText({
         </text>
       </svg>
       <div className="absolute top-1/2 left-1/2 aspect-square w-[64%] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full">
-        {slackId ? (
+        {slackId !== undefined && slackId !== "" ? (
           <div
             aria-hidden
             className="h-full w-full rounded-full bg-cover bg-center bg-no-repeat"

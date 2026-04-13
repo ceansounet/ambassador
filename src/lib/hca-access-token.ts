@@ -41,7 +41,7 @@ export function encryptHcaAccessToken(token: string) {
 
 export function readHcaAccessToken(value: string | null | undefined) {
   const token = value?.trim();
-  if (!token) return null;
+  if (token === undefined || token === "") return null;
 
   if (!isEncryptedHcaAccessToken(token)) {
     return token;

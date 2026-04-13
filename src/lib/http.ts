@@ -21,7 +21,7 @@ export function getSafeRedirectPath(
 export function getAppUrl(path: string, request: Request) {
   const configuredOrigin = toOrigin(optionalEnv("CURRENT_DOMAIN"));
 
-  if (configuredOrigin) {
+  if (configuredOrigin !== null) {
     return new URL(path, configuredOrigin);
   }
 
@@ -37,7 +37,7 @@ export function getSafeRedirectUrl(
 }
 
 function toOrigin(value: string | null) {
-  if (!value) return null;
+  if (value === null || value === "") return null;
 
   try {
     return new URL(value).origin;
@@ -58,7 +58,7 @@ function getRequestOrigins(request: Request) {
   const origins = new Set<string>([requestUrl.origin]);
   const configuredOrigin = toOrigin(optionalEnv("CURRENT_DOMAIN"));
 
-  if (configuredOrigin) {
+  if (configuredOrigin !== null) {
     origins.add(configuredOrigin);
   }
 
@@ -83,9 +83,9 @@ export function isSameOriginRequest(request: Request) {
     toOrigin(request.headers.get("origin")) ??
     toOrigin(request.headers.get("referer"));
 
-  if (!requestOrigin) {
+  if (requestOrigin === null) {
     const fetchSite = request.headers.get("sec-fetch-site");
-    if (fetchSite) {
+    if (fetchSite !== null && fetchSite !== "") {
       return fetchSite === "same-origin" || fetchSite === "same-site" || fetchSite === "none";
     }
     return true;

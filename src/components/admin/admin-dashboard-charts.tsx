@@ -292,11 +292,11 @@ function ChartTooltip({
   }>;
   locale: string;
 }) {
-  if (!active || !payload?.length) return null;
+  if (active !== true || payload === undefined || payload.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-white bg-black px-4 py-3">
-      {label ? <div className="mb-2 font-body text-sm text-secondary">{label}</div> : null}
+      {label !== undefined && label !== "" ? <div className="mb-2 font-body text-sm text-secondary">{label}</div> : null}
       <div className="space-y-2">
         {payload.map((item) => (
           <div key={item.name} className="flex items-center justify-between gap-6">

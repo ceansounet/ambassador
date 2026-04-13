@@ -17,9 +17,9 @@ export function ConfirmSubmitForm({
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     onSubmit?.(event);
 
-    const messages = confirmationMessages?.length
+    const messages = confirmationMessages !== undefined && confirmationMessages.length > 0
       ? confirmationMessages
-      : confirmationMessage
+      : confirmationMessage !== undefined && confirmationMessage !== ""
         ? [confirmationMessage]
         : [];
 

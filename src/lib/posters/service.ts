@@ -23,8 +23,6 @@ import { deletePosterProofFile, savePosterProofFile } from "@/lib/posters/storag
 import { PosterRequestError } from "@/lib/posters/http";
 import {
   MAX_POSTERS_PER_GROUP,
-  POSTER_GROUP_CHARSETS,
-  POSTER_STYLES,
   type CreatePosterGroupInput,
   type CreatePosterInput,
   type PosterGroupCharset,
@@ -91,7 +89,7 @@ export async function listPosterDataForUser(userId: string) {
   const standalonePosters: PosterRow[] = [];
 
   for (const poster of posters) {
-    if (poster.poster_group_id) {
+    if (poster.poster_group_id !== null) {
       const existing = groupedPosters.get(poster.poster_group_id) ?? [];
       existing.push(poster);
       groupedPosters.set(poster.poster_group_id, existing);

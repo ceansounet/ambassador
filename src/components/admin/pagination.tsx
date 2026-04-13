@@ -45,7 +45,7 @@ export function Pagination({
         {labels.page} {currentPage} / {totalPages}
       </div>
       <div className="flex gap-2">
-        {previousHref ? (
+        {previousHref !== null ? (
           <Link
             href={previousHref}
             className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-muted/80"
@@ -53,7 +53,7 @@ export function Pagination({
             {labels.previous}
           </Link>
         ) : null}
-        {nextHref ? (
+        {nextHref !== null ? (
           <Link
             href={nextHref}
             className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-muted/80"

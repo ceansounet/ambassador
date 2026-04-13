@@ -122,11 +122,11 @@ export default async function AdminUserDetailPage({
   const storedAddresses = Array.isArray(user.hca_addresses)
     ? user.hca_addresses.filter(
         (address): address is Record<string, unknown> =>
-          !!address && typeof address === "object",
+          address !== null && typeof address === "object",
       )
     : [];
   const hcaAccessToken = readHcaAccessToken(user.hca_access_token);
-  const liveAddresses = hcaAccessToken
+  const liveAddresses = hcaAccessToken !== null
     ? await fetchHackClubAddresses(hcaAccessToken).catch((error) => {
         console.error("Failed to load live Hack Club Auth addresses", {
           userId: user.id,
@@ -270,7 +270,7 @@ export default async function AdminUserDetailPage({
               <h1 className="text-4xl text-white">{user.display_name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {headerStatus ? (
+              {headerStatus !== null ? (
                 <>
                   <StatusBadge status={headerStatus} />
                   {manualDashboardState ? (
@@ -525,7 +525,9 @@ export default async function AdminUserDetailPage({
                     </span>
                   </div>
                   <div className="mt-2 whitespace-pre-line font-body text-base text-white break-words [overflow-wrap:anywhere]">
-                    {entry.note?.trim() ? entry.note : t("admin.user-detail.notes.cleared")}
+                      {typeof entry.note === "string" && entry.note.trim() !== ""
+                        ? entry.note
+                        : t("admin.user-detail.notes.cleared")}
                   </div>
                 </div>
               ))
@@ -588,7 +590,7 @@ export default async function AdminUserDetailPage({
                           address.country ?? null,
                         ),
                       ]
-                        .filter((part): part is string => !!part)
+                          .filter((part): part is string => part !== null && part !== "")
                         .join("\n")}`,
                   )
                   .join("\n\n")

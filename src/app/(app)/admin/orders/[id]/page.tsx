@@ -99,14 +99,12 @@ export default async function AdminOrderDetailPage({
   `).at(0) ?? null;
   const isLatestOrder = latestOrder?.id === order.id;
   const warehouseOrderId = order.warehouse_order_id ?? warehousePayload?.id ?? null;
-  const warehouseUrl = warehouseOrderId ? buildWarehouseTrackingUrl(warehouseOrderId) : null;
-  const publicOrderUrl = warehouseOrderId
-    ? buildWarehousePublicOrderUrl(warehouseOrderId)
-    : null;
+  const warehouseUrl = warehouseOrderId === null ? null : buildWarehouseTrackingUrl(warehouseOrderId);
+  const publicOrderUrl = warehouseOrderId === null ? null : buildWarehousePublicOrderUrl(warehouseOrderId);
   const warehouseStatus = order.warehouse_status ?? warehousePayload?.status ?? null;
   const warehouseAddress = formatHackClubAddress(warehousePayload?.address) || null;
   const warehouseTags =
-    warehousePayload?.tags && warehousePayload.tags.length > 0
+    warehousePayload?.tags !== undefined && warehousePayload.tags.length > 0
       ? warehousePayload.tags.join(", ")
       : null;
 
@@ -179,7 +177,7 @@ export default async function AdminOrderDetailPage({
             >
               <input type="hidden" name="redirectTo" value={redirectTo} />
               <button className={buttonVariants({ variant: "success", size: "app" })}>
-                {warehouseOrderId
+                {warehouseOrderId !== null
                   ? t("admin.order-detail.actions.approve-existing")
                   : t("admin.order-detail.actions.approve")}
               </button>
@@ -288,9 +286,9 @@ export default async function AdminOrderDetailPage({
           value={order.internal_fail_reason}
           multiline
         />
-        {warehouseUrl || publicOrderUrl ? (
+        {warehouseUrl !== null || publicOrderUrl !== null ? (
           <div className="flex flex-wrap gap-3">
-            {warehouseUrl ? (
+            {warehouseUrl !== null ? (
               <a
                 href={warehouseUrl}
                 target="_blank"
@@ -301,7 +299,7 @@ export default async function AdminOrderDetailPage({
                 <span aria-hidden="true">↗</span>
               </a>
             ) : null}
-            {publicOrderUrl ? (
+            {publicOrderUrl !== null ? (
               <a
                 href={publicOrderUrl}
                 target="_blank"

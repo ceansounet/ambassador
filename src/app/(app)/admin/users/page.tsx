@@ -12,6 +12,19 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 
 type CountRow = { total: number };
 
+type UserListRow = {
+  id: string;
+  email: string | null;
+  display_name: string;
+  slack_id: string | null;
+  slack_name: string | null;
+  is_admin: boolean | null;
+  created_at: string;
+  latest_application_id: string | null;
+  latest_application_status: string | null;
+  application_count: number;
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.users-list.metadata.title");
 }
@@ -30,7 +43,7 @@ export default async function AdminUsersPage({
   const searchFilter = search ? `%${search}%` : null;
 
   const [users, countResult] = await Promise.all([
-    sql`
+    sql<UserListRow[]>`
       SELECT u.id, u.email, u.display_name, u.slack_id, u.slack_name, u.is_admin,
              u.created_at, latest.id AS latest_application_id, latest.status AS latest_application_status,
              app_count.application_count
@@ -104,17 +117,17 @@ export default async function AdminUsersPage({
                 </td>
                 <td className="px-5 py-4 font-body text-base text-white">{user.email ?? "-"}</td>
                 <td className="px-5 py-4">
-                  {user.latest_application_status ? (
+                  {user.latest_application_status !== null ? (
                     <StatusBadge status={user.latest_application_status} />
                   ) : (
                     <span className="font-body text-base text-white">{t("admin.users-list.no-application")}</span>
                   )}
                 </td>
                 <td className="px-5 py-4 font-body text-base text-white">
-                  {user.application_count ?? 0}
+                  {user.application_count}
                 </td>
                 <td className="px-5 py-4 font-body text-base">
-                  {user.is_admin ? (
+                  {user.is_admin === true ? (
                     <span className="text-acceptance">{t("common.yes")}</span>
                   ) : (
                     <span className="text-white">{t("common.no")}</span>

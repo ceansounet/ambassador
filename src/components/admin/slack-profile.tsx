@@ -9,14 +9,15 @@ export function SlackAvatar({
   sizeClassName?: string;
   textClassName?: string;
 }) {
-  const displayName = fallbackName?.trim() || "Unknown";
+  const trimmedFallbackName = fallbackName?.trim() ?? "";
+  const displayName = trimmedFallbackName !== "" ? trimmedFallbackName : "Unknown";
   const initial = displayName.charAt(0).toUpperCase() || "?";
 
   return (
     <div
       className={`flex shrink-0 items-center justify-center rounded-full border border-white p-1 ${sizeClassName}`}
     >
-      {slackId ? (
+      {slackId !== null && slackId !== undefined && slackId !== "" ? (
         <div
           aria-label={displayName}
           className="h-full w-full rounded-full bg-cover bg-center bg-no-repeat"
@@ -44,7 +45,8 @@ export function SlackProfile({
   slackId?: string | null;
   fallbackName?: string | null;
 }) {
-  const displayName = (slackName ?? fallbackName)?.trim() || "Unknown";
+  const trimmedDisplayName = (slackName ?? fallbackName)?.trim() ?? "";
+  const displayName = trimmedDisplayName !== "" ? trimmedDisplayName : "Unknown";
 
   return (
     <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-4">
@@ -53,7 +55,7 @@ export function SlackProfile({
         <SlackAvatar slackId={slackId} fallbackName={displayName} />
         <div className="font-body text-base text-white">
           {displayName}
-          {slackId ? ` (${slackId})` : ""}
+          {slackId !== null && slackId !== undefined && slackId !== "" ? ` (${slackId})` : ""}
         </div>
       </div>
     </div>

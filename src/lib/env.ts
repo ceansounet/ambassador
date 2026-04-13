@@ -3,7 +3,7 @@ import "server-only";
 export function requireEnv(name: string) {
   const value = process.env[name]?.trim();
 
-  if (!value) {
+  if (value === undefined || value === "") {
     throw new Error(`${name} is not set`);
   }
 
@@ -11,7 +11,8 @@ export function requireEnv(name: string) {
 }
 
 export function optionalEnv(name: string) {
-  return process.env[name]?.trim() || null;
+  const value = process.env[name]?.trim();
+  return value !== undefined && value !== "" ? value : null;
 }
 
 export function isProduction() {

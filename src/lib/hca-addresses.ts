@@ -53,7 +53,7 @@ export async function loadUserHackClubAddresses({
     };
   }
 
-  if (!accessToken) {
+  if (accessToken === null || accessToken === "") {
     return {
       addresses: [],
       needsAddressRefresh: true,

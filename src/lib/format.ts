@@ -1,9 +1,11 @@
 export function formatDate(value: string | null | undefined, locale: string) {
-  if (!value) {
+  const trimmedValue = value?.trim() ?? "";
+
+  if (trimmedValue === "") {
     return null;
   }
 
-  return new Date(value).toLocaleDateString(locale, {
+  return new Date(trimmedValue).toLocaleDateString(locale, {
     month: "long",
     day: "numeric",
     year: "numeric",
@@ -11,11 +13,13 @@ export function formatDate(value: string | null | undefined, locale: string) {
 }
 
 export function formatDateTime(value: string | null | undefined, locale: string) {
-  if (!value) {
+  const trimmedValue = value?.trim() ?? "";
+
+  if (trimmedValue === "") {
     return null;
   }
 
-  return new Date(value).toLocaleString(locale, {
+  return new Date(trimmedValue).toLocaleString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -25,7 +29,9 @@ export function formatDateTime(value: string | null | undefined, locale: string)
 }
 
 export function joinNonEmpty(...parts: Array<string | null | undefined>) {
-  const value = parts.filter((part): part is string => !!part && part.trim().length > 0).join(", ");
+  const value = parts
+    .filter((part): part is string => part !== null && part !== undefined && part.trim().length > 0)
+    .join(", ");
 
-  return value || null;
+  return value !== "" ? value : null;
 }

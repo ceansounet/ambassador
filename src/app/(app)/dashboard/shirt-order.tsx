@@ -46,22 +46,25 @@ export type ShirtOrderSectionProps = {
 
 export default function ShirtOrderSection(props: ShirtOrderSectionProps) {
   const t = useTranslations("shirt");
+  const trimmedExistingOrderNote = props.existingOrder?.note?.trim() ?? "";
   const retryableReason =
-    props.existingOrder &&
+    props.existingOrder !== null &&
     !props.requiresOnboarding &&
     canPlaceAnotherShirtOrder(props.existingOrder.status)
-      ? props.existingOrder.note?.trim() || t("order.no-reason")
+      ? trimmedExistingOrderNote !== ""
+        ? trimmedExistingOrderNote
+        : t("order.no-reason")
       : null;
-  const retryableWarning = retryableReason
+  const retryableWarning = retryableReason !== null
     ? t("order.retryable-warning", { reason: retryableReason })
     : null;
-  const retryableWarningParts = retryableWarning?.split(/(rejected)/i);
+  const retryableWarningParts = retryableWarning?.split(/(rejected)/i) ?? [];
   return (
     <section>
       <h2 className="font-sub text-2xl text-white md:text-3xl">{t("heading")}</h2>
-      {retryableWarning ? (
+      {retryableWarning !== null ? (
         <p className="mt-2 text-base text-black">
-          {retryableWarningParts?.map((part, index) =>
+          {retryableWarningParts.map((part, index) =>
             /^rejected$/i.test(part) ? (
               <span key={`${part}-${index}`} className="text-primary">
                 {part}
@@ -496,7 +499,7 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
     return (
       <div>
         <p className="font-body text-base text-muted-foreground">
-          {approvedTrackingUrl ? (
+          {approvedTrackingUrl !== null ? (
             t.rich("order.approved-message", {
               link: (chunks) => (
                 <a
@@ -542,13 +545,13 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
       {(order.status === ORDER_STATUS_REJECTED ||
         order.status === ORDER_STATUS_FAILED ||
         order.status === ORDER_STATUS_CANCELLED) &&
-      order.note ? (
+      order.note !== null && order.note !== "" ? (
         <p className="mt-3 font-body text-sm text-primary">{order.note}</p>
       ) : null}
 
-      {order.warehouseUrl || order.publicOrderUrl ? (
+      {order.warehouseUrl !== null || order.publicOrderUrl !== null ? (
         <div className="mt-6 flex flex-wrap gap-3">
-          {order.warehouseUrl ? (
+          {order.warehouseUrl !== null ? (
             <a
               href={order.warehouseUrl}
               target="_blank"
@@ -558,7 +561,7 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
               {t("order.track-cta")}
             </a>
           ) : null}
-          {order.publicOrderUrl ? (
+          {order.publicOrderUrl !== null ? (
             <a
               href={order.publicOrderUrl}
               target="_blank"

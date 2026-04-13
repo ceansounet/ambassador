@@ -19,7 +19,7 @@ export async function generateQrCodePng(content: string, size: number) {
 
 function getQreaderBaseUrl() {
   const url = optionalEnv("QREADER_URL");
-  if (!url) {
+  if (url === null || url === "") {
     throw new Error("QREADER_URL is not set. Start the qreader microservice (see docker-compose.yml).");
   }
   return url.replace(/\/+$/, "");
@@ -37,15 +37,23 @@ export async function readQrCodesFromImageBuffer(
 ): Promise<string[]> {
   const base = getQreaderBaseUrl();
   const adminKey = optionalEnv("QREADER_ADMIN_KEY");
+  const contentType =
+    options.contentType !== undefined && options.contentType !== ""
+      ? options.contentType
+      : "application/octet-stream";
+  const filename =
+    options.filename !== undefined && options.filename !== ""
+      ? options.filename
+      : "proof";
 
   const form = new FormData();
   const blob = new Blob([new Uint8Array(buffer)], {
-    type: options.contentType || "application/octet-stream",
+    type: contentType,
   });
-  form.append("file", blob, options.filename || "proof");
+  form.append("file", blob, filename);
 
   const headers: Record<string, string> = {};
-  if (adminKey) {
+  if (adminKey !== null && adminKey !== "") {
     headers["x-admin-key"] = adminKey;
   }
 
@@ -75,7 +83,11 @@ export async function readQrCodesFromImageBuffer(
   }
 
   if (!response.ok) {
-    throw new Error(payload.error || `qreader responded with ${response.status}`);
+    throw new Error(
+      payload.error !== undefined && payload.error !== ""
+        ? payload.error
+        : `qreader responded with ${response.status}`,
+    );
   }
 
   return Array.isArray(payload.results) ? payload.results.filter(Boolean) : [];

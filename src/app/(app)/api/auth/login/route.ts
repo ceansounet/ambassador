@@ -17,6 +17,8 @@ import { getSafeRedirectPath } from "@/lib/http";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const submittedEmail = url.searchParams.get("email");
+  const normalizedSubmittedEmail =
+    submittedEmail !== null && submittedEmail !== "" ? normalizeEmail(submittedEmail) : null;
   const nextPath = getSafeRedirectPath(url.searchParams.get("next"), "/dashboard");
   const state = crypto.randomUUID();
   const cookieStore = await cookies();
@@ -39,10 +41,10 @@ export async function GET(request: Request) {
 
   let loginHint: string | undefined;
 
-  if (submittedEmail) {
+  if (normalizedSubmittedEmail !== null) {
     try {
       const intent = await createAuthLoginIntent({
-        email: submittedEmail,
+        email: normalizedSubmittedEmail,
       });
 
       if (intent) {
@@ -54,13 +56,13 @@ export async function GET(request: Request) {
           path: "/",
           maxAge: 60 * 60 * 24 * 30,
         });
-      } else if (isValidEmail(normalizeEmail(submittedEmail))) {
-        loginHint = normalizeEmail(submittedEmail);
+      } else if (isValidEmail(normalizedSubmittedEmail)) {
+        loginHint = normalizedSubmittedEmail;
       }
     } catch (error) {
       console.error("Failed to create auth login intent", { error });
-      if (isValidEmail(normalizeEmail(submittedEmail))) {
-        loginHint = normalizeEmail(submittedEmail);
+      if (isValidEmail(normalizedSubmittedEmail)) {
+        loginHint = normalizedSubmittedEmail;
       }
     }
   }

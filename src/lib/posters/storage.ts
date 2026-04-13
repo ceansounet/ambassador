@@ -20,7 +20,7 @@ function getStorageDriver(): StorageDriver {
 
 function getLfsRoot() {
   const configured = optionalEnv("LFS_ROOT");
-  if (configured) {
+  if (configured !== null && configured !== "") {
     return path.isAbsolute(configured) ? configured : path.join(projectRoot, configured);
   }
 
@@ -74,7 +74,16 @@ function requireS3Env(): S3Env {
   const secretAccessKey = optionalEnv("R2_SECRET_ACCESS_KEY");
   const bucket = optionalEnv("R2_BUCKET");
 
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket) {
+  if (
+    accountId === null ||
+    accountId === "" ||
+    accessKeyId === null ||
+    accessKeyId === "" ||
+    secretAccessKey === null ||
+    secretAccessKey === "" ||
+    bucket === null ||
+    bucket === ""
+  ) {
     throw new Error(
       "R2 storage driver requires R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET.",
     );
@@ -177,7 +186,7 @@ export async function readPosterProofFile(key: string): Promise<Buffer> {
 }
 
 export async function deletePosterProofFile(key: string | null | undefined) {
-  if (!key) return;
+  if (key === null || key === undefined || key === "") return;
 
   const driver = getStorageDriver();
   try {

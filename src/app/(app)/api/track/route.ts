@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const ip = getRequestIp(request);
   const token = request.cookies.get("ambassador_token")?.value;
 
-  if (token) {
+  if (token !== undefined && token !== "") {
     const payload = await verifyToken(token);
     if (payload) {
       await trackAuthenticatedVisit(ip, payload.sub);

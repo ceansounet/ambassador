@@ -2,9 +2,10 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const deploymentId = process.env.DEPLOYMENT_VERSION?.trim();
 
 const nextConfig: NextConfig = {
-  deploymentId: process.env.DEPLOYMENT_VERSION?.trim() || undefined,
+  deploymentId: deploymentId !== undefined && deploymentId !== "" ? deploymentId : undefined,
   experimental: {
     authInterrupts: true,
   },
