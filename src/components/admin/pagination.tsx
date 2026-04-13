@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-const btnClass =
-  "inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-muted/80";
 export function Pagination({
   totalCount,
   pageSize,
@@ -18,17 +16,26 @@ export function Pagination({
   const searchParams = useSearchParams();
   const currentPage = Math.max(1, Number(searchParams.get("page") ?? "1"));
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-  function buildHref(page: number) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (page <= 1) {
-      params.delete("page");
-    } else {
-      params.set("page", String(page));
-    }
-    const qs = params.toString();
-    return qs ? `${pathname}?${qs}` : pathname;
-  }
+  const previousHref = currentPage <= 1
+    ? null
+    : (() => {
+        const params = new URLSearchParams(searchParams.toString());
+        if (currentPage === 2) {
+          params.delete("page");
+        } else {
+          params.set("page", String(currentPage - 1));
+        }
+        const qs = params.toString();
+        return qs ? `${pathname}?${qs}` : pathname;
+      })();
+  const nextHref = currentPage >= totalPages
+    ? null
+    : (() => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("page", String(currentPage + 1));
+        const qs = params.toString();
+        return qs ? `${pathname}?${qs}` : pathname;
+      })();
 
   if (totalPages <= 1) return null;
 
@@ -38,13 +45,19 @@ export function Pagination({
         {labels.page} {currentPage} / {totalPages}
       </div>
       <div className="flex gap-2">
-        {currentPage > 1 ? (
-          <Link href={buildHref(currentPage - 1)} className={btnClass}>
+        {previousHref ? (
+          <Link
+            href={previousHref}
+            className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-muted/80"
+          >
             {labels.previous}
           </Link>
         ) : null}
-        {currentPage < totalPages ? (
-          <Link href={buildHref(currentPage + 1)} className={btnClass}>
+        {nextHref ? (
+          <Link
+            href={nextHref}
+            className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-muted/80"
+          >
             {labels.next}
           </Link>
         ) : null}

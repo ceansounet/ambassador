@@ -12,46 +12,6 @@
   html {
     font-size: clamp(16px, 1.25vw, 20px);
   }
-
-  /* :is(
-    button:not([data-slot^="select-"]),
-    [data-slot="button"],
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ) {
-    color: #fff !important;
-  }
-
-  :is(
-    button:not(:disabled, [data-slot^="select-"]),
-    [data-slot="button"]:not(:disabled),
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ) {
-    cursor: pointer;
-  }
-
-  :is(
-    button:not(:disabled, [data-slot^="select-"]),
-    [data-slot="button"]:not(:disabled),
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ):is(:hover, :focus-visible) {
-    background-color: #000 !important;
-    border-color: #000 !important;
-    color: #fff !important;
-    opacity: 1 !important;
-  }
-
-  :is(
-      button:not(:disabled, [data-slot^="select-"]),
-      [data-slot="button"]:not(:disabled),
-      a[data-slot="button"],
-      a.inline-flex.rounded-xl
-    ):is(:hover, :focus-visible)
-    svg {
-    color: #fff !important;
-  } */
 }
 
 @utility bg-grid {

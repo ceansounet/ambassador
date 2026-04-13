@@ -15,8 +15,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-const initialChartWidth = 640;
-
 export type DashboardActivityPoint = {
   label: string;
   visits: number;
@@ -127,7 +125,6 @@ export function AdminDashboardCharts({
                 data={activityData}
                 margin={{ top: 12, right: 12, left: -16, bottom: 0 }}
               >
-
                 <XAxis
                   dataKey="label"
                   tick={{ fill: "var(--foreground)", fontSize: 12 }}
@@ -188,7 +185,6 @@ export function AdminDashboardCharts({
                 layout="vertical"
                 margin={{ top: 12, right: 12, left: 8, bottom: 12 }}
               >
-
                 <XAxis
                   type="number"
                   tick={{ fill: "var(--foreground)", fontSize: 12 }}
@@ -226,7 +222,6 @@ export function AdminDashboardCharts({
                   layout="vertical"
                   margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
                 >
-  
                   <XAxis
                     type="number"
                     tick={{ fill: "var(--foreground)", fontSize: 12 }}
@@ -274,7 +269,7 @@ function DashboardResponsiveChart({
       height="100%"
       minWidth={0}
       minHeight={height}
-      initialDimension={{ width: initialChartWidth, height }}
+      initialDimension={{ width: 640, height }}
     >
       {children}
     </ResponsiveContainer>

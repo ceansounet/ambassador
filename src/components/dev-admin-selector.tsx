@@ -4,17 +4,9 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   isErrorCode,
-  resolveErrorCodeRoute,
   type DevState,
   type ErrorCode,
 } from "@/lib/dev-admin-selector";
-
-const ERROR_CODE_OPTIONS: ReadonlyArray<{ value: ErrorCode; label: string }> = [
-  { value: "401", label: "401" },
-  { value: "403", label: "403" },
-  { value: "404", label: "404" },
-  { value: "500", label: "500" },
-];
 
 export function DevAdminSelector({
   mode = "dashboard",
@@ -55,7 +47,14 @@ export function DevAdminSelector({
         onChange={(e) => {
           if (mode === "error") {
             if (!isErrorCode(e.target.value)) return;
-            window.location.href = resolveErrorCodeRoute(e.target.value);
+            window.location.href =
+              e.target.value === "401"
+                ? "/oops/401"
+                : e.target.value === "403"
+                  ? "/oops/403"
+                  : e.target.value === "404"
+                    ? "/__dev_selector_404__"
+                    : "/oops/500";
             return;
           }
 
@@ -67,7 +66,14 @@ export function DevAdminSelector({
         }}
         className="cursor-pointer rounded bg-card text-sm text-foreground outline-none"
       >
-        {(mode === "error" ? ERROR_CODE_OPTIONS : stateOptions).map((state) => (
+        {(mode === "error"
+          ? [
+              { value: "401", label: "401" },
+              { value: "403", label: "403" },
+              { value: "404", label: "404" },
+              { value: "500", label: "500" },
+            ]
+          : stateOptions).map((state) => (
           <option key={state.value} value={state.value}>
             {state.label}
           </option>

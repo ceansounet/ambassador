@@ -18,7 +18,7 @@ import {
   updatePosterMetadata,
   updatePosterProofAndVerification,
 } from "@/lib/posters/repository";
-import { findMatchingPoster, getPosterReferralUrl, readQrCodesFromImageBuffer } from "@/lib/posters/qr";
+import { findMatchingPoster, readQrCodesFromImageBuffer } from "@/lib/posters/qr";
 import { deletePosterProofFile, savePosterProofFile } from "@/lib/posters/storage";
 import { PosterRequestError } from "@/lib/posters/http";
 import {
@@ -40,17 +40,6 @@ function isPosterStyle(value: string | null | undefined): value is PosterStyle {
 
 function isPosterGroupCharset(value: string | null | undefined): value is PosterGroupCharset {
   return POSTER_GROUP_CHARSETS.includes((value ?? "") as PosterGroupCharset);
-}
-
-function getProofUploadMetadata(detectedQrCodes: string[], extra: Record<string, unknown> = {}) {
-  return {
-    detected_qr_codes: detectedQrCodes,
-    ...extra,
-  };
-}
-
-async function toBuffer(file: File) {
-  return Buffer.from(await file.arrayBuffer());
 }
 
 async function persistPosterDecision(input: {
@@ -79,7 +68,10 @@ async function persistPosterDecision(input: {
       locationAccuracy: input.locationAccuracy ?? null,
       detectedQrCodes: input.detectedQrCodes,
       verificationStatus: input.verificationStatus,
-      metadata: getProofUploadMetadata(input.detectedQrCodes, input.metadata),
+      metadata: {
+        detected_qr_codes: input.detectedQrCodes,
+        ...input.metadata,
+      },
       submittedAt: true,
       verifiedAt: input.verificationStatus === "success",
     });
@@ -90,7 +82,7 @@ async function persistPosterDecision(input: {
 }
 
 async function detectQrCodes(file: File) {
-  return readQrCodesFromImageBuffer(await toBuffer(file));
+  return readQrCodesFromImageBuffer(Buffer.from(await file.arrayBuffer()));
 }
 
 export async function listPosterDataForUser(userId: string) {
@@ -238,7 +230,7 @@ export async function submitPosterProof(input: SubmitPosterProofInput): Promise<
       locationAccuracy: input.locationAccuracy ?? null,
       metadata: {
         auto_verified: true,
-        expected_url: getPosterReferralUrl(poster),
+        expected_url: buildPosterReferralUrl(poster.referral_code),
       },
     });
 
@@ -266,7 +258,7 @@ export async function submitPosterProof(input: SubmitPosterProofInput): Promise<
       metadata: {
         auto_verified: true,
         auto_matched_from_poster_id: poster.id,
-        expected_url: getPosterReferralUrl(matchedPoster),
+        expected_url: buildPosterReferralUrl(matchedPoster.referral_code),
       },
     });
 

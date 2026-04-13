@@ -1,16 +1,11 @@
-function emitStartupLogs() {
-  // because sideboard is causing high cortisol levels
-  for (let index = 0; index < 100; index += 1) {
-    console.log("low cortisol");
-  }
-}
-
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") {
     return;
   }
 
-  emitStartupLogs();
+  for (let index = 0; index < 100; index += 1) {
+    console.log("low cortisol");
+  }
 
   const { ensureSchema } = await import("@/lib/database/ensure-schema");
   await ensureSchema();

@@ -1,9 +1,3 @@
-function resolveDisplayName(value?: string | null) {
-  const trimmed = value?.trim();
-
-  return trimmed && trimmed.length > 0 ? trimmed : "Unknown";
-}
-
 export function SlackAvatar({
   slackId,
   fallbackName,
@@ -15,7 +9,7 @@ export function SlackAvatar({
   sizeClassName?: string;
   textClassName?: string;
 }) {
-  const displayName = resolveDisplayName(fallbackName);
+  const displayName = fallbackName?.trim() || "Unknown";
   const initial = displayName.charAt(0).toUpperCase() || "?";
 
   return (
@@ -50,7 +44,7 @@ export function SlackProfile({
   slackId?: string | null;
   fallbackName?: string | null;
 }) {
-  const displayName = resolveDisplayName(slackName ?? fallbackName);
+  const displayName = (slackName ?? fallbackName)?.trim() || "Unknown";
 
   return (
     <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-4">

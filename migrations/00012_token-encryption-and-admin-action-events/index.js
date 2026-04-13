@@ -1,6 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-const { createCipheriv, createHash, randomBytes } = require("node:crypto");
-
 const ENCRYPTED_PREFIX = "enc:v1";
 const ENCRYPTION_CONTEXT = "ambassador:hca-access-token";
 const GCM_AUTH_TAG_LENGTH = 16;
@@ -15,13 +12,13 @@ function requireEnv(name) {
   return value;
 }
 
-function getEncryptionKey() {
+function getEncryptionKey(createHash) {
   return createHash("sha256")
     .update(`${ENCRYPTION_CONTEXT}:${requireEnv("JWT_SECRET")}`)
     .digest();
 }
 
-function encryptToken(token, key) {
+function encryptToken(token, key, { createCipheriv, randomBytes }) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv, {
     authTagLength: GCM_AUTH_TAG_LENGTH,
@@ -38,6 +35,8 @@ function encryptToken(token, key) {
 }
 
 module.exports = async function migrate(sql) {
+  const { createCipheriv, createHash, randomBytes } = await import("node:crypto");
+
   await sql`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS hca_access_token_encrypted_at TIMESTAMPTZ
@@ -75,7 +74,7 @@ module.exports = async function migrate(sql) {
     return;
   }
 
-  const encryptionKey = getEncryptionKey();
+  const encryptionKey = getEncryptionKey(createHash);
 
   for (const user of users) {
     const token =
@@ -96,7 +95,7 @@ module.exports = async function migrate(sql) {
 
     const encryptedToken = token.startsWith(`${ENCRYPTED_PREFIX}:`)
       ? token
-      : encryptToken(token, encryptionKey);
+      : encryptToken(token, encryptionKey, { createCipheriv, randomBytes });
 
     await sql`
       UPDATE users

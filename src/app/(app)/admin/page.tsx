@@ -6,7 +6,6 @@ import {
 } from "@/components/admin/admin-dashboard-charts";
 import Icon from "@hackclub/icons";
 import type { Metadata } from "next";
-import type { ComponentProps } from "react";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
 import {
@@ -61,7 +60,9 @@ export default async function AdminDashboard({
   searchParams: Promise<{ range?: string }>;
 }) {
   const [t, locale, query] = await Promise.all([getTranslations(), getLocale(), searchParams]);
-  const activeRange = isActivityRange(query.range) ? query.range : "14d";
+  const activeRange = query.range && query.range in activityRangeDays
+    ? query.range as ActivityRange
+    : "14d";
   const rangeDays = activityRangeDays[activeRange];
   await ensureSchema();
   const numberFormatter = new Intl.NumberFormat(locale);
@@ -235,13 +236,6 @@ export default async function AdminDashboard({
     },
   ];
 
-  const rangeOptions = [
-    { value: "7d", label: t("admin.overview.charts.ranges.seven-days") },
-    { value: "14d", label: t("admin.overview.charts.ranges.fourteen-days") },
-    { value: "30d", label: t("admin.overview.charts.ranges.thirty-days") },
-    { value: "90d", label: t("admin.overview.charts.ranges.ninety-days") },
-  ] as const;
-
   return (
     <div className="space-y-10">
       <header className="space-y-2">
@@ -249,26 +243,34 @@ export default async function AdminDashboard({
           <h1 className="text-4xl leading-none text-white">{t("admin.overview.title")}</h1>
 
           <div className="flex flex-wrap items-end gap-x-6 gap-y-3 xl:flex-nowrap xl:justify-end">
-            <StatValue
-              icon="view"
-              label={t("admin.overview.stats.visitors")}
-              value={numberFormatter.format(summary.total_visit_count)}
-            />
-            <StatValue
-              icon="person"
-              label={t("admin.overview.stats.signups")}
-              value={numberFormatter.format(summary.signup_count)}
-            />
-            <StatValue
-              icon="send"
-              label={t("admin.overview.stats.applicants")}
-              value={numberFormatter.format(summary.applicant_count)}
-            />
-            <StatValue
-              icon="clock"
-              label={t("admin.overview.stats.pending-review")}
-              value={numberFormatter.format(summary.pending_count)}
-            />
+            {[
+              {
+                icon: "view" as const,
+                label: t("admin.overview.stats.visitors"),
+                value: numberFormatter.format(summary.total_visit_count),
+              },
+              {
+                icon: "person" as const,
+                label: t("admin.overview.stats.signups"),
+                value: numberFormatter.format(summary.signup_count),
+              },
+              {
+                icon: "send" as const,
+                label: t("admin.overview.stats.applicants"),
+                value: numberFormatter.format(summary.applicant_count),
+              },
+              {
+                icon: "clock" as const,
+                label: t("admin.overview.stats.pending-review"),
+                value: numberFormatter.format(summary.pending_count),
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
+                <Icon glyph={stat.icon} size={24} className="self-center text-white" />
+                <span className="text-2xl leading-none text-white">{stat.value}</span>
+                <span className="font-body text-base leading-none text-white">{stat.label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -282,7 +284,12 @@ export default async function AdminDashboard({
         pendingCount={outcomeSummary.pending_count}
         locale={locale}
         activeRange={activeRange}
-        rangeOptions={rangeOptions}
+        rangeOptions={[
+          { value: "7d", label: t("admin.overview.charts.ranges.seven-days") },
+          { value: "14d", label: t("admin.overview.charts.ranges.fourteen-days") },
+          { value: "30d", label: t("admin.overview.charts.ranges.thirty-days") },
+          { value: "90d", label: t("admin.overview.charts.ranges.ninety-days") },
+        ]}
         messages={{
           recentActivityEyebrow: t("admin.overview.charts.recent-activity-eyebrow"),
           recentActivityTitle: t("admin.overview.charts.recent-activity-title"),
@@ -299,26 +306,4 @@ export default async function AdminDashboard({
       />
     </div>
   );
-}
-
-function StatValue({
-  icon,
-  label,
-  value,
-}: {
-  icon: ComponentProps<typeof Icon>["glyph"];
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex shrink-0 items-center gap-2.5 whitespace-nowrap">
-      <Icon glyph={icon} size={24} className="self-center text-white" />
-      <span className="text-2xl leading-none text-white">{value}</span>
-      <span className="font-body text-base leading-none text-white">{label}</span>
-    </div>
-  );
-}
-
-function isActivityRange(value: string | undefined): value is ActivityRange {
-  return value === "7d" || value === "14d" || value === "30d" || value === "90d";
 }

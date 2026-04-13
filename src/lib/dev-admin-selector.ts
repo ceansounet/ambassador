@@ -32,10 +32,3 @@ export function isDevState(value: string): value is DevState {
 export function isErrorCode(value: string): value is ErrorCode {
   return ERROR_CODES.has(value as ErrorCode);
 }
-
-export function resolveErrorCodeRoute(code: ErrorCode): string {
-  if (code === "401") return "/oops/401";
-  if (code === "403") return "/oops/403";
-  if (code === "404") return "/__dev_selector_404__";
-  return "/oops/500";
-}

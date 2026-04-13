@@ -129,8 +129,7 @@ async function readRemote(key: string): Promise<Buffer> {
   }
 
   const chunks: Uint8Array[] = [];
-  // @ts-expect-error - Node Readable stream supports async iteration
-  for await (const chunk of body) {
+  for await (const chunk of body as AsyncIterable<Uint8Array>) {
     chunks.push(chunk as Uint8Array);
   }
   return Buffer.concat(chunks);

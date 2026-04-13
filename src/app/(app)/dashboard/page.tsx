@@ -42,8 +42,6 @@ import ShirtOrderSection, {
   type ShirtOrderState,
 } from "./shirt-order";
 
-const AMBASSADOR_ONBOARDING_FORM_URL = "https://forms.hackclub.com/t/mJvXsYY41Lus";
-
 type DashboardTranslations = (key: string, values?: Record<string, number | string>) => string;
 type IconGlyph = NonNullable<ComponentProps<typeof Icon>["glyph"]>;
 type Tone = "primary" | "accent" | "acceptance" | "rejection";
@@ -55,22 +53,6 @@ type ResolvedState = {
   decision: Decision;
   devState: DevState;
 };
-
-const toneText: Record<Tone, string> = {
-  primary: "text-primary",
-  accent: "text-accent",
-  acceptance: "text-acceptance",
-  rejection: "text-primary",
-};
-const toneBg: Record<Tone, string> = {
-  primary: "bg-primary",
-  accent: "bg-accent",
-  acceptance: "bg-acceptance",
-  rejection: "bg-primary",
-};
-
-const APPLY_PATH = "/apply";
-const STEP_ORDER: StepKey[] = ["apply", "verify", "review", "decision"];
 
 type ShirtOrderRow = {
   id: string;
@@ -191,38 +173,42 @@ export default async function DashboardPage({
     needsAddressRefresh: shirtNeedsAddressRefresh,
     existingOrder: shirtExistingOrder,
     requiresOnboarding: shirtRequiresOnboarding,
-    onboardingFormUrl: AMBASSADOR_ONBOARDING_FORM_URL,
+    onboardingFormUrl: "https://forms.hackclub.com/t/mJvXsYY41Lus",
   };
 
   const canAccessAdmin = Boolean(session.impersonator) || Boolean(user?.is_admin ?? session.isAdmin);
   const canUseSelector = canShowDevAdminSelector(canAccessAdmin);
-  const fakeDate = new Date().toISOString();
-  const stateInput = { application, user, locale, fakeDate, t, shirt, canUseShirts };
+  const stateInput = {
+    application,
+    user,
+    locale,
+    fakeDate: new Date().toISOString(),
+    t,
+    shirt,
+    canUseShirts,
+  };
   const baseResolved = resolveState({ ...stateInput, activeDevState: null });
   const selectedDevState = devState && isDevState(devState) ? devState : null;
   const resolved = canUseSelector && selectedDevState
     ? resolveState({ ...stateInput, activeDevState: selectedDevState })
     : baseResolved;
-  const devSwitcherCurrent = selectedDevState ?? baseResolved.devState;
-  const showAmbassadorRing = resolved.decision === "approved";
-  const showPostersLink = canAccessPosters({
-    latestApplicationStatus: application?.status ?? null,
-    manualDashboardState: user?.manual_dashboard_state ?? null,
-  });
 
   return (
     <main className="page-shell">
       <Navbar
         isAdmin={canAccessAdmin}
         balanceCents={user?.balance_cents ?? 0}
-        showPostersLink={showPostersLink}
+        showPostersLink={canAccessPosters({
+          latestApplicationStatus: application?.status ?? null,
+          manualDashboardState: user?.manual_dashboard_state ?? null,
+        })}
       />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="flex items-center gap-2 md:gap-3">
           <h1 className="font-sub text-4xl leading-none text-white md:text-5xl">
             {t("dashboard.heading", { name: session.displayName })}
           </h1>
-          {showAmbassadorRing ? (
+          {resolved.decision === "approved" ? (
             <AmbassadorCircleText
               className="h-14 w-14 shrink-0 md:h-16 md:w-16"
               slackId={session.slackId}
@@ -239,7 +225,7 @@ export default async function DashboardPage({
 
         <div className="mt-6">{resolved.node}</div>
       </div>
-      {canUseSelector && <DevAdminSelector current={devSwitcherCurrent} />}
+      {canUseSelector && <DevAdminSelector current={selectedDevState ?? baseResolved.devState} />}
     </main>
   );
 }
@@ -273,43 +259,100 @@ function resolveState({
 }): ResolvedState {
   const states = {
     ineligible: {
-      node: <IneligibleRegion t={t} />,
+      node: (
+        <StatusCard
+          tone="primary"
+          glyph="map-pin"
+          title={t("dashboard.ineligible-region.title")}
+          body={t("dashboard.ineligible-region.body")}
+          action={{
+            href: "/settings",
+            label: t("dashboard.ineligible-region.cta"),
+          }}
+        />
+      ),
       activeStep: "apply",
       decision: null,
       devState: "ineligible",
     },
     apply: {
-      node: <NoApplication t={t} />,
+      node: (
+        <StatusCard
+          tone="primary"
+          glyph="idea"
+          title={t("dashboard.no-application.title")}
+          body={t("dashboard.no-application.body")}
+          action={{
+            href: "/apply",
+            label: t("dashboard.no-application.cta"),
+            external: true,
+          }}
+        />
+      ),
       activeStep: "apply",
       decision: null,
       devState: "apply",
     },
     "pending-checks": {
-      node: <PendingAutomaticChecksApplication t={t} />,
+      node: (
+        <StatusCard
+          tone="accent"
+          glyph="private"
+          title={t("dashboard.pending-automatic-checks.title")}
+          body={t("dashboard.pending-automatic-checks.body")}
+          action={{
+            href: "https://auth.hackclub.com",
+            label: t("dashboard.pending-automatic-checks.cta"),
+          }}
+        />
+      ),
       activeStep: "verify",
       decision: null,
       devState: "pending-checks",
     },
     approved: {
       node: (
-        <ApprovedApplication
-          t={t}
-          shirt={shirt}
-          canShowShirtSection={canUseShirts}
-        />
+        <div className="space-y-8">
+          <StatusCard
+            tone="acceptance"
+            glyph="checkbox-checked"
+            title={t("dashboard.approved.title")}
+            body={t("dashboard.approved.body")}
+          />
+          {canUseShirts ? <ShirtOrderSection {...shirt} /> : null}
+        </div>
       ),
       activeStep: "decision",
       decision: "approved",
       devState: "approved",
     },
     rejected: {
-      node: <RejectedApplication t={t} />,
+      node: (
+        <StatusCard
+          tone="primary"
+          glyph="idea"
+          title={t("dashboard.rejected.title")}
+          body={t("dashboard.rejected.body")}
+          action={{
+            href: "/apply",
+            label: t("dashboard.rejected.cta"),
+            external: true,
+          }}
+        />
+      ),
       activeStep: "apply",
       decision: null,
       devState: "rejected",
     },
     banned: {
-      node: <RejectedPermanentlyApplication t={t} />,
+      node: (
+        <StatusCard
+          tone="rejection"
+          glyph="forbidden"
+          title={t("dashboard.rejected-permanently.title")}
+          body={t("dashboard.rejected-permanently.body")}
+        />
+      ),
       activeStep: "decision",
       decision: "banned",
       devState: "banned",
@@ -377,8 +420,9 @@ function JourneyStepper({
   decision: Decision;
   t: DashboardTranslations;
 }) {
-  const activeIdx = STEP_ORDER.indexOf(activeStep);
-  const progressRatio = Math.max(0, activeIdx) / (STEP_ORDER.length - 1);
+  const steps: StepKey[] = ["apply", "verify", "review", "decision"];
+  const activeIdx = steps.indexOf(activeStep);
+  const progressRatio = Math.max(0, activeIdx) / (steps.length - 1);
 
   return (
     <div className="relative">
@@ -389,7 +433,7 @@ function JourneyStepper({
         style={{ width: `calc((100% - 2.5rem) * ${progressRatio})` }}
       />
       <ol className="relative flex items-start justify-between gap-3">
-        {STEP_ORDER.map((key, i) => {
+        {steps.map((key, i) => {
           const isActive = i === activeIdx;
           const isComplete = i < activeIdx;
           const isDecisionStep = key === "decision";
@@ -404,13 +448,19 @@ function JourneyStepper({
           const activeTone: Tone = decisionTone ?? "primary";
 
           const circleClass = isActive
-            ? cn("text-white border-transparent", toneBg[activeTone])
+            ? cn(
+                "text-white border-transparent",
+                activeTone === "acceptance" ? "bg-acceptance" : "bg-primary",
+              )
             : isComplete
               ? "bg-foreground text-background border-foreground"
               : "border-foreground/15 bg-background text-muted-foreground";
 
           const labelClass = isActive
-            ? cn("font-bold", toneText[activeTone])
+            ? cn(
+                "font-bold",
+                activeTone === "acceptance" ? "text-acceptance" : "text-primary",
+              )
             : isComplete
               ? "text-foreground"
               : "text-muted-foreground";
@@ -423,7 +473,14 @@ function JourneyStepper({
                   circleClass,
                 )}
               >
-                <StepperSymbol isComplete={isComplete} stepNumber={i + 1} />
+                {isComplete ? (
+                  <span
+                    aria-hidden
+                    className="block h-3 w-2 -translate-y-px rotate-45 border-b-2 border-r-2 border-current"
+                  />
+                ) : (
+                  i + 1
+                )}
               </span>
               <span className={cn("text-center text-xs", labelClass)}>
                 {t(`dashboard.stepper.${key}`)}
@@ -434,19 +491,6 @@ function JourneyStepper({
       </ol>
     </div>
   );
-}
-
-function StepperSymbol({ isComplete, stepNumber }: { isComplete: boolean; stepNumber: number }) {
-  if (isComplete) {
-    return (
-      <span
-        aria-hidden
-        className="block h-3 w-2 -translate-y-px rotate-45 border-b-2 border-r-2 border-current"
-      />
-    );
-  }
-
-  return <>{stepNumber}</>;
 }
 
 type StatusCardProps = {
@@ -476,7 +520,11 @@ function StatusCard({
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center",
-              toneText[tone],
+              tone === "accent"
+                ? "text-accent"
+                : tone === "acceptance"
+                  ? "text-acceptance"
+                  : "text-primary",
             )}
             aria-hidden
           >
@@ -503,37 +551,6 @@ function StatusCard({
   );
 }
 
-function IneligibleRegion({ t }: { t: DashboardTranslations }) {
-  return (
-    <StatusCard
-      tone="primary"
-      glyph="map-pin"
-      title={t("dashboard.ineligible-region.title")}
-      body={t("dashboard.ineligible-region.body")}
-      action={{
-        href: "/settings",
-        label: t("dashboard.ineligible-region.cta"),
-      }}
-    />
-  );
-}
-
-function NoApplication({ t }: { t: DashboardTranslations }) {
-  return (
-    <StatusCard
-      tone="primary"
-      glyph="idea"
-      title={t("dashboard.no-application.title")}
-      body={t("dashboard.no-application.body")}
-      action={{
-        href: APPLY_PATH,
-        label: t("dashboard.no-application.cta"),
-        external: true,
-      }}
-    />
-  );
-}
-
 function PendingApplication({
   createdAt,
   dateFormatLocale,
@@ -555,70 +572,6 @@ function PendingApplication({
       glyph="clock"
       title={t("dashboard.pending.title")}
       body={t("dashboard.pending.body", { date: submittedDate })}
-    />
-  );
-}
-
-function PendingAutomaticChecksApplication({ t }: { t: DashboardTranslations }) {
-  return (
-    <StatusCard
-      tone="accent"
-      glyph="private"
-      title={t("dashboard.pending-automatic-checks.title")}
-      body={t("dashboard.pending-automatic-checks.body")}
-      action={{
-        href: "https://auth.hackclub.com",
-        label: t("dashboard.pending-automatic-checks.cta"),
-      }}
-    />
-  );
-}
-
-function ApprovedApplication({
-  t,
-  shirt,
-  canShowShirtSection,
-}: {
-  t: DashboardTranslations;
-  shirt: ShirtOrderSectionProps;
-  canShowShirtSection: boolean;
-}) {
-  return (
-    <div className="space-y-8">
-      <StatusCard
-        tone="acceptance"
-        glyph="checkbox-checked"
-        title={t("dashboard.approved.title")}
-        body={t("dashboard.approved.body")}
-      />
-      {canShowShirtSection ? <ShirtOrderSection {...shirt} /> : null}
-    </div>
-  );
-}
-
-function RejectedApplication({ t }: { t: DashboardTranslations }) {
-  return (
-    <StatusCard
-      tone="primary"
-      glyph="idea"
-      title={t("dashboard.rejected.title")}
-      body={t("dashboard.rejected.body")}
-      action={{
-        href: APPLY_PATH,
-        label: t("dashboard.rejected.cta"),
-        external: true,
-      }}
-    />
-  );
-}
-
-function RejectedPermanentlyApplication({ t }: { t: DashboardTranslations }) {
-  return (
-    <StatusCard
-      tone="rejection"
-      glyph="forbidden"
-      title={t("dashboard.rejected-permanently.title")}
-      body={t("dashboard.rejected-permanently.body")}
     />
   );
 }

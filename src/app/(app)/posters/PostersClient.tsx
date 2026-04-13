@@ -480,21 +480,19 @@ function useGeolocation(enabled: boolean) {
   const t = useTranslations("posters");
   const [state, setState] = useState<GeoState>({ kind: "idle" });
   const [attempt, setAttempt] = useState(0);
+  const geolocationUnavailable = typeof navigator === "undefined" || !navigator.geolocation;
+  const unavailableState: GeoState = { kind: "error", message: t("errors.geolocation-unavailable") };
 
   const retry = useCallback(() => {
+    setState({ kind: "pending" });
     setAttempt((value) => value + 1);
   }, []);
 
   useEffect(() => {
     if (!enabled) return;
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setState({ kind: "error", message: t("errors.geolocation-unavailable") });
-      return;
-    }
+    if (geolocationUnavailable) return;
 
     let cancelled = false;
-    setState({ kind: "pending" });
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -521,9 +519,17 @@ function useGeolocation(enabled: boolean) {
       cancelled = true;
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [enabled, attempt, t]);
+  }, [enabled, attempt, geolocationUnavailable, t]);
 
-  return { state, start: retry };
+  const resolvedState: GeoState = !enabled
+    ? { kind: "idle" }
+    : geolocationUnavailable
+      ? unavailableState
+      : state.kind === "idle"
+        ? { kind: "pending" }
+        : state;
+
+  return { state: resolvedState, start: retry };
 }
 
 function VerifyModal({

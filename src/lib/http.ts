@@ -88,9 +88,6 @@ export function isSameOriginRequest(request: Request) {
     if (fetchSite) {
       return fetchSite === "same-origin" || fetchSite === "same-site" || fetchSite === "none";
     }
-
-    // Some browser form submits omit origin metadata entirely. The session cookie is SameSite=Lax,
-    // so explicit cross-site POSTs still won't be authenticated.
     return true;
   }
 

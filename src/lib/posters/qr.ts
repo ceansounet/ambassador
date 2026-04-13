@@ -70,24 +70,18 @@ export async function readQrCodesFromImageBuffer(
   return Array.isArray(payload.results) ? payload.results.filter(Boolean) : [];
 }
 
-export function normalizeQrValue(value: string) {
+function normalizeQrValue(value: string) {
   return value.trim().toLowerCase().replace(/\/+$/, "");
 }
 
-export function getPosterReferralUrl(poster: Pick<PosterRow, "referral_code">) {
-  return buildPosterReferralUrl(poster.referral_code);
-}
-
-export function detectedQrMatchesPoster(detectedCodes: string[], poster: PosterRow) {
-  const posterUrl = normalizeQrValue(getPosterReferralUrl(poster));
-  const posterCode = poster.referral_code.toLowerCase();
-
-  return detectedCodes.some((entry) => {
-    const normalized = normalizeQrValue(entry);
-    return normalized === posterUrl || normalized.includes(posterCode);
-  });
-}
-
 export function findMatchingPoster(detectedCodes: string[], posters: PosterRow[]) {
-  return posters.find((poster) => detectedQrMatchesPoster(detectedCodes, poster)) ?? null;
+  return posters.find((poster) => {
+    const posterUrl = normalizeQrValue(buildPosterReferralUrl(poster.referral_code));
+    const posterCode = poster.referral_code.toLowerCase();
+
+    return detectedCodes.some((entry) => {
+      const normalized = normalizeQrValue(entry);
+      return normalized === posterUrl || normalized.includes(posterCode);
+    });
+  }) ?? null;
 }
