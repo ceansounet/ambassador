@@ -51,6 +51,8 @@ export default function Home() {
           alt=""
           role="presentation"
           className="h-24 md:h-28 xl:h-32 left-1/2 absolute w-auto top-0 -translate-x-1/2 -translate-y-1/2"
+          placeholder="blur"
+          sizes="(min-width: 1280px) 8rem, (min-width: 768px) 7rem, 6rem"
         />
 
         <Footer />

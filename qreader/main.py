@@ -2,7 +2,7 @@ import os
 import io
 import traceback
 from fastapi import FastAPI, File, UploadFile, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -42,6 +42,19 @@ def key_or_ip(request: Request):
 app = FastAPI(title="qreader", docs_url=None, redoc_url=None)
 limiter = Limiter(key_func=key_or_ip)
 app.state.limiter = limiter
+
+
+@app.middleware("http")
+async def redirect_ambassadors_host(request: Request, call_next):
+    host = request.headers.get("host", "").split(":", 1)[0]
+
+    if host == "ambassadors.hackclub.com" and request.url.path not in ("/read", "/health"):
+        destination = f"https://ambassador.hackclub.com{request.url.path}"
+        if request.url.query:
+            destination = f"{destination}?{request.url.query}"
+        return RedirectResponse(url=destination, status_code=308)
+
+    return await call_next(request)
 
 
 @app.on_event("startup")

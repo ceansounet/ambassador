@@ -39,6 +39,7 @@ export async function Navbar({
             width={787}
             height={798}
             className="h-9 w-auto"
+            sizes="2.25rem"
           />
         </a>
         <div className="flex items-center gap-2">

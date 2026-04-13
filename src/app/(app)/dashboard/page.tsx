@@ -91,7 +91,6 @@ type UserRow = {
   hca_country: string | null;
   country_name: string | null;
   country_code: string | null;
-  shirt_enabled: boolean | null;
   hca_addresses: unknown;
   hca_access_token: string | null;
   manual_dashboard_state: string | null;
@@ -123,7 +122,7 @@ export default async function DashboardPage({
     `,
     sql<UserRow[]>`
       SELECT balance_cents, is_admin, ambassador_region, hca_country, country_name, country_code,
-             shirt_enabled, hca_addresses, hca_access_token, manual_dashboard_state
+             hca_addresses, hca_access_token, manual_dashboard_state
       FROM users WHERE id = ${session.sub}
     `,
     sql<ShirtOrderRow[]>`
@@ -135,12 +134,11 @@ export default async function DashboardPage({
     `,
   ]);
 
-  const shirtEnabled = Boolean(user?.shirt_enabled);
   const canUseShirts = canAccessShirts({
     latestApplicationStatus: application?.status ?? null,
     manualDashboardState: user?.manual_dashboard_state ?? null,
   });
-  const shouldLoadShirtAddresses = shirtEnabled && canUseShirts;
+  const shouldLoadShirtAddresses = canUseShirts;
   let shirtNeedsAddressRefresh = false;
   let shirtAddresses: HackClubAddress[] = [];
 
@@ -172,7 +170,6 @@ export default async function DashboardPage({
       }
     : null;
   const shirt: ShirtOrderSectionProps = {
-    shirtEnabled,
     addresses: shirtAddresses,
     needsAddressRefresh: shirtNeedsAddressRefresh,
     existingOrder: shirtExistingOrder,

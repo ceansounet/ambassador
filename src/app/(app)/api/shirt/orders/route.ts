@@ -35,15 +35,12 @@ export async function POST(request: Request) {
   const size = body.size;
 
   const [user] = await sql`
-    SELECT id, shirt_enabled, hca_addresses, hca_access_token, manual_dashboard_state
+    SELECT id, hca_addresses, hca_access_token, manual_dashboard_state
     FROM users
     WHERE id = ${session.sub}
   `;
   if (!user) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
-  }
-  if (!user.shirt_enabled) {
-    return Response.json({ error: "shirt_unavailable" }, { status: 403 });
   }
 
   const [latestApp] = await sql`

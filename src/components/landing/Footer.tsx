@@ -22,7 +22,13 @@ export default function Footer() {
       </div>
       <div className="px-12 pb-6 gap-4 flex items-center">
         <a href="https://hackclub.com" target="_blank" rel="noreferrer">
-          <Image src={hcRounded} alt="Hack Club" className="h-8 w-auto" />
+          <Image
+            src={hcRounded}
+            alt="Hack Club"
+            className="h-8 w-auto"
+            sizes="2rem"
+            unoptimized
+          />
         </a>
         <p className="flex-1 text-pretty leading-snug text-right text-xs text-neutral-500">
           {t("footer.copyright")}

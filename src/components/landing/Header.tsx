@@ -17,6 +17,8 @@ export default async function Header() {
         alt=""
         role="presentation"
         className="h-12 w-auto"
+        placeholder="blur"
+        sizes="3rem"
       />
       <div className="flex-1 min-w-0" />
       <Link

@@ -26,6 +26,8 @@ export default function Intro() {
                   src={partyparrot}
                   alt=""
                   className="size-8 object-contain inline-block mb-1.5 ml-1"
+                  sizes="2rem"
+                  unoptimized
                 />
               ),
             })}

@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ["postgres-shift"],
   images: {
+    formats: ["image/webp"],
+    qualities: [60, 75, 85],
     remotePatterns: [
       {
         protocol: "https",

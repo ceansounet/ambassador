@@ -37,7 +37,6 @@ export type ShirtOrderState = {
 };
 
 export type ShirtOrderSectionProps = {
-  shirtEnabled: boolean;
   addresses: HackClubAddress[];
   needsAddressRefresh: boolean;
   existingOrder: ShirtOrderState | null;
@@ -117,7 +116,6 @@ function NoAddressMessage({
 }
 
 function ShirtOrderBody({
-  shirtEnabled,
   addresses,
   needsAddressRefresh,
   existingOrder,
@@ -189,10 +187,6 @@ function ShirtOrderBody({
   const selectContentClass =
     "!rounded-none [border-radius:0!important] border-white/10 bg-black text-white !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
 
-  if (!shirtEnabled) {
-    return <p className="mt-5 font-body text-base text-white">{t("unavailable")}</p>;
-  }
-
   if (needsAddressRefresh && !order) {
     return (
       <div className="mt-5 space-y-3">
@@ -245,8 +239,6 @@ function ShirtOrderBody({
               ? t("errors.not-ambassador")
               : data?.error === "unauthorized"
                 ? t("errors.refresh-addresses")
-              : data?.error === "shirt_unavailable"
-                ? t("errors.unavailable")
                 : data?.error === "already_ordered"
                   ? t("errors.already-ordered")
                   : data?.error === "invalid_size"

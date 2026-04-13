@@ -38,6 +38,8 @@ export default function PastProjects() {
               src={project.image}
               alt={t(`${project.key}.title`)}
               className="w-full h-auto shadow-lg"
+              placeholder="blur"
+              sizes="(max-width: 640px) calc(100vw - 6rem), (max-width: 1024px) calc(50vw - 3rem), calc(33vw - 2rem)"
             />
             <div
               className={`absolute inset-0 flex flex-col items-center justify-end gap-[4cqw] p-[6.66cqw] text-center leading-tight ${project.textClassName}`}
@@ -58,6 +60,8 @@ export default function PastProjects() {
           alt=""
           role="presentation"
           className="h-32 right-0 absolute w-auto bottom-0 translate-y-1/2"
+          placeholder="blur"
+          sizes="8rem"
         />
       </div>
     </div>

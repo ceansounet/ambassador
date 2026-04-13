@@ -40,6 +40,8 @@ export default function PastEvents() {
                 src={event.image}
                 alt=""
                 className="w-full aspect-3/2 object-cover border-[0.75rem] border-white shadow-lg"
+                placeholder="blur"
+                sizes="(max-width: 1024px) calc(100vw - 6rem), 36rem"
               />
               {event.decoration && (
                 <Image
@@ -47,6 +49,8 @@ export default function PastEvents() {
                   alt=""
                   role="presentation"
                   className="h-24 -left-8 -bottom-8 -rotate-3 -scale-x-100 absolute w-auto"
+                  placeholder="blur"
+                  sizes="6rem"
                 />
               )}
             </div>

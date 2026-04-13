@@ -22,12 +22,14 @@ export default function Hero() {
               src={become}
               alt="Become a"
               className="h-4 mb-2 -rotate-2 w-auto"
+              sizes="7rem"
             />
             <Image
               src={becomeArrow}
               alt=""
               role="presentation"
               className="h-8 absolute top-1/2 right-full mr-1 w-auto"
+              sizes="2rem"
             />
           </div>
           <div className="relative max-w-fit">
@@ -35,6 +37,8 @@ export default function Hero() {
               src={ambassador}
               alt="Hack Club Ambassador"
               className="h-24 w-auto"
+              placeholder="blur"
+              sizes="(max-width: 1024px) 18rem, 24rem"
             />
             <div className="absolute -bottom-5 rotate-2 -right-2">
               <Image
@@ -42,11 +46,15 @@ export default function Hero() {
                 alt=""
                 role="presentation"
                 className="h-8 w-auto"
+                placeholder="blur"
+                sizes="8rem"
               />
               <Image
                 src={summer26Fg}
                 alt="Summer '26"
                 className="h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto"
+                placeholder="blur"
+                sizes="4rem"
               />
             </div>
           </div>
@@ -60,6 +68,8 @@ export default function Hero() {
               src={highlight}
               alt="Hack Club Ambassador"
               className="h-12 max-w-none absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto"
+              sizes="10rem"
+              unoptimized
             />
           </span>
         </h1>
@@ -77,6 +87,9 @@ export default function Hero() {
         alt=""
         role="presentation"
         className="w-96 max-lg:-mb-16 h-auto"
+        placeholder="blur"
+        preload
+        sizes="(max-width: 640px) calc(100vw - 6rem), 24rem"
       />
     </div>
   );

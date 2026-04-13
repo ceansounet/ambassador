@@ -30,6 +30,9 @@ export default async function LoginPage() {
         src={logoCentered}
         alt="Hack Club Ambassadors"
         className="h-16 w-auto mb-4"
+        placeholder="blur"
+        preload
+        sizes="(max-width: 768px) 12rem, 16rem"
       />
       <div className="flex w-full max-w-md bg-white border border-neutral-300 p-8 flex-col">
         <div className="flex items-center gap-3">
@@ -42,6 +45,7 @@ export default async function LoginPage() {
             width={48}
             height={48}
             className="size-12 -my-2"
+            sizes="3rem"
           />
         </div>
         <p className="mt-1 text-neutral-600">{t("app.login.desc")}</p>
@@ -74,7 +78,13 @@ export default async function LoginPage() {
         href="/api/auth/login"
         className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white"
       >
-        <Image src={hackClub} alt="" className="size-6 w-auto drop-shadow-sm" />
+        <Image
+          src={hackClub}
+          alt=""
+          className="size-6 w-auto drop-shadow-sm"
+          sizes="1.5rem"
+          unoptimized
+        />
         <span className="font-bold">{t("app.login.alt-login-link")}</span>
       </a>
     </main>
