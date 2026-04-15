@@ -3,8 +3,6 @@ import Image from "next/image";
 import ambassador from "@/assets/landing/logo/ambassador.png";
 import become from "@/assets/landing/logo/become.png";
 import becomeArrow from "@/assets/landing/logo/become-arrow.png";
-import stardanceBg from "@/assets/landing/logo/stardance-bg.png";
-import stardanceFg from "@/assets/landing/logo/stardance-fg.png";
 import highlight from "@/assets/landing/highlight.svg";
 import flagHoldingText from "@/assets/landing/flagholdingtext.png";
 
@@ -32,38 +30,19 @@ export default function Hero() {
               sizes="2rem"
             />
           </div>
-          <div className="relative max-w-fit">
-            <Image
-              src={ambassador}
-              alt="Hack Club Ambassador"
-              className="h-24 w-auto"
-              placeholder="blur"
-              sizes="(max-width: 1024px) 18rem, 24rem"
-            />
-            <div className="absolute -bottom-5 rotate-2 -right-2">
-              <Image
-                src={stardanceBg}
-                alt=""
-                role="presentation"
-                className="h-8 w-auto"
-                placeholder="blur"
-                sizes="8rem"
-              />
-              <Image
-                src={stardanceFg}
-                alt="Summer '26"
-                className="h-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto"
-                placeholder="blur"
-                sizes="6rem"
-              />
-            </div>
-          </div>
+          <Image
+            src={ambassador}
+            alt="Hack Club Ambassador"
+            className="h-24 w-auto"
+            placeholder="blur"
+            sizes="(max-width: 1024px) 18rem, 24rem"
+          />
         </div>
-        <h1 className="text-5xl text-pretty mt-8 font-jersey">{t("hero.0")}</h1>
-        <h1 className="text-5xl relative isolate font-jersey">
-          {t("hero.1")}{" "}
+
+        <h1 className="text-5xl text-balance mt-8 relative isolate font-jersey">
+          {t("hero.0")}{" "}
           <span className="relative mx-2.5 inline-block">
-            {t("hero.2")}
+            {t("hero.1")}
             <Image
               src={highlight}
               alt=""
@@ -86,7 +65,7 @@ export default function Hero() {
         src={flagHoldingText}
         alt=""
         role="presentation"
-        className="w-96 max-lg:-mb-16 h-auto"
+        className="w-96 flex-none max-lg:-mb-16 h-auto"
         placeholder="blur"
         priority
         sizes="(max-width: 640px) calc(100vw - 6rem), 24rem"

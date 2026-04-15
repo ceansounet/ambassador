@@ -686,9 +686,8 @@ landing:
   dashboard: Dashboard
 
   hero:
-    0: Lead the Hack Club community
-    1: this summer in
-    2: your city.
+    0: Lead the Hack Club Stardance community this summer in
+    1: your city.
 
   intro:
     start: --- START OF MESSAGE ---
