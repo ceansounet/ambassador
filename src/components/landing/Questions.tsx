@@ -74,6 +74,26 @@ const questions = [
       </>
     ),
   },
+  {
+    question: "Do I need to run a meetup to be an ambassador?",
+    answers: (
+      <>
+        <p>
+          We highly reccomend you run meetups, but it is not a hard requirement. If you do not run the meetups you will not be eligible for the $100 honorarium.
+        </p>
+      </>
+    )
+  },
+  {
+    question: "What does a meetup look like?",
+    answers: (
+      <>
+        <p>
+          A meetup isn't anything big like a Campfire or a Daydream. It's just you and some Hack Clubbers from your city hanging out and making projects! This is not a formal event.
+        </p>
+      </>
+    )
+  }
 ] as const;
 
 export default function Questions() {
