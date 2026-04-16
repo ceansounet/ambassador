@@ -692,9 +692,10 @@ landing:
   intro:
     start: --- START OF MESSAGE ---
     0: This summer, Hack Club is partnering with NASA, AMD, and GitHub to run the world’s biggest engineering challenge, and we need your help to figure out how to drive signups and help hundreds of thousands of students discover Hack Club for the first time.
-    1: Your mission, should you choose to accept it, would be to get teenagers from your city to sign up for the Stardance Challenge. Together, we will figure out how to get 100,000 users through the summer!
-    2: By the end of this summer, you will be an expert at driving users for whatever you do in the future. You also get Hack Club t-shirts and merch. Plus, you a $100 honorarium and get paid for every poster you put up and every signup you get. Find more info <faq_link>here</faq_link>.
+    1: Your mission, should you choose to accept it, would be to get teenagers from your city to sign up for the Stardance Challenge. Together, we will figure out how to get <strong>100,000 users</strong> through the summer!
+    2: By the end of this summer, you will be an expert at driving users for whatever you do in the future. You also get Hack Club t-shirts and merch. Plus, you get a <strong>$100 honorarium</strong>* and <strong>get paid</strong> for every poster you put up and every signup you get. Find more info <faq_link>here</faq_link>. <partyparrot></partyparrot>
     3: Ready?
+    footnote: "*If you run 2+ meetups per month in June, July and August, we'll pay you $100 at the end of August."
     end: <<EOF
 
   past-events:
