@@ -89,7 +89,9 @@ const questions = [
     answers: (
       <>
         <p>
-          A meetup isn't anything big like a Campfire or a Daydream. It's just you and some Hack Clubbers from your city hanging out and making projects! This is not a formal event.
+          A meetup isn&apos;t anything big like a Campfire or a Daydream.
+          It&apos;s just you and some Hack Clubbers from your city hanging
+          out and making projects! This is not a formal event.
         </p>
       </>
     )

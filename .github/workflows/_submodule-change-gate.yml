@@ -1,0 +1,84 @@
+name: "submodule change gate"
+
+on:
+  workflow_call:
+    outputs:
+      should_run:
+        description: "Whether the caller should run its CI job."
+        value: ${{ jobs.changes.outputs.should_run }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.filter.outputs.should_run }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect non-submodule changes
+        id: filter
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          elif [[ "$PUSH_BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            base_sha="$(git rev-list --max-parents=0 "$HEAD_SHA" | tail -n 1)"
+          else
+            base_sha="$PUSH_BEFORE_SHA"
+          fi
+
+          if [[ ! -f .gitmodules ]]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          declare -a submodule_paths=()
+
+          while read -r _ submodule_path; do
+            [[ -n "$submodule_path" ]] || continue
+            submodule_paths+=("$submodule_path")
+          done < <(git config --file .gitmodules --get-regexp '^submodule\..*\.path$')
+
+          if [[ ${#submodule_paths[@]} -eq 0 ]]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          only_submodules=true
+          saw_changes=false
+
+          while IFS= read -r changed_path; do
+            [[ -n "$changed_path" ]] || continue
+            saw_changes=true
+            is_submodule_change=false
+
+            for submodule_path in "${submodule_paths[@]}"; do
+              if [[ "$changed_path" == "$submodule_path" || "$changed_path" == "$submodule_path/"* ]]; then
+                is_submodule_change=true
+                break
+              fi
+            done
+
+            if [[ "$is_submodule_change" == false ]]; then
+              only_submodules=false
+              break
+            fi
+          done < <(git diff --name-only "$base_sha" "$HEAD_SHA")
+
+          if [[ "$saw_changes" == false || "$only_submodules" == false ]]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+          fi
