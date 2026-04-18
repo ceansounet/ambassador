@@ -79,7 +79,7 @@ const questions = [
     answers: (
       <>
         <p>
-          We highly reccomend you run meetups, but it is not a hard requirement. If you do not run the meetups you will not be eligible for the $100 honorarium.
+          We highly recommend you run meetups, but it is not a hard requirement. If you do not run the meetups you will not be eligible for the $100 honorarium.
         </p>
       </>
     )
