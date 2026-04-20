@@ -74,7 +74,7 @@ dashboard:
   approved:
     eyebrow: Accepted
     title: You're an Ambassador!
-    body: Your application has been approved. Welcome to the team.
+    body: Your application has been approved. Welcome to the team!
     status: Active Ambassador
   rejected:
     eyebrow: Try Again

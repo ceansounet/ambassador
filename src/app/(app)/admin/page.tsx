@@ -24,7 +24,6 @@ type SummaryRow = {
   signup_count: number;
   applicant_count: number;
   pending_count: number;
-  approved_count: number;
 };
 
 type ActivityRow = {
@@ -77,11 +76,6 @@ export default async function AdminDashboard({
 
   const [summaryRows, activityRows, outcomeRows] = await Promise.all([
     sql<SummaryRow[]>`
-      WITH latest_applications AS (
-        SELECT DISTINCT ON (user_id) user_id, status
-        FROM applications
-        ORDER BY user_id, created_at DESC, id DESC
-      )
       SELECT
         (
           SELECT COUNT(DISTINCT COALESCE(user_id, ip))::int
@@ -101,17 +95,12 @@ export default async function AdminDashboard({
         ) AS applicant_count,
         (
           SELECT COUNT(*)::int
-          FROM latest_applications
+          FROM applications
           WHERE status IN (
             ${APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS},
             ${APPLICATION_STATUS_PENDING_REVIEW}
           )
-        ) AS pending_count,
-        (
-          SELECT COUNT(*)::int
-          FROM latest_applications
-          WHERE status = ${APPLICATION_STATUS_ACCEPTED}
-        ) AS approved_count
+        ) AS pending_count
     `,
     sql<ActivityRow[]>`
       WITH days AS (
@@ -153,20 +142,20 @@ export default async function AdminDashboard({
     sql<OutcomeSummaryRow[]>`
       SELECT
         COUNT(*) FILTER (
-          WHERE LOWER(status) IN (
-            LOWER(${APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS}),
-            LOWER(${APPLICATION_STATUS_PENDING_REVIEW})
+          WHERE status IN (
+            ${APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS},
+            ${APPLICATION_STATUS_PENDING_REVIEW}
           )
         )::int AS pending_count,
         COUNT(*) FILTER (
-          WHERE LOWER(status) = LOWER(${APPLICATION_STATUS_ACCEPTED})
+          WHERE LOWER(status) = LOWER(${APPLICATION_STATUS_ACCEPTED}::text)
         )::int AS approved_count,
         COUNT(*) FILTER (
-          WHERE LOWER(status) = LOWER(${APPLICATION_STATUS_REJECTED})
+          WHERE LOWER(status) = LOWER(${APPLICATION_STATUS_REJECTED}::text)
         )::int AS rejected_count,
         COUNT(*) FILTER (
           WHERE LOWER(status) IN (
-            LOWER(${APPLICATION_STATUS_REJECTED_PERMANENT}),
+            LOWER(${APPLICATION_STATUS_REJECTED_PERMANENT}::text),
             LOWER('Rejected Permanent')
           )
         )::int AS banned_count

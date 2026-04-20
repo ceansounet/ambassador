@@ -153,7 +153,7 @@ export function UserMultiSelect({
       : `${selectedIds.size} ${selectionNoun}`;
 
   return (
-    <div ref={ref} className={`relative w-full sm:w-64 ${isPending ? "opacity-60" : ""}`}>
+    <div ref={ref} className={`relative w-full sm:w-56 ${isPending ? "opacity-60" : ""}`}>
       <button
         type="button"
         data-slot="multiselect-trigger"

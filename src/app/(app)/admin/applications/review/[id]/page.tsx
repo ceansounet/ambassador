@@ -124,10 +124,14 @@ export default async function ReviewModePage({
   if (application === null) notFound();
 
   const resolvedCity = application.address_city ?? application.city;
-  const resolvedCountry = application.address_country ?? application.country_code;
+  const resolvedCountryName = application.address_country ?? application.country_name;
+  const resolvedCountryCode = application.country_code;
+  const resolvedCountry =
+    resolvedCountryName ?? resolvedCountryCode;
 
   // Find other applications from same city
-  const sameCityApplications = resolvedCity
+  const sameCityApplications =
+    resolvedCity && (resolvedCountryName ?? resolvedCountryCode)
     ? await sql<SameCityRow[]>`
         SELECT a.id, a.name, a.status, u.display_name AS user_name, u.slack_name
         FROM applications a
@@ -141,6 +145,19 @@ export default async function ReviewModePage({
           LIMIT 1
         ) latest ON true
         WHERE (LOWER(a.address_city) = LOWER(${resolvedCity}) OR LOWER(a.city) = LOWER(${resolvedCity}))
+          AND (
+            (
+              ${resolvedCountryName}::text IS NOT NULL
+              AND (
+                LOWER(a.address_country) = LOWER(${resolvedCountryName})
+                OR LOWER(a.country_name) = LOWER(${resolvedCountryName})
+              )
+            )
+            OR (
+              ${resolvedCountryCode}::text IS NOT NULL
+              AND LOWER(a.country_code) = LOWER(${resolvedCountryCode})
+            )
+          )
           AND a.id != ${application.id}
           AND COALESCE(latest.id, a.id) = a.id
           AND a.status IN (${APPLICATION_STATUS_PENDING_REVIEW}, ${APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS}, ${APPLICATION_STATUS_REJECTED}, ${APPLICATION_STATUS_ACCEPTED})

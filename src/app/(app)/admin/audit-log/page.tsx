@@ -146,7 +146,7 @@ export default async function AdminAuditLogPage({
         <h1 className="text-4xl text-white">{t("admin.audit-log.title")}</h1>
       </header>
       <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
-        <div className="w-full max-w-[18rem] sm:w-[18rem]">
+        <div className="w-full max-w-sm">
           <SearchBar placeholder={t("admin.search-placeholder")} strongPlaceholder />
         </div>
         <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:ml-auto sm:w-auto sm:flex-nowrap">
