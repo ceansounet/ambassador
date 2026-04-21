@@ -324,6 +324,7 @@ admin:
   status-filter:
     all: All statuses
     none: No application
+    on-hold: On Hold
     pending-automatic-checks: Pending Automatic Checks
     pending-review: Pending Review
     accepted: Accepted
@@ -514,6 +515,7 @@ admin:
       open: Open
     latest: Latest
     history: Historical
+    on-hold: On hold
     view-details: View details
     empty: No applications yet
   users-list:
@@ -574,11 +576,15 @@ admin:
       reject-permanently: Reject permanently
       mark-tshirt-sent: Mark T-shirt sent
       mark-tshirt-unsent: Mark T-shirt not sent
+      put-on-hold: Put on hold
+      remove-hold: Remove hold
       open-internal-notes: Open internal notes
       historical-disabled: This application is historical, so review actions are disabled here.
       delete: Delete from our side
       confirmations:
         delete: Delete this application from our side? If the Airtable record still exists, it will resync on the next sync.
+        put-on-hold: Are you sure you want to put this application on hold? It will not show up in review mode until unheld, but you can still manage it from the Applications page.
+        remove-hold: Remove this application from hold? It will show up in review mode again if it is still pending review.
     answers:
       name: Name
       date-of-birth: Date of birth
@@ -636,6 +642,7 @@ admin:
       open: Open
       view: View
     visits:
+      local-time: "{time} local"
       unknown-network: Unknown network
       empty: No visits recorded yet.
     orders:

@@ -57,6 +57,34 @@ export function formatDateTime(value: string | number | Date | null | undefined,
   });
 }
 
+export function formatTimeInTimeZone(
+  value: string | number | Date | null | undefined,
+  locale: string,
+  timeZone: string | null | undefined,
+) {
+  const normalizedValue = normalizeDateValue(value);
+
+  if (normalizedValue === null || timeZone == null || timeZone.trim() === "") {
+    return null;
+  }
+
+  const date = new Date(normalizedValue);
+
+  if (!isValidDate(date)) {
+    return null;
+  }
+
+  try {
+    return date.toLocaleTimeString(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function joinNonEmpty(...parts: Array<string | null | undefined>) {
   const value = parts
     .filter((part): part is string => part !== null && part !== undefined && part.trim().length > 0)

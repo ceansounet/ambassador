@@ -11,10 +11,13 @@ type ReviewDecisionActionsProps = {
   applicationId: string;
   canAccept: boolean;
   canReject: boolean;
+  isOnHold: boolean;
   acceptLabel: string;
   deleteLabel: string;
   deleteConfirmationMessage: string;
   destructiveConfirmationMessage: string;
+  putOnHoldConfirmationMessage: string;
+  putOnHoldLabel: string;
   rejectLabel: string;
   rejectNoteLabel: string;
   rejectNotePlaceholder: string;
@@ -22,6 +25,8 @@ type ReviewDecisionActionsProps = {
   permanentRejectLabel: string;
   permanentRejectNoteLabel: string;
   permanentRejectNotePlaceholder: string;
+  removeHoldConfirmationMessage: string;
+  removeHoldLabel: string;
 };
 
 type DecisionModalState = "reject" | "reject-permanently" | null;
@@ -30,10 +35,13 @@ export function ReviewDecisionActions({
   applicationId,
   canAccept,
   canReject,
+  isOnHold,
   acceptLabel,
   deleteLabel,
   deleteConfirmationMessage,
   destructiveConfirmationMessage,
+  putOnHoldConfirmationMessage,
+  putOnHoldLabel,
   rejectLabel,
   rejectNoteLabel,
   rejectNotePlaceholder,
@@ -41,6 +49,8 @@ export function ReviewDecisionActions({
   permanentRejectLabel,
   permanentRejectNoteLabel,
   permanentRejectNotePlaceholder,
+  removeHoldConfirmationMessage,
+  removeHoldLabel,
 }: ReviewDecisionActionsProps) {
   const [activeModal, setActiveModal] = useState<DecisionModalState>(null);
 
@@ -65,6 +75,18 @@ export function ReviewDecisionActions({
             {rejectLabel}
           </button>
         ) : null}
+
+        <ConfirmSubmitForm
+          action={`/api/admin/applications/${applicationId}/hold`}
+          method="POST"
+          confirmationMessage={isOnHold ? removeHoldConfirmationMessage : putOnHoldConfirmationMessage}
+        >
+          <input type="hidden" name="redirectTo" value={`/admin/applications/review/${applicationId}`} />
+          <input type="hidden" name="onHold" value={isOnHold ? "false" : "true"} />
+          <button className={buttonVariants({ size: "app" })}>
+            {isOnHold ? removeHoldLabel : putOnHoldLabel}
+          </button>
+        </ConfirmSubmitForm>
 
         <button
           type="button"

@@ -37,6 +37,7 @@ type AdminUser = {
 
 const EVENT_TYPES: AdminActionEvent[] = [
   "application_deleted",
+  "application_review_hold_updated",
   "application_tshirt_sent_updated",
   "hcb_credentials_reauthorized",
   "user_admin_password_rejected",

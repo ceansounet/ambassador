@@ -37,6 +37,7 @@ export default async function ReviewModeEntryPage() {
       AND rl.locked_by != ${session.sub}
       AND rl.locked_at >= NOW() - make_interval(secs => ${LOCK_TTL_SECONDS}::double precision)
     WHERE a.status = ${APPLICATION_STATUS_PENDING_REVIEW}
+      AND a.review_on_hold IS NOT TRUE
       AND COALESCE(latest.id, a.id) = a.id
       AND rl.application_id IS NULL
     ORDER BY a.created_at ASC

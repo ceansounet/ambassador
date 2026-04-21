@@ -4,6 +4,7 @@ import sql from "@/lib/database/client";
 
 export type AdminActionEvent =
   | "application_deleted"
+  | "application_review_hold_updated"
   | "hcb_credentials_reauthorized"
   | "application_tshirt_sent_updated"
   | "user_admin_password_rejected"

@@ -12,6 +12,7 @@ type DetailRow = {
 
 const EVENT_LABELS: Record<AdminActionEvent, string> = {
   application_deleted: "Application deleted",
+  application_review_hold_updated: "Application review hold updated",
   application_tshirt_sent_updated: "Application T-shirt status updated",
   hcb_credentials_reauthorized: "HCB credentials reauthorized",
   user_admin_password_rejected: "Superuser password rejected",
@@ -37,12 +38,14 @@ const METADATA_LABELS: Record<string, string> = {
   grantId: "Grant",
   impersonationStartedAt: "Impersonation started",
   nextIsAdmin: "Next admin access",
+  nextOnHold: "Next hold state",
   nextPostersEnabled: "Next posters access",
   nextSent: "Next T-shirt status",
   nextState: "Next dashboard state",
   organizationId: "Organization",
   previousGrantId: "Previous grant",
   previousIsAdmin: "Previous admin access",
+  previousOnHold: "Previous hold state",
   previousOrganizationId: "Previous organization",
   previousPostersEnabled: "Previous posters access",
   previousSent: "Previous T-shirt status",
@@ -80,6 +83,8 @@ export function formatAuditEventSummary(event: AuditEventLike): string {
         `Deleted application ${formatMetadataValue(metadata.applicationId)}.`,
         metadata.status ? `It was ${formatMetadataValue(metadata.status)}.` : null,
       );
+    case "application_review_hold_updated":
+      return `Changed review hold from ${formatBooleanState(metadata.previousOnHold, "on hold", "not on hold")} to ${formatBooleanState(metadata.nextOnHold, "on hold", "not on hold")}.`;
     case "application_tshirt_sent_updated":
       return `Changed T-shirt status from ${formatBooleanState(metadata.previousSent, "sent", "not sent")} to ${formatBooleanState(metadata.nextSent, "sent", "not sent")}.`;
     case "hcb_credentials_reauthorized":

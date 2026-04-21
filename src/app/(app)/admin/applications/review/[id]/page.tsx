@@ -24,6 +24,7 @@ type ReviewApplicationRow = {
   id: string;
   user_id: string | null;
   status: string;
+  review_on_hold: boolean | null;
   name: string | null;
   applicant_email: string | null;
   applicant_slack_id: string | null;
@@ -57,7 +58,6 @@ type SameCityRow = {
   name: string | null;
   status: string;
   user_name: string | null;
-  slack_name: string | null;
 };
 
 function dedupeRepeatedLastName(value: string | null | undefined) {
@@ -81,6 +81,10 @@ function dedupeRepeatedLastName(value: string | null | undefined) {
   return trimmedValue;
 }
 
+function getApplicationNameLabel(value: string | null | undefined) {
+  return dedupeRepeatedLastName(value) ?? "-";
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.application-detail.page-title");
 }
@@ -98,7 +102,7 @@ export default async function ReviewModePage({
   await ensureSchema();
 
   const application = (await sql<ReviewApplicationRow[]>`
-    SELECT a.id, a.user_id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
+    SELECT a.id, a.user_id, a.status, a.review_on_hold, a.name, a.applicant_email, a.applicant_slack_id,
            a.date_of_birth, a.address_city, a.address_country,
            a.github_url, a.portfolio_url,
            a.application_first_thing_do, a.application_best_place_poster,
@@ -133,7 +137,7 @@ export default async function ReviewModePage({
   const sameCityApplications =
     resolvedCity && (resolvedCountryName ?? resolvedCountryCode)
     ? await sql<SameCityRow[]>`
-        SELECT a.id, a.name, a.status, u.display_name AS user_name, u.slack_name
+        SELECT a.id, a.name, a.status, u.display_name AS user_name
         FROM applications a
         LEFT JOIN users u ON u.id = a.user_id
         LEFT JOIN LATERAL (
@@ -216,11 +220,8 @@ export default async function ReviewModePage({
     application.status === APPLICATION_STATUS_ACCEPTED;
 
   const getRelatedApplicationLabel = (entry: SameCityRow) =>
-    entry.slack_name?.trim()
-      ? `@${entry.slack_name.trim()}`
-      : dedupeRepeatedLastName(entry.user_name) ??
-        dedupeRepeatedLastName(entry.name) ??
-        "Unknown";
+    dedupeRepeatedLastName(entry.user_name) ??
+    getApplicationNameLabel(entry.name);
 
   const getRelatedApplicationStatusLabel = (status: string) => {
     const normalizedStatus = normalizeApplicationStatus(status);
@@ -298,6 +299,11 @@ export default async function ReviewModePage({
           </div>
           <div className="flex flex-wrap items-center gap-3 md:col-start-2 md:col-end-4 md:row-start-2">
             <StatusBadge status={application.status} />
+            {application.review_on_hold === true ? (
+              <span className="font-body text-sm text-secondary">
+                ⚠️ {t("admin.applications-list.on-hold")}
+              </span>
+            ) : null}
             {slackName && (
               <span className="font-body text-sm text-secondary">@{slackName}</span>
             )}
@@ -309,7 +315,9 @@ export default async function ReviewModePage({
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <div className="text-xs text-secondary">Name</div>
-              <div className="font-body text-base text-white mt-1">{application.name ?? "-"}</div>
+              <div className="font-body text-base text-white mt-1">
+                {getApplicationNameLabel(application.name)}
+              </div>
             </div>
             <div>
               <div className="text-xs text-secondary">Age / Date of Birth</div>
@@ -331,8 +339,13 @@ export default async function ReviewModePage({
               <div className="text-xs text-secondary">GitHub</div>
               <div className="font-body text-base text-white mt-1">
                 {application.github_url ? (
-                  <a href={application.github_url} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white underline">
-                    {application.github_url.replace(/^https?:\/\/(www\.)?github\.com\//, "")}
+                  <a
+                    href={application.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                  >
+                    Visit
                   </a>
                 ) : "-"}
               </div>
@@ -341,8 +354,13 @@ export default async function ReviewModePage({
               <div className="text-xs text-secondary">Portfolio</div>
               <div className="font-body text-base text-white mt-1">
                 {application.portfolio_url ? (
-                  <a href={application.portfolio_url} target="_blank" rel="noopener noreferrer" className="text-secondary hover:text-white underline">
-                    {application.portfolio_url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 40)}
+                  <a
+                    href={application.portfolio_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                  >
+                    Visit
                   </a>
                 ) : "-"}
               </div>
@@ -378,7 +396,9 @@ export default async function ReviewModePage({
                 <div key={entry.id} className="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0">
                   <div className="flex items-center gap-3">
                     <StatusBadge status={entry.status} />
-                    <span className="font-body text-sm text-white">{entry.name ?? "-"}</span>
+                    <span className="font-body text-sm text-white">
+                      {getApplicationNameLabel(entry.name)}
+                    </span>
                   </div>
                   <span className="font-body text-xs text-secondary">
                     {new Date(entry.created_at).toLocaleDateString(locale)}
@@ -396,10 +416,13 @@ export default async function ReviewModePage({
             applicationId={application.id}
             canAccept={canAccept}
             canReject={canReject}
+            isOnHold={application.review_on_hold === true}
             acceptLabel={t("admin.application-detail.actions.accept")}
             deleteLabel={t("admin.application-detail.actions.delete")}
             deleteConfirmationMessage={t("admin.application-detail.actions.confirmations.delete")}
             destructiveConfirmationMessage={t("common.confirm-destructive")}
+            putOnHoldConfirmationMessage={t("admin.application-detail.actions.confirmations.put-on-hold")}
+            putOnHoldLabel={t("admin.application-detail.actions.put-on-hold")}
             rejectLabel={t("admin.user-detail.actions.reject")}
             rejectNoteLabel={t("admin.application-detail.actions.reject-note-label")}
             rejectNotePlaceholder={t("admin.application-detail.actions.reject-note-placeholder")}
@@ -407,6 +430,8 @@ export default async function ReviewModePage({
             permanentRejectLabel={t("admin.application-detail.actions.reject-permanently")}
             permanentRejectNoteLabel={t("admin.application-detail.actions.permanent-rejection-note-label")}
             permanentRejectNotePlaceholder={t("admin.application-detail.actions.permanent-rejection-note-placeholder")}
+            removeHoldConfirmationMessage={t("admin.application-detail.actions.confirmations.remove-hold")}
+            removeHoldLabel={t("admin.application-detail.actions.remove-hold")}
           />
         </section>
       </div>

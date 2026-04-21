@@ -30,6 +30,7 @@ type ApplicationDetailRow = {
   id: string;
   user_id: string | null;
   status: string;
+  review_on_hold: boolean | null;
   name: string | null;
   applicant_email: string | null;
   applicant_slack_id: string | null;
@@ -138,7 +139,7 @@ export default async function AdminApplicationDetailPage({
   await ensureUserAddressSchema();
 
   const application = (await sql<ApplicationDetailRow[]>`
-    SELECT a.id, a.user_id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
+    SELECT a.id, a.user_id, a.status, a.review_on_hold, a.name, a.applicant_email, a.applicant_slack_id,
            a.applicant_hca_id,
            a.applicant_phone, a.date_of_birth, a.address_line_1, a.address_line_2,
            a.address_city, a.address_state, a.address_zip, a.address_country,
@@ -272,6 +273,11 @@ export default async function AdminApplicationDetailPage({
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={application.status} />
+              {application.review_on_hold === true ? (
+                <span className="font-body text-sm text-secondary">
+                  ⚠️ {t("admin.applications-list.on-hold")}
+                </span>
+              ) : null}
               {isLatest ? (
                 <span className={pillVariants({ tone: "green" })}>
                   {t("admin.application-detail.latest-application")}
@@ -320,6 +326,29 @@ export default async function AdminApplicationDetailPage({
           label={t("admin.application-detail.actions.delete")}
           confirmationMessage={t("admin.application-detail.actions.confirmations.delete")}
         />
+
+        <ConfirmSubmitForm
+          action={`/api/admin/applications/${application.id}/hold`}
+          method="POST"
+          className="max-w-xl"
+          confirmationMessage={
+            application.review_on_hold === true
+              ? t("admin.application-detail.actions.confirmations.remove-hold")
+              : t("admin.application-detail.actions.confirmations.put-on-hold")
+          }
+        >
+          <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
+          <input
+            type="hidden"
+            name="onHold"
+            value={application.review_on_hold === true ? "false" : "true"}
+          />
+          <button className={buttonVariants({ size: "app" })}>
+            {application.review_on_hold === true
+              ? t("admin.application-detail.actions.remove-hold")
+              : t("admin.application-detail.actions.put-on-hold")}
+          </button>
+        </ConfirmSubmitForm>
 
         {isLatest ? (
           <div className="space-y-6">

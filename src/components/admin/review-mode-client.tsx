@@ -18,7 +18,6 @@ export function ReviewModeClient({
   const [showSkipHint, setShowSkipHint] = useState(false);
   const lockInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const lockWarningRef = useRef<string | null>(null);
-  const autoSkipAttemptedRef = useRef(false);
 
   const readSkippedApplicationIds = useCallback(() => {
     if (typeof window === "undefined") {
@@ -126,26 +125,6 @@ export function ReviewModeClient({
       }).catch(() => {});
     };
   }, [applicationId]);
-
-  useEffect(() => {
-    if (autoSkipAttemptedRef.current) {
-      return;
-    }
-
-    const skippedIds = readSkippedApplicationIds();
-    if (!skippedIds.includes(applicationId)) {
-      return;
-    }
-
-    autoSkipAttemptedRef.current = true;
-    const timeoutId = window.setTimeout(() => {
-      void goToNextApplication(skippedIds);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [applicationId, goToNextApplication, readSkippedApplicationIds]);
 
   const handleSkip = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement>) => {

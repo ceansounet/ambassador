@@ -36,6 +36,7 @@ type ApplicationListRow = {
   country_code: string | null;
   created_at: string;
   is_latest: boolean;
+  review_on_hold: boolean | null;
   user_name: string | null;
   user_email: string | null;
   slack_id: string | null;
@@ -43,6 +44,7 @@ type ApplicationListRow = {
 };
 
 const APPLICATION_STATUS_FILTER_OPTIONS = [
+  { value: "__on_hold", labelKey: "admin.status-filter.on-hold" },
   { value: APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS, labelKey: "admin.status-filter.pending-automatic-checks" },
   { value: APPLICATION_STATUS_PENDING_REVIEW, labelKey: "admin.status-filter.pending-review" },
   { value: APPLICATION_STATUS_ACCEPTED, labelKey: "admin.status-filter.accepted" },
@@ -88,14 +90,15 @@ export default async function AdminApplicationsPage({
   const search = query.q?.trim() ?? "";
   const searchFilter = search ? `%${search}%` : null;
   const statusFilter = query.status?.trim() ?? "";
-  const filterByStatus = statusFilter !== "" ? statusFilter : null;
+  const filterOnHold = statusFilter === "__on_hold";
+  const filterByStatus = statusFilter !== "" && !filterOnHold ? statusFilter : null;
   const sortOrder = query.sort === "newest" ? "DESC" : "ASC";
 
   const [applications, countResult] = await Promise.all([
     sql<ApplicationListRow[]>`
       SELECT a.id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
              a.address_city, a.address_state, a.address_country, a.submitted_ip,
-             a.city, a.country_code, a.created_at,
+             a.city, a.country_code, a.created_at, a.review_on_hold,
              COALESCE(latest.id = a.id, TRUE) AS is_latest,
              u.display_name AS user_name, u.email AS user_email, u.slack_id, u.slack_name
       FROM applications a
@@ -118,7 +121,8 @@ export default async function AdminApplicationsPage({
         OR u.slack_name ILIKE ${searchFilter}
       ))
       AND (
-        ${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}
+        (${filterOnHold}::boolean IS TRUE AND a.review_on_hold IS TRUE)
+        OR (${filterOnHold}::boolean IS FALSE AND (${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}))
       )
       ORDER BY a.created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}
       LIMIT ${20} OFFSET ${offset}
@@ -137,7 +141,8 @@ export default async function AdminApplicationsPage({
         OR u.slack_name ILIKE ${searchFilter}
       ))
       AND (
-        ${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}
+        (${filterOnHold}::boolean IS TRUE AND a.review_on_hold IS TRUE)
+        OR (${filterOnHold}::boolean IS FALSE AND (${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}))
       )
     `,
   ]);
@@ -196,11 +201,21 @@ export default async function AdminApplicationsPage({
                 <tr key={application.id} className="border-b border-white">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <SlackAvatar
-                        slackId={application.slack_id ?? application.applicant_slack_id}
-                        fallbackName={application.slack_name ?? applicantName}
-                        sizeClassName="h-12 w-12"
-                      />
+                      <div className="relative shrink-0">
+                        <SlackAvatar
+                          slackId={application.slack_id ?? application.applicant_slack_id}
+                          fallbackName={application.slack_name ?? applicantName}
+                          sizeClassName="h-12 w-12"
+                        />
+                        {application.review_on_hold === true ? (
+                          <span
+                            aria-label={t("admin.applications-list.on-hold")}
+                            className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-card text-xs leading-none"
+                          >
+                            ⚠️
+                          </span>
+                        ) : null}
+                      </div>
                       <div>
                         <div className="font-body text-base text-white">
                           {applicantName}

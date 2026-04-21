@@ -24,7 +24,7 @@ import {
 } from "@/lib/applications/status";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
-import { formatDate, formatDateTime, joinNonEmpty } from "@/lib/format";
+import { formatDate, formatDateTime, formatTimeInTimeZone, joinNonEmpty } from "@/lib/format";
 import {
   getOfficeGrantDashboardMessage,
   refreshOfficeGrantBalanceForUser,
@@ -83,6 +83,17 @@ type ApplicationListRow = {
 
 type CountRow = { count: number };
 type LatestNoteEventRow = { note: string | null };
+type VisitRow = {
+  id: string;
+  ip: string;
+  visit_type: string;
+  city: string | null;
+  region: string | null;
+  country_code: string | null;
+  org: string | null;
+  timezone: string | null;
+  created_at: string;
+};
 
 const HCB_GRANT_STATUS_KEYS = new Set([
   "linked",
@@ -195,8 +206,8 @@ export default async function AdminUserDetailPage({
       FROM ip_visits
       WHERE user_id = ${user.id}
     `.then((rows) => rows.at(0)?.count ?? 0),
-    sql`
-      SELECT id, ip, visit_type, city, region, country_code, org, created_at
+    sql<VisitRow[]>`
+      SELECT id, ip, visit_type, city, region, country_code, org, timezone, created_at
       FROM ip_visits
       WHERE user_id = ${user.id}
       ORDER BY created_at DESC
@@ -906,19 +917,30 @@ export default async function AdminUserDetailPage({
       >
         <div className="space-y-4">
           {visits.length > 0 ? (
-            visits.map((visit) => (
-              <div key={visit.id} className="pb-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-body text-sm text-white">{visit.ip}</span>
-                  <span className="text-xs text-secondary">{visit.visit_type}</span>
+            visits.map((visit) => {
+              const localVisitTime = formatTimeInTimeZone(
+                visit.created_at,
+                locale,
+                visit.timezone ?? user.timezone,
+              );
+
+              return (
+                <div key={visit.id} className="pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-body text-sm text-white">{visit.ip}</span>
+                    <span className="text-xs text-secondary">{visit.visit_type}</span>
+                  </div>
+                  <div className="mt-1 font-body text-sm text-white">
+                    {joinNonEmpty(visit.city, visit.region, null, visit.country_code) ?? "-"}
+                  </div>
+                  <div className="mt-1 font-body text-sm text-white">{visit.org ?? t("admin.user-detail.visits.unknown-network")}</div>
+                  <div className="mt-1 text-xs text-white">
+                    {formatDateTime(visit.created_at, locale)}
+                    {localVisitTime !== null ? ` (${t("admin.user-detail.visits.local-time", { time: localVisitTime })})` : ""}
+                  </div>
                 </div>
-                <div className="mt-1 font-body text-sm text-white">
-                  {joinNonEmpty(visit.city, visit.region, null, visit.country_code) ?? "-"}
-                </div>
-                <div className="mt-1 font-body text-sm text-white">{visit.org ?? t("admin.user-detail.visits.unknown-network")}</div>
-                <div className="mt-1 text-xs text-white">{formatDateTime(visit.created_at, locale)}</div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className="font-body text-base text-white">{t("admin.user-detail.visits.empty")}</p>
           )}
