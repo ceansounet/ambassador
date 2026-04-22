@@ -17,8 +17,10 @@ import {
 } from "@/lib/applications/status";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { ReviewModeClient } from "@/components/admin/review-mode-client";
+import { Textarea } from "@/components/ui/textarea";
+import { buttonVariants } from "@/components/ui/button";
 
 type ReviewApplicationRow = {
   id: string;
@@ -60,6 +62,15 @@ type SameCityRow = {
   user_name: string | null;
 };
 
+type NoteHistoryRow = {
+  id: string;
+  note: string | null;
+  created_at: string;
+  created_by: string | null;
+  actor_display_name: string | null;
+  actor_email: string | null;
+};
+
 function dedupeRepeatedLastName(value: string | null | undefined) {
   const trimmedValue = value?.trim() ?? "";
 
@@ -83,6 +94,26 @@ function dedupeRepeatedLastName(value: string | null | undefined) {
 
 function getApplicationNameLabel(value: string | null | undefined) {
   return dedupeRepeatedLastName(value) ?? "-";
+}
+
+function getSlackProfileUrl(slackId: string | null | undefined) {
+  const trimmedSlackId = slackId?.trim() ?? "";
+
+  if (trimmedSlackId === "") {
+    return null;
+  }
+
+  return `https://hackclub.slack.com/team/${encodeURIComponent(trimmedSlackId)}`;
+}
+
+function getSlackHandleLabel(slackName: string | null | undefined) {
+  const trimmedSlackName = slackName?.trim() ?? "";
+
+  if (trimmedSlackName === "") {
+    return null;
+  }
+
+  return trimmedSlackName.startsWith("@") ? trimmedSlackName : `@${trimmedSlackName}`;
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -197,12 +228,47 @@ export default async function ReviewModePage({
         `
       : [];
 
+  // Internal notes (only available when linked to a user)
+  const [latestNoteEvent, noteHistory] = application.user_id
+    ? await Promise.all([
+        sql<{ note: string | null }[]>`
+          SELECT note
+          FROM user_note_events
+          WHERE user_id = ${application.user_id}
+          ORDER BY created_at DESC, id DESC
+          LIMIT 1
+        `.then((rows) => rows.at(0) ?? null),
+        sql<NoteHistoryRow[]>`
+          SELECT une.id, une.note, une.created_at, une.created_by,
+                 actor.display_name AS actor_display_name, actor.email AS actor_email
+          FROM user_note_events une
+          LEFT JOIN users actor ON actor.id = une.created_by
+          WHERE une.user_id = ${application.user_id}
+          ORDER BY une.created_at DESC, une.id DESC
+          LIMIT 5
+        `,
+      ])
+    : [null, [] as NoteHistoryRow[]];
+
+  const currentUserNote =
+    typeof latestNoteEvent?.note === "string" && latestNoteEvent.note.trim().length > 0
+      ? latestNoteEvent.note
+      : null;
+
   const displayName =
     dedupeRepeatedLastName(application.user_name) ??
     dedupeRepeatedLastName(application.name) ??
     "Unknown";
   const slackId = application.user_slack_id ?? application.applicant_slack_id;
-  const slackName = application.user_slack_name;
+  const trimmedSlackId = slackId?.trim() ?? "";
+  const slackProfileUrl = getSlackProfileUrl(slackId);
+  const applicationNameLabel = getApplicationNameLabel(application.name);
+  const titleName = applicationNameLabel !== "-" ? applicationNameLabel : displayName;
+  const slackHandleLabel = getSlackHandleLabel(
+    application.user_slack_name ??
+      dedupeRepeatedLastName(application.user_name),
+  );
+  const titleSlackLabel = slackHandleLabel ?? "No Slack linked";
   const applicationStatusMeta = getApplicationStatusMeta(t);
   const age = application.date_of_birth
     ? Math.floor(
@@ -281,13 +347,29 @@ export default async function ReviewModePage({
           <div className="md:row-span-2">
             <SlackAvatar
               slackId={slackId}
-              fallbackName={displayName}
+              fallbackName={titleName}
               sizeClassName="h-14 w-14"
               textClassName="text-lg"
             />
           </div>
           <div className="min-w-0 flex min-h-12 items-center md:col-start-2 md:row-start-1">
-            <h1 className="truncate text-3xl text-white">{displayName}</h1>
+            <h1 className="truncate text-3xl text-white">
+              {titleName}
+              {" ("}
+              {slackHandleLabel !== null && slackProfileUrl !== null ? (
+                <a
+                  href={slackProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                >
+                  {slackHandleLabel}
+                </a>
+              ) : (
+                <span className="text-secondary">{titleSlackLabel}</span>
+              )}
+              {")"}
+            </h1>
           </div>
           <div className="flex min-h-12 items-center justify-start md:col-start-3 md:row-start-1 md:justify-end">
             <Link
@@ -304,9 +386,6 @@ export default async function ReviewModePage({
                 ⚠️ {t("admin.applications-list.on-hold")}
               </span>
             ) : null}
-            {slackName && (
-              <span className="font-body text-sm text-secondary">@{slackName}</span>
-            )}
           </div>
         </header>
 
@@ -316,7 +395,8 @@ export default async function ReviewModePage({
             <div>
               <div className="text-xs text-secondary">Name</div>
               <div className="font-body text-base text-white mt-1">
-                {getApplicationNameLabel(application.name)}
+                {applicationNameLabel}
+                {trimmedSlackId !== "" ? ` (${trimmedSlackId})` : ""}
               </div>
             </div>
             <div>
@@ -393,19 +473,79 @@ export default async function ReviewModePage({
             <h2 className="text-xl text-white">Previous Applications</h2>
             <div className="space-y-2">
               {history.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between gap-3 py-2 border-b border-white/5 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={entry.status} />
-                    <span className="font-body text-sm text-white">
-                      {getApplicationNameLabel(entry.name)}
-                    </span>
-                  </div>
-                  <span className="font-body text-xs text-secondary">
+                <div key={entry.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2 border-b border-white/5 last:border-0">
+                  <StatusBadge status={entry.status} />
+                  <span className="font-body text-sm text-white">
+                    {getApplicationNameLabel(entry.name)}
+                  </span>
+                  <span className="font-body text-xs text-secondary tabular-nums">
                     {new Date(entry.created_at).toLocaleDateString(locale)}
                   </span>
+                  <Link
+                    href={`/admin/applications/${entry.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ui-open-link inline-flex items-center leading-none"
+                    aria-label="Open application"
+                  >
+                    <span aria-hidden="true">↗</span>
+                  </Link>
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Internal notes */}
+        {application.user_id !== null && (
+          <section className="border border-white/10 bg-card p-5 space-y-4">
+            <h2 className="text-xl text-white">{t("admin.user-detail.sections.notes.title")}</h2>
+            {currentUserNote !== null && (
+              <div>
+                <div className="text-xs text-secondary mb-1">{t("admin.user-detail.notes.current-note")}</div>
+                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+                  {currentUserNote}
+                </p>
+              </div>
+            )}
+            <form action={`/api/admin/users/${application.user_id}/note`} method="POST" className="space-y-3">
+              <input type="hidden" name="redirectTo" value={`/admin/applications/review/${application.id}`} />
+              <label className="block text-sm text-secondary">
+                {t("admin.user-detail.notes.note-label")}
+                <Textarea
+                  name="note"
+                  rows={4}
+                  defaultValue={currentUserNote ?? ""}
+                  className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                  placeholder={t("admin.user-detail.notes.note-placeholder")}
+                />
+              </label>
+              <button className={buttonVariants({ size: "app" })}>
+                {t("admin.user-detail.actions.save-note")}
+              </button>
+            </form>
+            {noteHistory.length > 0 && (
+              <div className="space-y-3 border-t border-white/10 pt-4">
+                <h3 className="font-body text-sm text-secondary">{t("admin.user-detail.notes.history-title")}</h3>
+                {noteHistory.map((entry) => (
+                  <div key={entry.id} className="border-t border-white/5 pt-3 first:border-t-0 first:pt-0">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <span className="font-body text-sm text-white">
+                        {entry.actor_display_name ?? entry.actor_email ?? entry.created_by ?? t("admin.user-detail.notes.unknown-actor")}
+                      </span>
+                      <span className="text-xs text-secondary">
+                        {formatDateTime(entry.created_at, locale)}
+                      </span>
+                    </div>
+                    <div className="mt-1 whitespace-pre-line font-body text-sm text-white break-words [overflow-wrap:anywhere]">
+                      {typeof entry.note === "string" && entry.note.trim() !== ""
+                        ? entry.note
+                        : t("admin.user-detail.notes.cleared")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
 
