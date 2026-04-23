@@ -84,7 +84,7 @@ dashboard:
     body: Finish ambassador onboarding to unlock your office grant and shirt order.
     cta: Complete onboarding
     disabled-title: "Onboarding is paused:"
-    disabled-body: Ambassador onboarding is temporarily disabled. Please check back later-- we will reach out by email and/or Slack, and you will be able to continue after.
+    disabled-body: Ambassador onboarding is temporarily disabled. We will let you know when it's available again.
   rejected:
     eyebrow: Try Again
     title: Apply to be an Ambassador
