@@ -7,5 +7,5 @@ export const HCB_OAUTH_STATE_COOKIE_NAME = "ambassador_hcb_oauth_state";
 export const HCB_OAUTH_STATE_COOKIE_MAX_AGE_SECONDS = 600;
 export const OFFICE_GRANT_AMOUNT_CENTS = 2_000;
 export const OFFICE_GRANT_PURPOSE = "Office Expenses";
-export const OFFICE_GRANT_RETRY_INTERVAL_MS = 60 * 60 * 1000;
-export const HCB_GRANT_SCHEDULER_INTERVAL_MS = 60 * 60 * 1000;
+export const OFFICE_GRANT_RETRY_INTERVAL_MS = 10 * 60 * 1000;
+export const HCB_GRANT_SCHEDULER_INTERVAL_MS = 10 * 60 * 1000;
