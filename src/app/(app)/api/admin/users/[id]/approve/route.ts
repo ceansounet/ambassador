@@ -7,7 +7,7 @@ import {
   reviewLatestApplicationForUser,
 } from "@/lib/applications/review";
 import { requestOfficeGrantProvisioningForUser } from "@/lib/hcb/grants";
-import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
+import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
 import { APPLICATION_STATUS_ACCEPTED } from "@/lib/applications/status";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getActorSession } from "@/lib/session";
@@ -72,9 +72,10 @@ export async function POST(
   revalidatePath(`/admin/users/${id}`);
   revalidatePath("/dashboard");
 
-  const redirectUrl = new URL(
-    getSafeRedirectPath(formData.get("redirectTo"), `/admin/users/${id}`),
-    request.url,
+  const redirectUrl = getSafeRedirectUrl(
+    request,
+    formData.get("redirectTo"),
+    `/admin/users/${id}`,
   );
 
   if (grantStatus !== null) {

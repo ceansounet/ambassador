@@ -8,7 +8,10 @@ import { DevAdminSelector } from "@/components/dev-admin-selector";
 import { Navbar } from "@/components/navbar";
 import { buttonVariants } from "@/components/ui/button";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
-import { getAmbassadorOnboardingStatus } from "@/lib/ambassadors/airtable";
+import {
+  AMBASSADOR_ONBOARDING_STATUS,
+  getAmbassadorOnboardingStatus,
+} from "@/lib/ambassadors/airtable";
 import {
   APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS,
   isAcceptedApplicationStatus,
@@ -143,7 +146,11 @@ export default async function DashboardPage({
         applicationAirtableRecordId: application?.airtable_record_id ?? null,
         applicationAirtablePayload: application?.airtable_payload ?? null,
       })
-    : { hasAmbassadorRecord: false, status: "Unsubmitted" as const, isOnboardingComplete: false };
+    : {
+        hasAmbassadorRecord: false,
+        status: AMBASSADOR_ONBOARDING_STATUS.unsubmitted,
+        isOnboardingComplete: false,
+      };
   const shirtRequiresOnboarding =
     canAccessShirtOrdering &&
     (!shirtOnboardingStatus.hasAmbassadorRecord ||
@@ -183,6 +190,7 @@ export default async function DashboardPage({
     needsAddressRefresh: shirtNeedsAddressRefresh,
     existingOrder: shirtExistingOrder,
     requiresOnboarding: shirtRequiresOnboarding,
+    onboardingStatus: shirtOnboardingStatus.status,
     onboardingFormUrl: "https://forms.hackclub.com/t/mJvXsYY41Lus",
   };
 
@@ -373,13 +381,71 @@ function resolveState({
           canUseShirts={canUseShirts}
           officeGrant={officeGrant}
           onboardingEnabled={onboardingEnabled}
-          shirt={{ ...shirt, requiresOnboarding: true }}
+          shirt={{
+            ...shirt,
+            requiresOnboarding: true,
+            onboardingStatus: AMBASSADOR_ONBOARDING_STATUS.unsubmitted,
+          }}
           t={t}
         />
       ),
       activeStep: "decision",
       decision: "approved",
       devState: "accepted-not-onboarded",
+    },
+    "accepted-onboarding-submitted": {
+      node: (
+        <ApprovedDashboardContent
+          canUseShirts={canUseShirts}
+          officeGrant={officeGrant}
+          onboardingEnabled={onboardingEnabled}
+          shirt={{
+            ...shirt,
+            requiresOnboarding: true,
+            onboardingStatus: AMBASSADOR_ONBOARDING_STATUS.submitted,
+          }}
+          t={t}
+        />
+      ),
+      activeStep: "decision",
+      decision: "approved",
+      devState: "accepted-onboarding-submitted",
+    },
+    "accepted-pending-signature": {
+      node: (
+        <ApprovedDashboardContent
+          canUseShirts={canUseShirts}
+          officeGrant={officeGrant}
+          onboardingEnabled={onboardingEnabled}
+          shirt={{
+            ...shirt,
+            requiresOnboarding: true,
+            onboardingStatus: AMBASSADOR_ONBOARDING_STATUS.pendingSignature,
+          }}
+          t={t}
+        />
+      ),
+      activeStep: "decision",
+      decision: "approved",
+      devState: "accepted-pending-signature",
+    },
+    "accepted-onboarding-completed": {
+      node: (
+        <ApprovedDashboardContent
+          canUseShirts={canUseShirts}
+          officeGrant={officeGrant}
+          onboardingEnabled={onboardingEnabled}
+          shirt={{
+            ...shirt,
+            requiresOnboarding: true,
+            onboardingStatus: AMBASSADOR_ONBOARDING_STATUS.completed,
+          }}
+          t={t}
+        />
+      ),
+      activeStep: "decision",
+      decision: "approved",
+      devState: "accepted-onboarding-completed",
     },
     "accepted-grant-failed": {
       node: (
@@ -435,6 +501,9 @@ function resolveState({
     case "pending-checks":
     case "approved":
     case "accepted-not-onboarded":
+    case "accepted-onboarding-submitted":
+    case "accepted-pending-signature":
+    case "accepted-onboarding-completed":
     case "accepted-grant-failed":
     case "rejected":
     case "banned":
@@ -508,6 +577,7 @@ function ApprovedDashboardContent({
       {shirt.requiresOnboarding ? (
         <OnboardingPromptBanner
           enabled={onboardingEnabled}
+          status={shirt.onboardingStatus}
           onboardingFormUrl={shirt.onboardingFormUrl}
           t={t}
         />
@@ -523,13 +593,30 @@ function ApprovedDashboardContent({
 
 function OnboardingPromptBanner({
   enabled,
+  status,
   onboardingFormUrl,
   t,
 }: {
   enabled: boolean;
+  status: string;
   onboardingFormUrl: string;
   t: DashboardTranslations;
 }) {
+  if (status !== AMBASSADOR_ONBOARDING_STATUS.unsubmitted) {
+    const statusKey = getOnboardingStatusMessageKey(status);
+
+    return (
+      <section className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
+        <p className="font-body text-sm leading-relaxed text-white">
+          <span className="font-bold text-[var(--primary)]">
+            {t(`dashboard.onboarding.status.${statusKey}.title`)}
+          </span>{" "}
+          {t(`dashboard.onboarding.status.${statusKey}.body`)}
+        </p>
+      </section>
+    );
+  }
+
   if (!enabled) {
     return (
       <section className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
@@ -564,6 +651,14 @@ function OnboardingPromptBanner({
   );
 }
 
+function getOnboardingStatusMessageKey(status: string) {
+  if (status === AMBASSADOR_ONBOARDING_STATUS.submitted) return "submitted";
+  if (status === AMBASSADOR_ONBOARDING_STATUS.pendingSignature) return "pending-signature";
+  if (status === AMBASSADOR_ONBOARDING_STATUS.completed) return "completed";
+
+  throw new Error(`No dashboard onboarding message configured for Airtable status: ${status}`);
+}
+
 function OfficeGrantSection({
   officeGrant,
   t,
@@ -581,11 +676,16 @@ function OfficeGrantSection({
         <p className="mt-2 text-base leading-relaxed text-muted-foreground md:text-lg">
           {message.messageKey === "linked" && message.href !== null ? (
             <>
-              {t("office-grant.messages.linked-prefix")}{" "}
-              <a href={message.href} target="_blank" rel="noreferrer" className="underline-offset-4 hover:underline">
-                {t("office-grant.messages.linked-link-label")}
+              {t("office-grant.messages.linked-open-label")}{" "}
+              <a
+                href={message.href}
+                target="_blank"
+                rel="noreferrer"
+                className="ui-open-link ml-1 inline-flex font-body text-lg leading-none"
+                aria-label={t("office-grant.messages.linked-open-aria")}
+              >
+                <span aria-hidden="true">↗</span>
               </a>
-              {t("office-grant.messages.linked-suffix")}
             </>
           ) : (
             t(`office-grant.messages.${message.messageKey}`)

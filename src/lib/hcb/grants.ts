@@ -110,7 +110,11 @@ function toOfficeGrantRecord(row: UserGrantRow): OfficeGrantRecord {
 }
 
 function buildOfficeGrantUrl(grantId: string | null) {
-  return grantId === null ? null : `${HCB_BASE_URL}/grants/${encodeURIComponent(grantId)}`;
+  if (grantId === null) return null;
+
+  const grantHashid = grantId.startsWith("cdg_") ? grantId.slice("cdg_".length) : grantId;
+
+  return `${HCB_BASE_URL}/grants/${encodeURIComponent(grantHashid)}`;
 }
 
 function normalizeEmail(value: string | null | undefined) {

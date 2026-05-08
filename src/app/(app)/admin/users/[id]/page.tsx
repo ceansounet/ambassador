@@ -259,7 +259,7 @@ export default async function AdminUserDetailPage({
   const officeGrantDashboardMessage = getOfficeGrantDashboardMessage({ grant: officeGrant });
   const officeGrantUrl = officeGrantDashboardMessage.href;
   const officeGrantDashboardBody = officeGrantDashboardMessage.messageKey === "linked"
-    ? `${t("office-grant.messages.linked-prefix")} ${t("office-grant.messages.linked-link-label")}${t("office-grant.messages.linked-suffix")}`
+    ? `${t("office-grant.messages.linked-open-label")} ↗`
     : t(`office-grant.messages.${officeGrantDashboardMessage.messageKey}`);
   const officeGrantBalance =
     officeGrant?.balanceCents !== null &&

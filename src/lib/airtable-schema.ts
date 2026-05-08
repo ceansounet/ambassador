@@ -7,6 +7,8 @@ type AirtableIdRef = {
   name: string;
 };
 
+type AirtableChoiceRef = AirtableIdRef;
+
 export type ApplicationFieldKey =
   | "id"
   | "status"
@@ -47,7 +49,7 @@ type AirtableFieldTableKey = keyof AirtableFieldKeysByTable;
 type AirtableTableSchema = {
   id: string;
   name: string;
-  fields?: Record<string, AirtableIdRef>;
+  fields?: Record<string, AirtableIdRef & { choices?: Record<string, AirtableChoiceRef> }>;
 };
 
 type AirtableSchema = {
@@ -90,7 +92,27 @@ function readFields(value: unknown) {
         throw new Error(`Invalid Airtable field in src/lib/airtable.yaml for ${key}`);
       }
 
-      return [key, { id: field.id, name: field.name }];
+      return [key, { id: field.id, name: field.name, choices: readChoices(field.choices, key) }];
+    }),
+  );
+}
+
+function readChoices(value: unknown, fieldKey: string) {
+  const choices = toRecord(value);
+
+  if (choices === null) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(choices).map(([key, entry]) => {
+      const choice = toRecord(entry);
+
+      if (choice === null || typeof choice.id !== "string" || typeof choice.name !== "string") {
+        throw new Error(`Invalid Airtable choice in src/lib/airtable.yaml for ${fieldKey}.${key}`);
+      }
+
+      return [key, { id: choice.id, name: choice.name }];
     }),
   );
 }
@@ -194,6 +216,21 @@ export function getAirtableFieldName<TTable extends AirtableFieldTableKey>(
   fieldKey: AirtableFieldKeysByTable[TTable],
 ) {
   return getAirtableFieldRef(tableKey, fieldKey).name;
+}
+
+export function getAirtableFieldChoiceNames<TTable extends AirtableFieldTableKey>(
+  tableKey: TTable,
+  fieldKey: AirtableFieldKeysByTable[TTable],
+) {
+  const choices = getAirtableFieldRef(tableKey, fieldKey).choices;
+
+  if (choices === undefined) {
+    throw new Error(`Airtable field ${tableKey}.${fieldKey} does not define any choices`);
+  }
+
+  return Object.fromEntries(
+    Object.entries(choices).map(([key, choice]) => [key, choice.name]),
+  );
 }
 
 export function getAirtableFieldValue<TTable extends AirtableFieldTableKey>(

@@ -40,6 +40,9 @@ dev-admin-selector:
     pending: Pending (review)
     approved: Approved
     accepted-not-onboarded: Approved but not onboarded
+    accepted-onboarding-submitted: Approved, onboarding submitted
+    accepted-pending-signature: Approved, pending signature
+    accepted-onboarding-completed: Approved, onboarding completed
     accepted-grant-failed: Approved but grant failed
     rejected: Rejected
     banned: Application closed
@@ -85,6 +88,16 @@ dashboard:
     cta: Complete onboarding
     disabled-title: "Onboarding is paused:"
     disabled-body: Ambassador onboarding is temporarily disabled. We will let you know when it's available again.
+    status:
+      submitted:
+        title: "Onboarding submitted:"
+        body: Thank you for submitting your onboarding information! You will receive a contract via email shortly.
+      pending-signature:
+        title: "Contract pending signature:"
+        body: Your contract is pending one or more signatures. Please make sure you and your guardian (if applicable) have signed it.
+      completed:
+        title: "Onboarding complete:"
+        body: Onboarding is done.
   rejected:
     eyebrow: Try Again
     title: Apply to be an Ambassador
@@ -100,9 +113,8 @@ office-grant:
   messages:
     none: "There is no office grant linked to your Ambassador account yet. Please send a message in #hq-ambassadors-support or email ambassadors@hackclub.com so we can help."
     failed: "We are unable to provision your office funds grant right now. Please send a message in #hq-ambassadors-support or email ambassadors@hackclub.com so we can help."
-    linked-prefix: Find your office grant
-    linked-link-label: here
-    linked-suffix: "! Please be careful with spending your funds and feel free to ask if a purchase is an acceptable office expense."
+    linked-open-label: Open grant
+    linked-open-aria: Open office grant
   admin-status:
     linked: HCB office grant linked.
     queued: HCB office grant queued for provisioning.

@@ -6,6 +6,7 @@ import {
 import {
   type AmbassadorFieldKey,
   getAirtableBaseId,
+  getAirtableFieldChoiceNames,
   getAirtableFieldId,
   getAirtableFieldValue,
   getAirtableTableId,
@@ -52,9 +53,30 @@ async function getRecordById(
 
 export type AmbassadorOnboardingStatus = {
   hasAmbassadorRecord: boolean;
-  status: "Unsubmitted" | "Submitted" | "Pending Signature" | "Completed";
+  status: string;
   isOnboardingComplete: boolean;
 };
+
+function getRequiredChoiceName(choices: Record<string, string>, key: string) {
+  const value = choices[key];
+
+  if (value === undefined || value === "") {
+    throw new Error(`Airtable onboarding_status choice ${key} is not defined`);
+  }
+
+  return value;
+}
+
+const onboardingStatusChoices = getAirtableFieldChoiceNames("ambassadors", "onboardingStatus");
+
+export const AMBASSADOR_ONBOARDING_STATUS = {
+  unsubmitted: "Unsubmitted",
+  submitted: getRequiredChoiceName(onboardingStatusChoices, "submitted"),
+  pendingSignature: getRequiredChoiceName(onboardingStatusChoices, "pendingSignature"),
+  completed: getRequiredChoiceName(onboardingStatusChoices, "completed"),
+} as const;
+
+const airtableOnboardingStatuses = new Set(Object.values(onboardingStatusChoices));
 
 function getAmbassadorRecordIdsFromApplicationPayload(payload: unknown) {
   if (payload === null || payload === undefined || typeof payload !== "object" || Array.isArray(payload)) {
@@ -121,7 +143,7 @@ export async function getAmbassadorOnboardingStatus(input: {
   if (!client) {
     return {
       hasAmbassadorRecord: cachedAmbassadorRecordIds.length > 0,
-      status: "Unsubmitted",
+      status: AMBASSADOR_ONBOARDING_STATUS.unsubmitted,
       isOnboardingComplete: false,
     };
   }
@@ -135,7 +157,7 @@ export async function getAmbassadorOnboardingStatus(input: {
   if (ambassadorRecordIds.length === 0) {
     return {
       hasAmbassadorRecord: false,
-      status: "Unsubmitted",
+      status: AMBASSADOR_ONBOARDING_STATUS.unsubmitted,
       isOnboardingComplete: false,
     };
   }
@@ -162,12 +184,12 @@ export async function getAmbassadorOnboardingStatus(input: {
   if (ambassadorRecords.length === 0) {
     return {
       hasAmbassadorRecord: true,
-      status: "Unsubmitted",
+      status: AMBASSADOR_ONBOARDING_STATUS.unsubmitted,
       isOnboardingComplete: false,
     };
   }
 
-  let status: AmbassadorOnboardingStatus["status"] = "Unsubmitted";
+  let status: string = AMBASSADOR_ONBOARDING_STATUS.unsubmitted;
 
   for (const record of ambassadorRecords) {
     const value = getAirtableAmbassadorFieldValue(record.fields, "onboardingStatus");
@@ -177,23 +199,31 @@ export async function getAmbassadorOnboardingStatus(input: {
         : Array.isArray(value)
           ? value.filter((item): item is string => typeof item === "string")
           : [];
+    const unknownStatus = statuses.find((item) => !airtableOnboardingStatuses.has(item));
 
-    if (statuses.includes("Completed")) {
-      status = "Completed";
+    if (unknownStatus !== undefined) {
+      throw new Error(`Airtable onboarding_status value is not defined in src/lib/airtable.yaml: ${unknownStatus}`);
+    }
+
+    if (statuses.includes(AMBASSADOR_ONBOARDING_STATUS.completed)) {
+      status = AMBASSADOR_ONBOARDING_STATUS.completed;
       break;
     }
 
-    if (statuses.includes("Pending Signature")) {
-      status = "Pending Signature";
-    } else if (status === "Unsubmitted" && statuses.includes("Submitted")) {
-      status = "Submitted";
+    if (statuses.includes(AMBASSADOR_ONBOARDING_STATUS.pendingSignature)) {
+      status = AMBASSADOR_ONBOARDING_STATUS.pendingSignature;
+    } else if (
+      status === AMBASSADOR_ONBOARDING_STATUS.unsubmitted &&
+      statuses.includes(AMBASSADOR_ONBOARDING_STATUS.submitted)
+    ) {
+      status = AMBASSADOR_ONBOARDING_STATUS.submitted;
     }
   }
 
   return {
     hasAmbassadorRecord: true,
     status,
-    isOnboardingComplete: status === "Completed",
+    isOnboardingComplete: status === AMBASSADOR_ONBOARDING_STATUS.completed,
   };
 }
 

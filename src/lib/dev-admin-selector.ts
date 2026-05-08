@@ -5,6 +5,9 @@ export type DevState =
   | "pending"
   | "approved"
   | "accepted-not-onboarded"
+  | "accepted-onboarding-submitted"
+  | "accepted-pending-signature"
+  | "accepted-onboarding-completed"
   | "accepted-grant-failed"
   | "rejected"
   | "banned";
@@ -17,7 +20,20 @@ export function canShowDevAdminSelector(isAdmin: boolean) {
 }
 
 export function isDevState(value: string): value is DevState {
-  return value === "apply" || value === "ineligible" || value === "pending-checks" || value === "pending" || value === "approved" || value === "accepted-not-onboarded" || value === "accepted-grant-failed" || value === "rejected" || value === "banned";
+  return (
+    value === "apply" ||
+    value === "ineligible" ||
+    value === "pending-checks" ||
+    value === "pending" ||
+    value === "approved" ||
+    value === "accepted-not-onboarded" ||
+    value === "accepted-onboarding-submitted" ||
+    value === "accepted-pending-signature" ||
+    value === "accepted-onboarding-completed" ||
+    value === "accepted-grant-failed" ||
+    value === "rejected" ||
+    value === "banned"
+  );
 }
 
 export function isErrorCode(value: string): value is ErrorCode {

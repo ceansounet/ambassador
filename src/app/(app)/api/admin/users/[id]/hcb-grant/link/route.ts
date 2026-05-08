@@ -4,7 +4,7 @@ import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { linkOfficeGrantToUser } from "@/lib/hcb/grants";
-import { getSafeRedirectPath, isSameOriginRequest } from "@/lib/http";
+import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
 import { getActorSession } from "@/lib/session";
 
 export async function POST(
@@ -27,9 +27,10 @@ export async function POST(
 
   const { id } = await params;
   const formData = await request.formData();
-  const redirectUrl = new URL(
-    getSafeRedirectPath(formData.get("redirectTo"), `/admin/users/${id}#office-grant`),
-    request.url,
+  const redirectUrl = getSafeRedirectUrl(
+    request,
+    formData.get("redirectTo"),
+    `/admin/users/${id}#office-grant`,
   );
   redirectUrl.searchParams.set("hcbGrant", "linked");
   const rawGrantId = formData.get("grantId");

@@ -41,6 +41,7 @@ export type ShirtOrderSectionProps = {
   needsAddressRefresh: boolean;
   existingOrder: ShirtOrderState | null;
   requiresOnboarding: boolean;
+  onboardingStatus: string;
   onboardingFormUrl: string;
 };
 

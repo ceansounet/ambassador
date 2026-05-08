@@ -78,6 +78,16 @@ tables:
       onboardingStatus:
         id: flde1JpD9Ja4vz4vw
         name: onboarding_status
+        choices:
+          submitted:
+            id: sel11pBtGV0kx1FiC
+            name: Submitted
+          pendingSignature:
+            id: selLn9KxP1dD0G1mT
+            name: Pending Signature
+          completed:
+            id: selTgDNAcST9a5OsY
+            name: Completed
       tshirtSent:
         id: fldD7Pc1jt9VjiAgh
         name: tshirt-sent
