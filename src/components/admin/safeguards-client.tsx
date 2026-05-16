@@ -133,6 +133,12 @@ export function SafeguardsClient({
     } finally {
       setPendingKey(null);
     }
+
+    if (nextEnabled && openSearchKey === control.key) {
+      setOpenSearchKey(null);
+      setSearchQuery("");
+      setCandidates([]);
+    }
   }
 
   async function addOverride(control: SafeguardControl, candidate: Candidate) {
@@ -241,168 +247,174 @@ export function SafeguardsClient({
                       </button>
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-5 pb-2 align-middle">
-                      <div className="text-lg text-white">{overridesStrings.heading}</div>
-                    </td>
-                    <td className="px-5 pb-2" />
-                    <td className="px-5 pb-2 text-center align-middle">
-                      <button
-                        type="button"
-                        data-slot="icon-link"
-                        aria-label={overridesStrings.addLabel}
-                        title={overridesStrings.addLabel}
-                        onClick={() => {
-                          if (isSearchOpen) {
-                            setOpenSearchKey(null);
-                            setSearchQuery("");
-                            setCandidates([]);
-                          } else {
-                            setOpenSearchKey(control.key);
-                            setSearchQuery("");
-                            setCandidates([]);
-                            setError(null);
-                          }
-                        }}
-                        className="ui-open-link inline-flex items-center justify-center"
-                      >
-                        <Plus size={18} strokeWidth={2.25} />
-                      </button>
-                    </td>
-                  </tr>
-                  {overridesList.length === 0 ? (
+                  {!enabled ? (
                     <tr>
-                      <td colSpan={3} className="border-t border-white/10 px-5 py-2 font-body text-sm text-secondary">
-                        {overridesStrings.empty}
-                      </td>
+                        <td className="px-5 pb-2 align-middle">
+                          <div className="text-lg text-white">{overridesStrings.heading}</div>
+                        </td>
+                        <td className="px-5 pb-2" />
+                        <td className="px-5 pb-2 text-center align-middle">
+                          <button
+                            type="button"
+                            data-slot="icon-link"
+                            aria-label={overridesStrings.addLabel}
+                            title={overridesStrings.addLabel}
+                            onClick={() => {
+                              if (isSearchOpen) {
+                                setOpenSearchKey(null);
+                                setSearchQuery("");
+                                setCandidates([]);
+                              } else {
+                                setOpenSearchKey(control.key);
+                                setSearchQuery("");
+                                setCandidates([]);
+                                setError(null);
+                              }
+                            }}
+                            className="ui-open-link inline-flex items-center justify-center"
+                          >
+                            <Plus size={18} strokeWidth={2.25} />
+                          </button>
+                        </td>
                     </tr>
-                  ) : (
-                    overridesList.map((entry, index) => {
-                      const removeKey = `${control.key}:${entry.userId}`;
-                      const removing = removePending === removeKey;
-                      return (
-                        <tr key={entry.userId} className="group">
-                          <td
-                            colSpan={2}
-                            className={`px-5 py-2 ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <SlackAvatar
-                                slackId={entry.slackId}
-                                fallbackName={entry.displayName}
-                                sizeClassName="h-8 w-8"
-                                textClassName="text-xs"
-                              />
-                              <a
-                                href={`/admin/users/${entry.userId}`}
-                                className="flex min-w-0 flex-1 flex-col font-body text-sm text-white transition-opacity hover:opacity-70"
-                              >
-                                <span className="truncate">{entry.displayName}</span>
-                                {entry.email ? (
-                                  <span className="truncate text-xs text-secondary">{entry.email}</span>
-                                ) : null}
-                              </a>
-                            </div>
-                          </td>
-                          <td
-                            className={`px-5 py-2 text-center align-middle ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
-                          >
-                            <button
-                              type="button"
-                              data-slot="icon-link"
-                              aria-label={overridesStrings.removeLabel}
-                              title={overridesStrings.removeLabel}
-                              disabled={removing || removePending !== null}
-                              onClick={() => void removeOverride(control, entry.userId)}
-                              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center appearance-none border-0 bg-transparent p-0 text-[color:var(--foreground)] outline-none opacity-0 transition-colors group-hover:opacity-100 focus-visible:opacity-100 hover:text-[color:var(--primary)] disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <Icon glyph="delete" size={16} />
-                            </button>
+                  ) : null}
+                  {!enabled ? (
+                    <>
+                      {overridesList.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="border-t border-white/10 px-5 py-2 font-body text-sm text-secondary">
+                            {overridesStrings.empty}
                           </td>
                         </tr>
-                      );
-                    })
-                  )}
+                      ) : (
+                        overridesList.map((entry, index) => {
+                          const removeKey = `${control.key}:${entry.userId}`;
+                          const removing = removePending === removeKey;
+                          return (
+                            <tr key={entry.userId} className="group">
+                              <td
+                                colSpan={2}
+                                className={`px-5 py-2 ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <SlackAvatar
+                                    slackId={entry.slackId}
+                                    fallbackName={entry.displayName}
+                                    sizeClassName="h-8 w-8"
+                                    textClassName="text-xs"
+                                  />
+                                  <a
+                                    href={`/admin/users/${entry.userId}`}
+                                    className="flex min-w-0 flex-1 flex-col font-body text-sm text-white transition-opacity hover:opacity-70"
+                                  >
+                                    <span className="truncate">{entry.displayName}</span>
+                                    {entry.email ? (
+                                      <span className="truncate text-xs text-secondary">{entry.email}</span>
+                                    ) : null}
+                                  </a>
+                                </div>
+                              </td>
+                              <td
+                                className={`px-5 py-2 text-center align-middle ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
+                              >
+                                <button
+                                  type="button"
+                                  data-slot="icon-link"
+                                  aria-label={overridesStrings.removeLabel}
+                                  title={overridesStrings.removeLabel}
+                                  disabled={removing || removePending !== null}
+                                  onClick={() => void removeOverride(control, entry.userId)}
+                                  className="inline-flex h-6 w-6 cursor-pointer items-center justify-center appearance-none border-0 bg-transparent p-0 text-[color:var(--foreground)] outline-none opacity-0 transition-colors group-hover:opacity-100 focus-visible:opacity-100 hover:text-[color:var(--primary)] disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                  <Icon glyph="delete" size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
 
-                  {isSearchOpen ? (
-                    <tr className="border-b border-white last:border-b-0">
-                      <td colSpan={3} className="border-t border-white/10 px-5 pb-5 pt-3">
-                        <div className="space-y-2">
-                          <div className="relative w-full">
-                            <Search
-                              size={14}
-                              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40"
-                            />
-                            <Input
-                              autoFocus
-                              name={`override-search-${control.key}`}
-                              aria-label={overridesStrings.addLabel}
-                              placeholder={overridesStrings.addPlaceholder}
-                              value={searchQuery}
-                              onChange={(event) => setSearchQuery(event.target.value)}
-                              onKeyDown={(event) => {
-                                if (event.key === "Escape") {
-                                  event.preventDefault();
-                                  setOpenSearchKey(null);
-                                  setSearchQuery("");
-                                  setCandidates([]);
-                                }
-                              }}
-                              className="ui-input-surface !bg-muted h-9 w-full !rounded-none [border-radius:0!important] border-0 pl-9 pr-3 font-body text-sm font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-sm"
-                            />
-                          </div>
-                          {searchQuery.trim() === "" ? null : searchLoading ? (
-                            <div className="px-1 font-body text-sm text-secondary">
-                              {overridesStrings.candidatesLoading}
+                      {isSearchOpen ? (
+                        <tr className="border-b border-white last:border-b-0">
+                          <td colSpan={3} className="border-t border-white/10 px-5 pb-5 pt-3">
+                            <div className="space-y-2">
+                              <div className="relative w-full">
+                                <Search
+                                  size={14}
+                                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground/40"
+                                />
+                                <Input
+                                  autoFocus
+                                  name={`override-search-${control.key}`}
+                                  aria-label={overridesStrings.addLabel}
+                                  placeholder={overridesStrings.addPlaceholder}
+                                  value={searchQuery}
+                                  onChange={(event) => setSearchQuery(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Escape") {
+                                      event.preventDefault();
+                                      setOpenSearchKey(null);
+                                      setSearchQuery("");
+                                      setCandidates([]);
+                                    }
+                                  }}
+                                  className="ui-input-surface !bg-muted h-9 w-full !rounded-none [border-radius:0!important] border-0 pl-9 pr-3 font-body text-sm font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-sm"
+                                />
+                              </div>
+                              {searchQuery.trim() === "" ? null : searchLoading ? (
+                                <div className="px-1 font-body text-sm text-secondary">
+                                  {overridesStrings.candidatesLoading}
+                                </div>
+                              ) : candidates.length === 0 ? (
+                                <div className="px-1 font-body text-sm text-secondary">
+                                  {overridesStrings.candidatesEmpty}
+                                </div>
+                              ) : (
+                                <ul className="max-h-72 w-full divide-y divide-white/10 overflow-y-auto border border-white/10 bg-muted">
+                                  {candidates.map((candidate) => {
+                                    const addKey = `${control.key}:${candidate.userId}`;
+                                    const alreadyAdded = existingIds.has(candidate.userId);
+                                    const adding = addPending === addKey;
+                                    const meta = [candidate.email, candidate.slackId]
+                                      .filter((value): value is string => value !== null && value !== "")
+                                      .join(" · ");
+                                    return (
+                                      <li key={candidate.userId}>
+                                        <button
+                                          type="button"
+                                          data-slot="icon-link"
+                                          onClick={() => void addOverride(control, candidate)}
+                                          disabled={alreadyAdded || adding || addPending !== null}
+                                          className="flex w-full cursor-pointer appearance-none items-center gap-3 border-0 bg-transparent px-3 py-2 text-left font-body text-sm text-white outline-none transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                                        >
+                                          <SlackAvatar
+                                            slackId={candidate.slackId}
+                                            fallbackName={candidate.displayName}
+                                            sizeClassName="h-8 w-8"
+                                            textClassName="text-xs"
+                                          />
+                                          <span className="flex min-w-0 flex-1 flex-col">
+                                            <span className="truncate">{candidate.displayName}</span>
+                                            {meta ? (
+                                              <span className="truncate text-xs text-secondary">{meta}</span>
+                                            ) : null}
+                                          </span>
+                                          {alreadyAdded ? (
+                                            <span className="shrink-0 text-xs text-secondary">
+                                              {overridesStrings.alreadyExists}
+                                            </span>
+                                          ) : null}
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
                             </div>
-                          ) : candidates.length === 0 ? (
-                            <div className="px-1 font-body text-sm text-secondary">
-                              {overridesStrings.candidatesEmpty}
-                            </div>
-                          ) : (
-                            <ul className="max-h-72 w-full divide-y divide-white/10 overflow-y-auto border border-white/10 bg-muted">
-                              {candidates.map((candidate) => {
-                                const addKey = `${control.key}:${candidate.userId}`;
-                                const alreadyAdded = existingIds.has(candidate.userId);
-                                const adding = addPending === addKey;
-                                const meta = [candidate.email, candidate.slackId]
-                                  .filter((value): value is string => value !== null && value !== "")
-                                  .join(" · ");
-                                return (
-                                  <li key={candidate.userId}>
-                                    <button
-                                      type="button"
-                                      data-slot="icon-link"
-                                      onClick={() => void addOverride(control, candidate)}
-                                      disabled={alreadyAdded || adding || addPending !== null}
-                                      className="flex w-full cursor-pointer appearance-none items-center gap-3 border-0 bg-transparent px-3 py-2 text-left font-body text-sm text-white outline-none transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
-                                    >
-                                      <SlackAvatar
-                                        slackId={candidate.slackId}
-                                        fallbackName={candidate.displayName}
-                                        sizeClassName="h-8 w-8"
-                                        textClassName="text-xs"
-                                      />
-                                      <span className="flex min-w-0 flex-1 flex-col">
-                                        <span className="truncate">{candidate.displayName}</span>
-                                        {meta ? (
-                                          <span className="truncate text-xs text-secondary">{meta}</span>
-                                        ) : null}
-                                      </span>
-                                      {alreadyAdded ? (
-                                        <span className="shrink-0 text-xs text-secondary">
-                                          {overridesStrings.alreadyExists}
-                                        </span>
-                                      ) : null}
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
+                          </td>
+                        </tr>
+                      ) : null}
+                    </>
                   ) : null}
                   <tr aria-hidden="true" className="last:hidden">
                     <td colSpan={3} className="border-b border-white p-0" />
