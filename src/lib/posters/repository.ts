@@ -328,6 +328,17 @@ export async function findPosterGroupForUser(userId: string, groupId: string) {
   return group ?? null;
 }
 
+export async function findPosterGroupById(groupId: string) {
+  const group = (await sql<PosterGroupRow[]>`
+    SELECT *
+    FROM poster_groups
+    WHERE id = ${groupId}
+    LIMIT 1
+  `).at(0);
+
+  return group ?? null;
+}
+
 export async function findPosterByReferralCode(referralCode: string) {
   const normalizedCode = normalizePosterReferralCode(referralCode);
   const poster = (await sql<PosterRow[]>`

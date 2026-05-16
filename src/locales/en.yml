@@ -219,7 +219,7 @@ posters:
     image-required: A photo of the poster is required.
     auto-detect: We will auto-match the QR code to one of your pending posters.
   results:
-    success: Poster verified automatically.
+    success: Poster verified automatically
     auto_matched: We matched this photo to a different pending poster of yours and verified it.
     already_verified: This poster has already been verified.
     in_review: Sent to review, a human will check it soon.
@@ -230,6 +230,7 @@ posters:
     load-failed: Could not load your posters.
     download-failed: Download failed.
     upload-failed: Could not detect any poster, please try again!
+    no-qr: Could not detect a QR code, please try again!
     invalid-image-format: Unsupported image format. Use {formats}.
     geolocation-unavailable: Your browser does not support geolocation.
     geolocation-denied: Precise location access was denied. Please enable it in your browser settings.

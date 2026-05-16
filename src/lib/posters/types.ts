@@ -114,12 +114,19 @@ export type SubmitPosterProofInput = {
   locationAccuracy?: number | null;
 };
 
+export type VerifiedPosterDisplay = {
+  name: string | null;
+  referralCode: string;
+  groupName: string | null;
+};
+
 export type ScanMatchResult =
   | {
       status: "success" | "auto_matched" | "already_verified";
       detectedQrCodes: string[];
       poster: PosterRow;
       matchedPoster?: PosterRow;
+      verifiedPoster: VerifiedPosterDisplay;
       message: string;
     }
   | {

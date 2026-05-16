@@ -15,6 +15,7 @@ import {
   findPosterByPublicScanCode,
   findPosterForUser,
   findPosterGroupForUser,
+  findPosterGroupById,
   getGroupPosters,
   getUserPendingPosters,
   listUserPosterGroups,
@@ -36,6 +37,7 @@ import {
   type PosterStyle,
   type ScanMatchResult,
   type SubmitPosterProofInput,
+  type VerifiedPosterDisplay,
 } from "@/lib/posters/types";
 
 const MAX_POSTER_NAME_LENGTH = 80;
@@ -72,6 +74,20 @@ function getPosterMetadataObject(poster: PosterRow): Record<string, unknown> {
 function getPosterName(poster: PosterRow) {
   const name = poster.name?.trim() ?? "";
   return name === "" ? null : name;
+}
+
+async function buildVerifiedPosterDisplay(poster: PosterRow): Promise<VerifiedPosterDisplay> {
+  let groupName: string | null = null;
+  if (poster.poster_group_id !== null) {
+    const group = await findPosterGroupById(poster.poster_group_id);
+    const trimmed = group?.name?.trim() ?? "";
+    groupName = trimmed === "" ? null : trimmed;
+  }
+  return {
+    name: getPosterName(poster),
+    referralCode: poster.referral_code,
+    groupName,
+  };
 }
 
 function toClientPoster(poster: PosterRow, scanCount = 0) {
@@ -377,6 +393,7 @@ export async function submitPosterProof(input: SubmitPosterProofInput): Promise<
       status: "already_verified",
       detectedQrCodes,
       poster,
+      verifiedPoster: await buildVerifiedPosterDisplay(poster),
       message: "This poster is already approved.",
     };
   }
@@ -401,6 +418,7 @@ export async function submitPosterProof(input: SubmitPosterProofInput): Promise<
       status: "success",
       detectedQrCodes,
       poster: approvedPoster,
+      verifiedPoster: await buildVerifiedPosterDisplay(approvedPoster),
       message: "Poster verified automatically.",
     };
   }
@@ -437,6 +455,7 @@ export async function submitPosterProof(input: SubmitPosterProofInput): Promise<
       detectedQrCodes,
       poster,
       matchedPoster: approvedPoster,
+      verifiedPoster: await buildVerifiedPosterDisplay(approvedPoster),
       message: "Matched this upload to one of your other posters and approved it.",
     };
   }

@@ -74,6 +74,11 @@ type ScanResult = {
     | "no_match";
   detectedQrCodes: string[];
   message: string;
+  verifiedPoster: {
+    name: string | null;
+    referralCode: string;
+    groupName: string | null;
+  } | null;
 };
 
 type GeoState =
@@ -1232,7 +1237,29 @@ function VerifyModal({
         if (detectedQrCodes === null || typeof message !== "string") {
           throw new Error(t("errors.upload-failed"));
         }
-        setResult({ status, detectedQrCodes, message });
+        if (status === "no_qr") {
+          setError(t("errors.no-qr"));
+          return;
+        }
+        const verifiedPosterRaw = payload?.verifiedPoster;
+        const verifiedPoster =
+          verifiedPosterRaw !== null &&
+          typeof verifiedPosterRaw === "object" &&
+          !Array.isArray(verifiedPosterRaw) &&
+          typeof (verifiedPosterRaw as Record<string, unknown>).referralCode === "string"
+            ? {
+                name:
+                  typeof (verifiedPosterRaw as Record<string, unknown>).name === "string"
+                    ? ((verifiedPosterRaw as Record<string, unknown>).name as string)
+                    : null,
+                referralCode: (verifiedPosterRaw as Record<string, unknown>).referralCode as string,
+                groupName:
+                  typeof (verifiedPosterRaw as Record<string, unknown>).groupName === "string"
+                    ? ((verifiedPosterRaw as Record<string, unknown>).groupName as string)
+                    : null,
+              }
+            : null;
+        setResult({ status, detectedQrCodes, message, verifiedPoster });
       } catch {
         setError(t("errors.upload-failed"));
       } finally {
@@ -1515,28 +1542,40 @@ function ResultView({ result }: { result: ScanResult }) {
     result.status === "already_verified";
   const isReview = result.status === "in_review";
   const tone = isSuccess ? "success" : isReview ? "review" : "fail";
-  const ringClass =
+  const toneClass =
     tone === "success"
-      ? "ring-[#16a34a]/40 bg-[#16a34a]/15 text-[#7ee2a3]"
+      ? "text-[#7ee2a3]"
       : tone === "review"
-        ? "ring-[#ffbf71]/40 bg-[#ffbf71]/15 text-[#ffbf71]"
-        : "ring-[#ec3750]/40 bg-[#ec3750]/15 text-[#ff8b9a]";
+        ? "text-[#ffbf71]"
+        : "text-[#ff8b9a]";
   const glyph = tone === "success" ? "checkbox-checked" : tone === "review" ? "clock-fill" : "view-close";
 
+  const verified = result.verifiedPoster;
+  const displayName =
+    verified !== null
+      ? verified.name ?? formatPosterCode(verified.referralCode)
+      : null;
+
   return (
-    <div className="flex flex-col items-center gap-4 py-4 text-center">
-      <div className={cn("inline-flex size-14 items-center justify-center rounded-full ring-1", ringClass)}>
-        <Icon glyph={glyph} size={28} />
-      </div>
+    <div className="flex flex-col items-start gap-3 py-2 text-left">
+      <span className={cn("inline-flex", toneClass)}>
+        <Icon glyph={glyph} size={36} />
+      </span>
       <div className="space-y-1">
         <p className="font-sub text-xl text-[#fff]">{t(`results.${result.status}`)}</p>
-        <p className="max-w-sm text-sm leading-relaxed text-[color:#ffffff99]">{result.message}</p>
+        {isSuccess && displayName !== null ? (
+          <p className="text-sm leading-relaxed text-[color:#ffffff99]">
+            Verified poster <span className="font-semibold text-[#fff]">{displayName}</span>
+            {verified?.groupName ? (
+              <>
+                {" "}of poster group <span className="font-semibold text-[#fff]">{verified.groupName}</span>
+              </>
+            ) : null}
+          </p>
+        ) : (
+          <p className="text-sm leading-relaxed text-[color:#ffffff99]">{result.message}</p>
+        )}
       </div>
-      {result.detectedQrCodes.length > 0 && (
-        <p className="break-all px-2 font-mono text-[10px] text-[color:#ffffff55]">
-          {result.detectedQrCodes.join(" · ")}
-        </p>
-      )}
     </div>
   );
 }
