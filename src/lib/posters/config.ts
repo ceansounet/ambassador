@@ -150,13 +150,17 @@ export function getPosterRenderConfig(
 
 export function normalizePosterReferralCode(referralCode: string) {
   const trimmed = referralCode.trim();
-  const prefixedCode = /^a!?([A-Z1-9]{5})$/i.exec(trimmed);
-  return prefixedCode?.[1]?.toUpperCase() ?? trimmed.toUpperCase();
+  const prefixedCode = /^a[!-]?([a-z0-9]{5})$/i.exec(trimmed);
+  if (prefixedCode?.[1] !== undefined) {
+    return prefixedCode[1].toLowerCase();
+  }
+
+  return /^[a-z0-9]{5}$/i.test(trimmed) ? trimmed.toLowerCase() : trimmed;
 }
 
 export function formatPosterReferralCode(referralCode: string) {
   const code = normalizePosterReferralCode(referralCode);
-  return /^[A-Z1-9]{5}$/.test(code) ? `a${code}` : code;
+  return /^[a-z0-9]{5}$/.test(code) ? `a-${code}` : code;
 }
 
 export function buildPosterReferralUrl(referralCode: string) {
@@ -236,6 +240,6 @@ export function buildPosterRedirectUrl(referralCode: string, campaignSlug: strin
       optionalEnv("CURRENT_DOMAIN") ??
       DEFAULT_CURRENT_DOMAIN,
   );
-  target.searchParams.set("ref", referralCode);
+  target.searchParams.set("ref", normalizePosterReferralCode(referralCode));
   return target.toString();
 }

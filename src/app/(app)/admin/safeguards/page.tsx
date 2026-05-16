@@ -42,6 +42,8 @@ export default async function AdminSafeguardsPage() {
           addLabel: t("admin.safeguards.overrides.add-label"),
           addPlaceholder: t("admin.safeguards.overrides.add-placeholder"),
           addButton: t("admin.safeguards.overrides.add-button"),
+          candidatesEmpty: t("admin.safeguards.overrides.candidates-empty"),
+          candidatesLoading: t("admin.safeguards.overrides.candidates-loading"),
           removeLabel: t("admin.safeguards.overrides.remove-label"),
           removeConfirm: t("admin.safeguards.overrides.remove-confirm"),
           notFound: t("admin.safeguards.overrides.not-found"),
@@ -59,6 +61,7 @@ export default async function AdminSafeguardsPage() {
               userId: o.userId,
               displayName: o.displayName,
               email: o.email,
+              slackId: o.slackId,
             })),
           },
           {
@@ -72,6 +75,7 @@ export default async function AdminSafeguardsPage() {
               userId: o.userId,
               displayName: o.displayName,
               email: o.email,
+              slackId: o.slackId,
             })),
           },
           {
@@ -85,6 +89,7 @@ export default async function AdminSafeguardsPage() {
               userId: o.userId,
               displayName: o.displayName,
               email: o.email,
+              slackId: o.slackId,
             })),
           },
           {
@@ -98,6 +103,7 @@ export default async function AdminSafeguardsPage() {
               userId: o.userId,
               displayName: o.displayName,
               email: o.email,
+              slackId: o.slackId,
             })),
           },
         ]}

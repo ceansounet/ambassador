@@ -13,6 +13,12 @@ import {
 import { getActorSession } from "@/lib/session";
 
 type UserLookupRow = { id: string };
+type UserSearchRow = {
+  id: string;
+  display_name: string;
+  email: string | null;
+  slack_id: string | null;
+};
 
 async function resolveUserId(identifier: string): Promise<string | null> {
   const trimmed = identifier.trim();
@@ -27,6 +33,49 @@ async function resolveUserId(identifier: string): Promise<string | null> {
   `).at(0);
 
   return row?.id ?? null;
+}
+
+export async function GET(request: Request) {
+  if (!isSameOriginRequest(request)) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const session = await getActorSession();
+  if (!session) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  await ensureSchema();
+  if (!(await isUserAdmin(session.sub))) {
+    return Response.json({ error: "forbidden" }, { status: 403 });
+  }
+
+  const url = new URL(request.url);
+  const query = (url.searchParams.get("q") ?? "").trim();
+  if (query === "") {
+    return Response.json({ candidates: [] });
+  }
+
+  const filter = `%${query.replace(/[\\%_]/g, (match) => `\\${match}`)}%`;
+  const rows = await sql<UserSearchRow[]>`
+    SELECT id, display_name, email, slack_id
+    FROM users
+    WHERE display_name ILIKE ${filter}
+       OR email ILIKE ${filter}
+       OR slack_id ILIKE ${filter}
+       OR slack_name ILIKE ${filter}
+    ORDER BY display_name ASC
+    LIMIT 8
+  `;
+
+  return Response.json({
+    candidates: rows.map((row) => ({
+      userId: row.id,
+      displayName: row.display_name,
+      email: row.email,
+      slackId: row.slack_id,
+    })),
+  });
 }
 
 export async function POST(request: Request) {

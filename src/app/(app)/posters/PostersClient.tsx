@@ -31,8 +31,8 @@ function toPosterStyle(size: PaperSize, color: ColorMode): PosterStyle {
 }
 
 function formatPosterCode(code: string) {
-  const normalized = code.trim().toUpperCase();
-  return /^[A-Z1-9]{5}$/.test(normalized) ? `a${normalized}` : code;
+  const normalized = code.trim().toLowerCase();
+  return /^[a-z0-9]{5}$/.test(normalized) ? `a-${normalized}` : code;
 }
 
 function canDeletePoster(poster: ClientPoster) {

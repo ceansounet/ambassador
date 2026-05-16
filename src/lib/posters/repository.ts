@@ -10,6 +10,7 @@ import type {
 } from "@/lib/posters/types";
 
 let ensurePosterNameColumnPromise: Promise<void> | null = null;
+const POSTER_REFERRAL_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 export function ensurePosterNameColumn() {
   ensurePosterNameColumnPromise ??= (async () => {
@@ -42,13 +43,13 @@ export function ensurePosterNameColumn() {
 async function referralCodeExists(candidate: string) {
   const row = (await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
-      SELECT 1 FROM posters WHERE referral_code = ${candidate}
+      SELECT 1 FROM posters WHERE LOWER(referral_code) = ${candidate}
       UNION ALL
-      SELECT 1 FROM referral_links WHERE code = ${candidate}
+      SELECT 1 FROM referral_links WHERE LOWER(code) = ${candidate}
       UNION ALL
-      SELECT 1 FROM stardance_referral_codes WHERE code = ${candidate}
+      SELECT 1 FROM stardance_referral_codes WHERE LOWER(code) = ${candidate}
       UNION ALL
-      SELECT 1 FROM users WHERE stardance_referral_code = ${candidate}
+      SELECT 1 FROM users WHERE LOWER(stardance_referral_code) = ${candidate}
     ) AS exists
   `).at(0);
 
@@ -72,7 +73,7 @@ function randomFromCharset(charset: string, length: number) {
 
 async function generateUniqueReferralCode() {
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const candidate = randomFromCharset("ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789", 5);
+    const candidate = randomFromCharset(POSTER_REFERRAL_CODE_ALPHABET, 5);
     if (!(await referralCodeExists(candidate))) {
       return candidate;
     }
@@ -332,7 +333,7 @@ export async function findPosterByReferralCode(referralCode: string) {
   const poster = (await sql<PosterRow[]>`
     SELECT *
     FROM posters
-    WHERE referral_code = ${normalizedCode}
+    WHERE LOWER(referral_code) = LOWER(${normalizedCode})
     LIMIT 1
   `).at(0);
 
@@ -353,7 +354,7 @@ export async function findPosterByPublicScanCode(scanCode: string) {
     return poster ?? null;
   }
 
-  if (/^(?:a!?[A-Z1-9]{5}|[A-Z1-9]{5}|AMB-[A-Z1-9]{8})$/i.test(trimmed)) {
+  if (/^(?:a[!-]?[a-z0-9]{5}|[a-z0-9]{5}|AMB-[A-Z1-9]{8})$/i.test(trimmed)) {
     return findPosterByReferralCode(trimmed);
   }
 

@@ -469,8 +469,10 @@ admin:
       heading: User Overrides
       empty: No overrides yet.
       add-label: Add user
-      add-placeholder: User email or ID
+      add-placeholder: Search by name, email, or Slack ID
       add-button: Add
+      candidates-empty: No matching users.
+      candidates-loading: Searching...
       remove-label: Remove override
       remove-confirm: Remove this override?
       not-found: Could not find that user.
