@@ -138,9 +138,11 @@ export default async function DashboardPage({
     redirect("/");
   }
 
+  const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
   const canAccessShirtOrdering = canAccessShirts({
     latestApplicationStatus: application?.status ?? null,
     manualDashboardState: user.manual_dashboard_state,
+    isAdmin: canAccessAdmin,
   });
   const canUseShirts = canAccessShirtOrdering && safeguards.shirtOrderingEnabled;
   const shirtOnboardingStatus = canAccessShirtOrdering
@@ -154,10 +156,10 @@ export default async function DashboardPage({
         isOnboardingComplete: false,
       };
   const shirtRequiresOnboarding =
+    !canAccessAdmin &&
     canAccessShirtOrdering &&
     (!shirtOnboardingStatus.hasAmbassadorRecord ||
       !shirtOnboardingStatus.isOnboardingComplete);
-  const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
   const canUseSelector = canShowDevAdminSelector(canAccessAdmin);
   const shouldLoadShirtAddresses = canUseShirts && (!shirtRequiresOnboarding || canUseSelector);
   let shirtNeedsAddressRefresh = false;

@@ -5,7 +5,7 @@ import { loadUserHackClubAddresses } from "@/lib/hca-addresses";
 import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { isSameOriginRequest } from "@/lib/http";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
-import { getSafeguards } from "@/lib/safeguards";
+import { getEffectiveSafeguards } from "@/lib/safeguards";
 import { getSession } from "@/lib/session";
 import { canAccessShirts } from "@/lib/shirt/access";
 import {
@@ -22,6 +22,7 @@ type ShirtOrderUserRow = {
   hca_addresses: unknown;
   hca_access_token: string | null;
   manual_dashboard_state: string | null;
+  is_admin: boolean | null;
 };
 
 type ShirtOrderApplicationRow = {
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
   }
 
   await ensureSchema();
-  const safeguards = await getSafeguards();
+  const safeguards = await getEffectiveSafeguards(session.sub);
   if (!safeguards.shirtOrderingEnabled) {
     return Response.json({ error: "unavailable" }, { status: 403 });
   }
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
   const addressIndexValue = payload.addressIndex;
 
   const user = (await sql<ShirtOrderUserRow[]>`
-    SELECT id, hca_addresses, hca_access_token, manual_dashboard_state
+    SELECT id, hca_addresses, hca_access_token, manual_dashboard_state, is_admin
     FROM users
     WHERE id = ${session.sub}
   `).at(0);
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
   const latestApp = (await sql<ShirtOrderApplicationRow[]>`
     SELECT status, airtable_record_id, airtable_payload
     FROM applications
@@ -94,6 +96,7 @@ export async function POST(request: Request) {
   if (!canAccessShirts({
     latestApplicationStatus: latestApp?.status ?? null,
     manualDashboardState: user.manual_dashboard_state,
+    isAdmin: canAccessAdmin,
   })) {
     return Response.json({ error: "not_ambassador" }, { status: 403 });
   }
@@ -103,7 +106,7 @@ export async function POST(request: Request) {
     applicationAirtablePayload: latestApp?.airtable_payload ?? null,
   });
 
-  if (!onboardingStatus.hasAmbassadorRecord || !onboardingStatus.isOnboardingComplete) {
+  if (!canAccessAdmin && (!onboardingStatus.hasAmbassadorRecord || !onboardingStatus.isOnboardingComplete)) {
     return Response.json({ error: "onboarding_incomplete" }, { status: 403 });
   }
 
