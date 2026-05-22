@@ -18,6 +18,10 @@ function hexToRgb(hexColor: string) {
   return rgb(r, g, b);
 }
 
+function shouldUseTransparentQrBackground(style: PosterStyle) {
+  return style === "bw" || style === "printer_efficient" || style === "a4_bw";
+}
+
 async function createFallbackPosterPdf(content: string) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595.28, 841.89]);
@@ -64,7 +68,9 @@ export async function generatePosterPdf(options: {
   );
   const qrConfig = renderConfig.qr;
   const textConfig = renderConfig.text;
-  const qrPng = await generateQrCodePng(options.content, qrConfig.size);
+  const qrPng = await generateQrCodePng(options.content, qrConfig.size, {
+    transparentLight: shouldUseTransparentQrBackground(options.style),
+  });
   const qrImage = await pdf.embedPng(qrPng);
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
 
