@@ -8,11 +8,13 @@ import {
 } from "@/lib/posters/config";
 import type { PosterRow } from "@/lib/posters/types";
 
-export async function generateQrCodePng(
-  content: string,
-  size: number,
-  options: { transparentLight?: boolean } = {},
-) {
+export function createQrCodeMatrix(content: string) {
+  return QRCode.create(content, {
+    errorCorrectionLevel: "L",
+  }).modules;
+}
+
+export async function generateQrCodePng(content: string, size: number) {
   return QRCode.toBuffer(content, {
     type: "png",
     width: Math.max(256, Math.round(size * 3)),
@@ -20,7 +22,7 @@ export async function generateQrCodePng(
     errorCorrectionLevel: "L",
     color: {
       dark: "#000000",
-      light: options.transparentLight === true ? "#00000000" : "#FFFFFF",
+      light: "#FFFFFF",
     },
   });
 }
