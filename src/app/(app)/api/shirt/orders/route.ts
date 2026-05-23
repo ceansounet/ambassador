@@ -1,3 +1,4 @@
+import { clearCachedWarehouseStats } from "@/lib/admin/warehouse-stats-cache";
 import sql from "@/lib/database/client";
 import { getAmbassadorOnboardingStatus } from "@/lib/ambassadors/airtable";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -15,7 +16,7 @@ import {
   SHIRT_SKU_PREFIX,
   shirtSku,
 } from "@/lib/shop";
-import { loadShirtStockBySize } from "@/lib/warehouse";
+import { loadAvailableShirtStockBySize } from "@/lib/shirt/stock";
 
 type ShirtOrderUserRow = {
   id: string;
@@ -144,17 +145,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "already_ordered" }, { status: 409 });
   }
 
-  try {
-    const stockBySize = await loadShirtStockBySize();
-    const remainingStock = stockBySize[size];
-
-    if (remainingStock !== null && remainingStock <= 0) {
-      return Response.json({ error: "out_of_stock" }, { status: 409 });
-    }
-  } catch (error) {
-    console.error("[shirts] unable to verify live shirt stock", error);
-  }
-
   const id = crypto.randomUUID();
   const sku = shirtSku(size);
 
@@ -187,6 +177,21 @@ export async function POST(request: Request) {
     }
 
     await transaction`
+      SELECT pg_advisory_xact_lock(hashtext(${`shirt-stock:${sku}`})::bigint)
+    `;
+
+    try {
+      const stockBySize = await loadAvailableShirtStockBySize(transaction);
+      const remainingStock = stockBySize[size];
+
+      if (remainingStock !== null && remainingStock <= 0) {
+        return { ok: false as const, status: 409, error: "out_of_stock" };
+      }
+    } catch (error) {
+      console.error("[shirts] unable to verify live shirt stock", error);
+    }
+
+    await transaction`
       INSERT INTO orders (id, user_id, status, sku, variant, quantity, address, details)
       VALUES (
         ${id},
@@ -206,6 +211,8 @@ export async function POST(request: Request) {
   if (!created.ok) {
     return Response.json({ error: created.error }, { status: created.status });
   }
+
+  clearCachedWarehouseStats();
 
   return Response.json({ ok: true, id });
 }

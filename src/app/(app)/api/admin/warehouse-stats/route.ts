@@ -9,7 +9,8 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 import { isSameOriginRequest } from "@/lib/http";
 import { getActorSession } from "@/lib/session";
 import { buildEmptyShirtStockBySize, shirtSku } from "@/lib/shop";
-import { loadShirtStockBySize, WarehouseApiClient } from "@/lib/warehouse";
+import { loadAvailableShirtStockBySize } from "@/lib/shirt/stock";
+import { WarehouseApiClient } from "@/lib/warehouse";
 
 type LinkedOrderRow = {
   warehouse_order_id: string;
@@ -51,7 +52,7 @@ export async function GET(request: Request) {
       WHERE warehouse_order_id IS NOT NULL
         AND sku = ANY(${AMBASSADOR_SHIRT_SKUS}::text[])
     `,
-    loadShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
+    loadAvailableShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
   ]);
 
   const ambassadorOrderIds = new Set(

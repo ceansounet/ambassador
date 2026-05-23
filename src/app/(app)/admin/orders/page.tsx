@@ -22,8 +22,8 @@ import {
   ORDER_STATUS_REJECTED,
   SHIRT_SIZES,
 } from "@/lib/shop";
+import { loadAvailableShirtStockBySize } from "@/lib/shirt/stock";
 import { formatHackClubAddress, type HackClubAddress } from "@/lib/settings";
-import { loadShirtStockBySize } from "@/lib/warehouse";
 
 type OrderRow = {
   id: string;
@@ -115,7 +115,7 @@ export default async function AdminOrdersPage({
       )
     `,
     getHcbOauthConnection(),
-    loadShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
+    loadAvailableShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
   ]);
 
   const totalCount = countResult.at(0)?.total ?? 0;

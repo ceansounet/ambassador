@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { clearCachedWarehouseStats } from "@/lib/admin/warehouse-stats-cache";
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -69,6 +70,7 @@ export async function POST(
     WHERE id = ${id}
   `;
 
+  clearCachedWarehouseStats();
   revalidatePath(`/admin/orders/${id}`);
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/users/${order.user_id}`);

@@ -44,9 +44,10 @@ import {
   buildWarehouseTrackingUrl,
   SHIRT_SKU_PREFIX,
 } from "@/lib/shop";
+import { loadAvailableShirtStockBySize } from "@/lib/shirt/stock";
 import { isUserManualDashboardState } from "@/lib/user-dashboard-state";
 import { cn } from "@/lib/utils";
-import { loadShirtStockBySize, parseWarehouseOrderResponse } from "@/lib/warehouse";
+import { parseWarehouseOrderResponse } from "@/lib/warehouse";
 
 import ShirtOrderSection, {
   type ShirtOrderSectionProps,
@@ -174,7 +175,7 @@ export default async function DashboardPage({
         storedAddresses: user.hca_addresses,
         accessToken: hcaAccessToken,
       }),
-      loadShirtStockBySize().catch((error) => {
+      loadAvailableShirtStockBySize().catch((error) => {
         console.error("[shirts] unable to load live shirt stock", error);
         return buildEmptyShirtStockBySize();
       }),
