@@ -791,8 +791,8 @@ export async function syncAllStardanceRsvpReferrals() {
     return { processed: 0, insertedOrUpdated: 0 };
   }
 
-  const codeByRef = new Map(
-    codes.map((code) => [`a-${code.code.toLowerCase()}`, code] as const),
+  const codeByRef = new Map<string, StardanceReferralCodeRow>(
+    codes.map((code) => [`a-${code.code.toLowerCase()}`, code]),
   );
   const referrals = await fetchAllStardanceRsvpReferrals(apiKey);
   const rows: StardanceRsvpReferralRow[] = [];
