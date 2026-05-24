@@ -113,6 +113,7 @@ export function findMatchingPoster(detectedCodes: string[], posters: PosterRow[]
     const legacyPosterUrl = normalizeQrValue(buildPosterReferralUrl(poster.referral_code));
     const posterCode = poster.referral_code.toLowerCase();
     const displayCode = formatPosterReferralCode(poster.referral_code).toLowerCase();
+    const qrToken = poster.qr_code_token.toLowerCase();
 
     return detectedCodes.some((entry) => {
       const normalized = normalizeQrValue(entry);
@@ -120,7 +121,8 @@ export function findMatchingPoster(detectedCodes: string[], posters: PosterRow[]
         normalized === posterUrl ||
         normalized === legacyPosterUrl ||
         normalized.includes(posterCode) ||
-        normalized.includes(displayCode)
+        normalized.includes(displayCode) ||
+        normalized.includes(qrToken)
       );
     });
   }) ?? null;
