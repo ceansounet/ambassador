@@ -348,8 +348,21 @@ export async function listStardanceReferralCodesForUser(userId: string) {
         SELECT 1
         FROM posters
         WHERE posters.user_id = stardance_referral_codes.user_id
-          AND LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+          AND (
+            LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            OR (
+              posters.referral_code ~ '^a-[a-z0-9]{5}$'
+              AND stardance_referral_codes.code ~ '^[a-z0-9]{5}$'
+              AND LOWER(posters.referral_code) = 'a-' || LOWER(stardance_referral_codes.code)
+            )
+            OR (
+              posters.referral_code ~ '^[a-z0-9]{5}$'
+              AND stardance_referral_codes.code ~ '^a-[a-z0-9]{5}$'
+              AND 'a-' || LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            )
+          )
       )
+      AND stardance_referral_codes.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     ORDER BY
       CASE WHEN kind = 'primary' THEN 0 ELSE 1 END,
       created_at ASC,
@@ -370,8 +383,21 @@ export async function listArchivedStardanceReferralCodesForUser(userId: string) 
         SELECT 1
         FROM posters
         WHERE posters.user_id = stardance_referral_codes.user_id
-          AND LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+          AND (
+            LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            OR (
+              posters.referral_code ~ '^a-[a-z0-9]{5}$'
+              AND stardance_referral_codes.code ~ '^[a-z0-9]{5}$'
+              AND LOWER(posters.referral_code) = 'a-' || LOWER(stardance_referral_codes.code)
+            )
+            OR (
+              posters.referral_code ~ '^[a-z0-9]{5}$'
+              AND stardance_referral_codes.code ~ '^a-[a-z0-9]{5}$'
+              AND 'a-' || LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            )
+          )
       )
+      AND stardance_referral_codes.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     ORDER BY archived_at DESC, id ASC
   `;
 
@@ -611,6 +637,7 @@ type StardanceReferralRow = {
   verification_status: StardanceReferralVerificationStatus;
   referred_at: Date;
   referral_code_label: string;
+  is_poster_referral: boolean;
   poster_id: string | null;
   poster_name: string | null;
   poster_referral_code: string | null;
@@ -783,7 +810,13 @@ async function ensurePosterReferralCodeRows(userId?: string) {
             SELECT 1
             FROM stardance_referral_codes c
             WHERE c.user_id = p.user_id
-              AND c.code = p.referral_code
+              AND (
+                c.code = p.referral_code
+                OR (
+                  c.code ~ '^[a-z0-9]{5}$'
+                  AND p.referral_code = 'a-' || c.code
+                )
+              )
           )
       `
     : await sql<PosterReferralCodeRow[]>`
@@ -795,7 +828,13 @@ async function ensurePosterReferralCodeRows(userId?: string) {
             SELECT 1
             FROM stardance_referral_codes c
             WHERE c.user_id = p.user_id
-              AND c.code = p.referral_code
+              AND (
+                c.code = p.referral_code
+                OR (
+                  c.code ~ '^[a-z0-9]{5}$'
+                  AND p.referral_code = 'a-' || c.code
+                )
+              )
           )
       `;
 
@@ -938,12 +977,28 @@ export async function listStardanceReferralsForUser(
           r.verification_status,
           r.referred_at,
           c.label AS referral_code_label,
+          (
+            p.id IS NOT NULL
+            OR c.label ~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          ) AS is_poster_referral,
           p.id AS poster_id,
           NULLIF(BTRIM(p.name), '') AS poster_name,
-          p.referral_code AS poster_referral_code
+          COALESCE(p.referral_code, c.code) AS poster_referral_code
         FROM stardance_referrals r
         JOIN stardance_referral_codes c ON c.id = r.referral_code_id
-        LEFT JOIN posters p ON p.user_id = r.user_id AND LOWER(p.referral_code) = LOWER(c.code)
+        LEFT JOIN posters p ON p.user_id = r.user_id AND (
+          LOWER(p.referral_code) = LOWER(c.code)
+          OR (
+            p.referral_code ~ '^a-[a-z0-9]{5}$'
+            AND c.code ~ '^[a-z0-9]{5}$'
+            AND LOWER(p.referral_code) = 'a-' || LOWER(c.code)
+          )
+          OR (
+            p.referral_code ~ '^[a-z0-9]{5}$'
+            AND c.code ~ '^a-[a-z0-9]{5}$'
+            AND 'a-' || LOWER(p.referral_code) = LOWER(c.code)
+          )
+        )
         WHERE r.user_id = ${userId}
         ORDER BY r.referred_at DESC, r.id ASC
       `
@@ -960,12 +1015,28 @@ export async function listStardanceReferralsForUser(
           r.verification_status,
           r.referred_at,
           c.label AS referral_code_label,
+          (
+            p.id IS NOT NULL
+            OR c.label ~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          ) AS is_poster_referral,
           p.id AS poster_id,
           NULLIF(BTRIM(p.name), '') AS poster_name,
-          p.referral_code AS poster_referral_code
+          COALESCE(p.referral_code, c.code) AS poster_referral_code
         FROM stardance_referrals r
         JOIN stardance_referral_codes c ON c.id = r.referral_code_id
-        LEFT JOIN posters p ON p.user_id = r.user_id AND LOWER(p.referral_code) = LOWER(c.code)
+        LEFT JOIN posters p ON p.user_id = r.user_id AND (
+          LOWER(p.referral_code) = LOWER(c.code)
+          OR (
+            p.referral_code ~ '^a-[a-z0-9]{5}$'
+            AND c.code ~ '^[a-z0-9]{5}$'
+            AND LOWER(p.referral_code) = 'a-' || LOWER(c.code)
+          )
+          OR (
+            p.referral_code ~ '^[a-z0-9]{5}$'
+            AND c.code ~ '^a-[a-z0-9]{5}$'
+            AND 'a-' || LOWER(p.referral_code) = LOWER(c.code)
+          )
+        )
         WHERE r.user_id = ${userId}
           AND (
             LOWER(c.label) LIKE ${pattern}
@@ -978,7 +1049,7 @@ export async function listStardanceReferralsForUser(
   return rows
     .map((row) => ({
       id: row.id,
-      kind: row.poster_id !== null ? "poster" as const : "signup" as const,
+      kind: row.is_poster_referral ? "poster" as const : "signup" as const,
       name: row.name,
       slackId: row.slack_id,
       email: row.email,

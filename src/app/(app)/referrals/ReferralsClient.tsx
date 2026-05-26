@@ -648,7 +648,6 @@ function ReferralCodeRow({
                 {heading}
               </span>
               <span className="font-body text-base text-white">
-                <span aria-hidden>a-</span>
                 <span>{referralCode.code.toLowerCase()}</span>
               </span>
               <span className="font-body text-sm text-muted-foreground">
