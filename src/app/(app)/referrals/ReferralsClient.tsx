@@ -48,8 +48,7 @@ const VERIFICATION_TONES: Record<StardanceReferralVerificationStatus, string> = 
 
 function formatPosterCode(code: string | null) {
   if (code === null) return null;
-  const normalized = code.trim().toLowerCase();
-  return /^[a-z0-9]{5}$/.test(normalized) ? `a-${normalized}` : code;
+  return code;
 }
 
 function isReferralCode(value: unknown): value is StardanceReferralCode {

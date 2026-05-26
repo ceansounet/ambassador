@@ -7,12 +7,12 @@ import { ensurePosterNameColumn } from "@/lib/posters/repository";
 
 const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const CODE_LENGTH = 5;
-const CODE_PATTERN = /^[a-z0-9]{5}$/;
+const CODE_PATTERN = /^a-[a-z0-9]{5}$/;
 const STARDANCE_BASE_URL = "https://stardance.hackclub.com";
 const DEFAULT_STARDANCE_REFERRAL_LABEL = "Default";
 const MAX_STARDANCE_REFERRAL_LABEL_LENGTH = 80;
 
-let ensureLowercaseReferralCodesPromise: Promise<void> | null = null;
+let ensureStardanceReferralCodeFormatPromise: Promise<void> | null = null;
 
 type StardanceUserCodeRow = {
   stardance_referral_code: string | null;
@@ -76,17 +76,17 @@ export class StardanceReferralCodeError extends Error {
 }
 
 export function isStardanceReferralCode(value: unknown): value is string {
-  return normalizeStardanceReferralCode(value) !== null;
+  return parseStoredStardanceReferralCode(value) !== null;
 }
 
-function normalizeStardanceReferralCode(value: unknown) {
+function parseStoredStardanceReferralCode(value: unknown) {
   if (typeof value !== "string") return null;
-  const code = value.trim().toLowerCase();
+  const code = value.trim();
   return CODE_PATTERN.test(code) ? code : null;
 }
 
-async function ensureLowercaseReferralCodes() {
-  ensureLowercaseReferralCodesPromise ??= (async () => {
+async function ensureStardanceReferralCodeFormat() {
+  ensureStardanceReferralCodeFormatPromise ??= (async () => {
     await sql`
       ALTER TABLE users
       DROP CONSTRAINT IF EXISTS users_stardance_referral_code_format
@@ -99,38 +99,56 @@ async function ensureLowercaseReferralCodes() {
 
     await sql`
       UPDATE users
-      SET stardance_referral_code = LOWER(stardance_referral_code)
+      SET stardance_referral_code = CASE
+        WHEN LOWER(stardance_referral_code) ~ '^a-[a-z0-9]{5}$'
+          THEN LOWER(stardance_referral_code)
+        WHEN LOWER(stardance_referral_code) ~ '^[a-z0-9]{5}$'
+          THEN 'a-' || LOWER(stardance_referral_code)
+        ELSE LOWER(stardance_referral_code)
+      END
       WHERE stardance_referral_code IS NOT NULL
     `;
 
     await sql`
       UPDATE stardance_referral_codes
-      SET code = LOWER(code)
+      SET code = CASE
+        WHEN LOWER(code) ~ '^a-[a-z0-9]{5}$'
+          THEN LOWER(code)
+        WHEN LOWER(code) ~ '^[a-z0-9]{5}$'
+          THEN 'a-' || LOWER(code)
+        ELSE LOWER(code)
+      END
     `;
 
     await sql`
       UPDATE posters
-      SET referral_code = LOWER(referral_code)
-      WHERE referral_code ~ '^[A-Z0-9]{5}$'
+      SET referral_code = CASE
+        WHEN LOWER(referral_code) ~ '^a-[a-z0-9]{5}$'
+          THEN LOWER(referral_code)
+        WHEN LOWER(referral_code) ~ '^[a-z0-9]{5}$'
+          THEN 'a-' || LOWER(referral_code)
+        ELSE LOWER(referral_code)
+      END
+      WHERE referral_code IS NOT NULL
     `;
 
     await sql`
       ALTER TABLE users
       ADD CONSTRAINT users_stardance_referral_code_format
-        CHECK (stardance_referral_code IS NULL OR stardance_referral_code ~ '^[a-z0-9]{5}$')
+        CHECK (stardance_referral_code IS NULL OR stardance_referral_code ~ '^a-[a-z0-9]{5}$')
     `;
 
     await sql`
       ALTER TABLE stardance_referral_codes
       ADD CONSTRAINT stardance_referral_codes_code_format
-        CHECK (code ~ '^[a-z0-9]{5}$')
+        CHECK (code ~ '^a-[a-z0-9]{5}$')
     `;
   })().catch((error) => {
-    ensureLowercaseReferralCodesPromise = null;
+    ensureStardanceReferralCodeFormatPromise = null;
     throw error;
   });
 
-  return ensureLowercaseReferralCodesPromise;
+  return ensureStardanceReferralCodeFormatPromise;
 }
 
 export function canAccessStardanceReferrals(input: {
@@ -147,14 +165,14 @@ export function canAccessStardanceReferrals(input: {
 }
 
 export function buildStardanceReferralUrl(code: string) {
-  return `${optionalEnv("STARDANCE_REFERRAL_BASE_URL") ?? STARDANCE_BASE_URL}/a-${code.toLowerCase()}`;
+  return `${optionalEnv("STARDANCE_REFERRAL_BASE_URL") ?? STARDANCE_BASE_URL}/${code}`;
 }
 
 function toStardanceReferralCode(
   row: StardanceReferralCodeRow,
   usesCount = 0,
 ): StardanceReferralCode {
-  const code = row.code.toLowerCase();
+  const code = row.code;
   return {
     id: row.id,
     code,
@@ -179,7 +197,7 @@ function randomCode() {
 
 async function generateUniqueCode() {
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const candidate = randomCode();
+    const candidate = `a-${randomCode()}`;
 
     const existing = (await sql<{ exists: boolean }[]>`
       SELECT EXISTS(
@@ -202,7 +220,7 @@ async function generateUniqueCode() {
 }
 
 async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
-  await ensureLowercaseReferralCodes();
+  await ensureStardanceReferralCodeFormat();
 
   return sql.begin(async (transaction) => {
     const lockedUser = (await transaction<StardanceUserCodeRow[]>`
@@ -226,7 +244,7 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
     `).at(0);
 
     if (existingPrimary !== undefined) {
-      const existingPrimaryCode = existingPrimary.code.toLowerCase();
+      const existingPrimaryCode = existingPrimary.code;
       if (lockedUser.stardance_referral_code !== existingPrimaryCode) {
         await transaction`
           UPDATE users
@@ -238,7 +256,7 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
       return { ...existingPrimary, code: existingPrimaryCode };
     }
 
-    const currentCode = normalizeStardanceReferralCode(lockedUser.stardance_referral_code);
+    const currentCode = parseStoredStardanceReferralCode(lockedUser.stardance_referral_code);
 
     for (let attempt = 0; attempt < 50; attempt += 1) {
       const candidate =
@@ -260,7 +278,7 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
       `;
 
       if (created !== undefined) {
-        const createdCode = created.code.toLowerCase();
+        const createdCode = created.code;
         if (lockedUser.stardance_referral_code !== createdCode) {
           await transaction`
             UPDATE users
@@ -281,7 +299,7 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
       `).at(0);
 
       if (raced !== undefined) {
-        const racedCode = raced.code.toLowerCase();
+        const racedCode = raced.code;
         if (lockedUser.stardance_referral_code !== racedCode) {
           await transaction`
             UPDATE users
@@ -618,6 +636,12 @@ type StardanceRsvpReferralRow = {
   referred_at: string;
 };
 
+type PosterReferralCodeRow = {
+  id: string;
+  user_id: string;
+  referral_code: string;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -654,7 +678,7 @@ async function fetchStardanceRsvpReferralsForCode(
 ) {
   const baseUrl = optionalEnv("STARDANCE_API_BASE_URL") ?? STARDANCE_BASE_URL;
   const url = new URL(
-    `/api/v1/ambassador_referrals/${encodeURIComponent(`a-${code.toLowerCase()}`)}`,
+    `/api/v1/ambassador_referrals/${encodeURIComponent(code)}`,
     baseUrl,
   );
 
@@ -746,16 +770,69 @@ async function upsertStardanceRsvpReferralRows(rows: StardanceRsvpReferralRow[])
   `;
 }
 
+async function ensurePosterReferralCodeRows(userId?: string) {
+  await ensureStardanceReferralCodeFormat();
+  await ensurePosterNameColumn();
+
+  const posters = userId === undefined
+    ? await sql<PosterReferralCodeRow[]>`
+        SELECT p.id, p.user_id, p.referral_code
+        FROM posters p
+        WHERE p.referral_code ~ '^a-[a-z0-9]{5}$'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM stardance_referral_codes c
+            WHERE c.user_id = p.user_id
+              AND c.code = p.referral_code
+          )
+      `
+    : await sql<PosterReferralCodeRow[]>`
+        SELECT p.id, p.user_id, p.referral_code
+        FROM posters p
+        WHERE p.user_id = ${userId}
+          AND p.referral_code ~ '^a-[a-z0-9]{5}$'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM stardance_referral_codes c
+            WHERE c.user_id = p.user_id
+              AND c.code = p.referral_code
+          )
+      `;
+
+  const rows: Array<{
+    id: string;
+    user_id: string;
+    code: string;
+    label: string;
+    kind: StardanceReferralCodeKind;
+  }> = posters.map((poster) => ({
+    id: crypto.randomUUID(),
+    user_id: poster.user_id,
+    code: poster.referral_code,
+    label: `Poster ${poster.id}`,
+    kind: "secondary",
+  }));
+
+  if (rows.length === 0) return;
+
+  await sql`
+    INSERT INTO stardance_referral_codes ${sql(rows)}
+    ON CONFLICT DO NOTHING
+  `;
+}
+
 export async function syncStardanceRsvpReferralsForUser(userId: string) {
   const apiKey = optionalEnv("STARDANCE_API_KEY");
   if (apiKey === null) return;
 
   await getOrCreateDefaultStardanceReferralCodeRow(userId);
+  await ensurePosterReferralCodeRows(userId);
 
   const codes = await sql<StardanceReferralCodeRow[]>`
     SELECT *
     FROM stardance_referral_codes
     WHERE user_id = ${userId}
+      AND code ~ '^a-[a-z0-9]{5}$'
     ORDER BY created_at ASC, id ASC
   `;
 
@@ -767,7 +844,7 @@ export async function syncStardanceRsvpReferralsForUser(userId: string) {
     const referrals = await fetchStardanceRsvpReferralsForCode(code.code, apiKey);
 
     for (const referral of referrals) {
-      if (referral.ref.toLowerCase() !== `a-${code.code.toLowerCase()}`) continue;
+      if (referral.ref !== code.code) continue;
 
       const email = referral.email.trim().toLowerCase();
       if (email === "") continue;
@@ -796,9 +873,12 @@ export async function syncAllStardanceRsvpReferrals() {
     return { processed: 0, insertedOrUpdated: 0 };
   }
 
+  await ensurePosterReferralCodeRows();
+
   const codes = await sql<StardanceReferralCodeRow[]>`
     SELECT *
     FROM stardance_referral_codes
+    WHERE code ~ '^a-[a-z0-9]{5}$'
   `;
 
   if (codes.length === 0) {
@@ -806,13 +886,13 @@ export async function syncAllStardanceRsvpReferrals() {
   }
 
   const codeByRef = new Map<string, StardanceReferralCodeRow>(
-    codes.map((code) => [`a-${code.code.toLowerCase()}`, code]),
+    codes.map((code) => [code.code, code]),
   );
   const referrals = await fetchAllStardanceRsvpReferrals(apiKey);
   const rows: StardanceRsvpReferralRow[] = [];
 
   for (const referral of referrals) {
-    const code = codeByRef.get(referral.ref.toLowerCase());
+    const code = codeByRef.get(referral.ref);
     if (code === undefined) continue;
 
     const email = referral.email.trim().toLowerCase();

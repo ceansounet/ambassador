@@ -65,8 +65,7 @@ function variantLabel(color: ColorMode, regionName: string | null) {
 }
 
 function formatPosterCode(code: string) {
-  const normalized = code.trim().toLowerCase();
-  return /^[a-z0-9]{5}$/.test(normalized) ? `a-${normalized}` : code;
+  return code;
 }
 
 function canDeletePoster(poster: ClientPoster) {
