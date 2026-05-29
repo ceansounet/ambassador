@@ -499,6 +499,8 @@ export default async function AdminDashboard({
           posterStatusTitle: t("admin.overview.charts.poster-status-title"),
           topAmbassadorsTitle: t("admin.overview.charts.top-ambassadors-title"),
           topAmbassadorsEmpty: t("admin.overview.charts.top-ambassadors-empty"),
+          topAmbassadorsAllMetrics: t("admin.overview.charts.top-ambassadors-all-metrics"),
+          topAmbassadorsMetricsNoun: t("admin.overview.charts.top-ambassadors-metrics-noun"),
           stillPending: t("admin.overview.charts.still-pending"),
           visitsSeries: t("admin.overview.charts.series.visits"),
           signupsSeries: t("admin.overview.charts.series.signups"),

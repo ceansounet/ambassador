@@ -591,6 +591,8 @@ admin:
       poster-status-title: Posters
       top-ambassadors-title: Top ambassadors
       top-ambassadors-empty: No ambassadors with posters or referrals yet.
+      top-ambassadors-all-metrics: All metrics
+      top-ambassadors-metrics-noun: metrics
       referrals:
         total: Total referrals
         rsvp: RSVPs

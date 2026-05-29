@@ -1,6 +1,8 @@
 "use client";
 
+import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -80,6 +82,8 @@ type AdminDashboardChartsProps = {
     posterStatusTitle: string;
     topAmbassadorsTitle: string;
     topAmbassadorsEmpty: string;
+    topAmbassadorsAllMetrics: string;
+    topAmbassadorsMetricsNoun: string;
     stillPending: string;
     visitsSeries: string;
     signupsSeries: string;
@@ -89,6 +93,18 @@ type AdminDashboardChartsProps = {
     rsvpsSeries: string;
   };
 };
+
+type TopAmbassadorMetric = "posters" | "referrals" | "rsvps";
+
+const TOP_AMBASSADOR_METRICS: {
+  key: TopAmbassadorMetric;
+  dataKey: keyof DashboardTopAmbassadorPoint;
+  fill: string;
+}[] = [
+  { key: "posters", dataKey: "verifiedPosters", fill: "var(--chart-approved)" },
+  { key: "referrals", dataKey: "verifiedReferrals", fill: "var(--chart-rejected)" },
+  { key: "rsvps", dataKey: "rsvps", fill: "var(--chart-signups)" },
+];
 
 export function AdminDashboardCharts({
   activityData,
@@ -290,65 +306,7 @@ export function AdminDashboardCharts({
         </div>
       </div>
 
-      <div className="p-6">
-        <div className="min-w-0">
-          <h2 className="mb-6 text-2xl text-white">{messages.topAmbassadorsTitle}</h2>
-          {topAmbassadorsData.length === 0 ? (
-            <p className="font-body text-base text-white">{messages.topAmbassadorsEmpty}</p>
-          ) : (
-            <div
-              className="min-w-0"
-              style={{ height: `${Math.max(240, topAmbassadorsData.length * 44)}px` }}
-            >
-              <DashboardResponsiveChart height={Math.max(240, topAmbassadorsData.length * 44)}>
-                <BarChart
-                  data={topAmbassadorsData}
-                  layout="vertical"
-                  margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
-                >
-                  <XAxis
-                    type="number"
-                    tick={{ fill: "var(--foreground)", fontSize: 12 }}
-                    axisLine={false}
-                    tickLine={false}
-                    allowDecimals={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fill: "var(--foreground)", fontSize: 13 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={160}
-                  />
-                  <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
-                  <Bar
-                    dataKey="verifiedPosters"
-                    name={messages.postersSeries}
-                    stackId="a"
-                    fill="var(--chart-approved)"
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="verifiedReferrals"
-                    name={messages.referralsSeries}
-                    stackId="a"
-                    fill="var(--chart-rejected)"
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="rsvps"
-                    name={messages.rsvpsSeries}
-                    stackId="a"
-                    fill="var(--chart-signups)"
-                    radius={[0, 10, 10, 0]}
-                  />
-                </BarChart>
-              </DashboardResponsiveChart>
-            </div>
-          )}
-        </div>
-      </div>
+      <TopAmbassadorsChart data={topAmbassadorsData} locale={locale} messages={messages} />
 
       <div className="grid xl:grid-cols-2">
         <div className="p-6">
@@ -427,6 +385,222 @@ export function AdminDashboardCharts({
       </div>
 
     </section>
+  );
+}
+
+function TopAmbassadorsChart({
+  data,
+  locale,
+  messages,
+}: {
+  data: DashboardTopAmbassadorPoint[];
+  locale: string;
+  messages: AdminDashboardChartsProps["messages"];
+}) {
+  const metricLabels: Record<TopAmbassadorMetric, string> = {
+    posters: messages.postersSeries,
+    referrals: messages.referralsSeries,
+    rsvps: messages.rsvpsSeries,
+  };
+  const [selected, setSelected] = useState<Set<TopAmbassadorMetric>>(
+    () => new Set(TOP_AMBASSADOR_METRICS.map((metric) => metric.key)),
+  );
+  const activeMetrics = TOP_AMBASSADOR_METRICS.filter((metric) => selected.has(metric.key));
+
+  const sortedData = useMemo(() => {
+    return [...data]
+      .map((entry) => ({
+        ...entry,
+        total: activeMetrics.reduce(
+          (sum, metric) => sum + Number(entry[metric.dataKey] ?? 0),
+          0,
+        ),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [data, activeMetrics]);
+
+  const chartHeight = Math.max(240, sortedData.length * 44);
+
+  return (
+    <div className="p-6">
+      <div className="min-w-0">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-2xl text-white">{messages.topAmbassadorsTitle}</h2>
+          <MetricMultiSelect
+            metrics={TOP_AMBASSADOR_METRICS.map((metric) => metric.key)}
+            labels={metricLabels}
+            selected={selected}
+            onChange={setSelected}
+            allLabel={messages.topAmbassadorsAllMetrics}
+            selectionNoun={messages.topAmbassadorsMetricsNoun}
+          />
+        </div>
+        {data.length === 0 ? (
+          <p className="font-body text-base text-white">{messages.topAmbassadorsEmpty}</p>
+        ) : (
+          <div className="min-w-0" style={{ height: `${chartHeight}px` }}>
+            <DashboardResponsiveChart height={chartHeight}>
+              <BarChart
+                data={sortedData}
+                layout="vertical"
+                margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
+              >
+                <XAxis
+                  type="number"
+                  tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={<AmbassadorTick data={sortedData} />}
+                  axisLine={false}
+                  tickLine={false}
+                  width={160}
+                />
+                <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
+                {activeMetrics.map((metric, index) => (
+                  <Bar
+                    key={metric.key}
+                    dataKey={metric.dataKey}
+                    name={metricLabels[metric.key]}
+                    stackId="a"
+                    fill={metric.fill}
+                    radius={index === activeMetrics.length - 1 ? [0, 10, 10, 0] : [0, 0, 0, 0]}
+                  />
+                ))}
+              </BarChart>
+            </DashboardResponsiveChart>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AmbassadorTick(props: {
+  x?: number;
+  y?: number;
+  payload?: { index?: number; value?: string };
+  data?: DashboardTopAmbassadorPoint[];
+}) {
+  const { x = 0, y = 0, payload, data } = props;
+  const index = payload?.index ?? 0;
+  const entry = data?.[index];
+  const name = payload?.value ?? entry?.name ?? "";
+
+  if (!entry) {
+    return (
+      <text x={x} y={y} dy={4} textAnchor="end" fill="var(--foreground)" fontSize={13}>
+        {name}
+      </text>
+    );
+  }
+
+  return (
+    <a href={`/admin/users/${entry.userId}`} className="ui-hover-underline">
+      <text
+        x={x}
+        y={y}
+        dy={4}
+        textAnchor="end"
+        fill="var(--foreground)"
+        fontSize={13}
+        style={{ cursor: "pointer" }}
+      >
+        {name}
+      </text>
+    </a>
+  );
+}
+
+function MetricMultiSelect({
+  metrics,
+  labels,
+  selected,
+  onChange,
+  allLabel,
+  selectionNoun,
+}: {
+  metrics: TopAmbassadorMetric[];
+  labels: Record<TopAmbassadorMetric, string>;
+  selected: Set<TopAmbassadorMetric>;
+  onChange: (next: Set<TopAmbassadorMetric>) => void;
+  allLabel: string;
+  selectionNoun: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  function toggle(metric: TopAmbassadorMetric) {
+    const next = new Set(selected);
+    if (next.has(metric)) {
+      next.delete(metric);
+    } else {
+      next.add(metric);
+    }
+    onChange(next);
+  }
+
+  const allSelected = selected.size === metrics.length;
+  const label = allSelected
+    ? allLabel
+    : selected.size === 1
+      ? labels[Array.from(selected)[0]]
+      : `${selected.size} ${selectionNoun}`;
+
+  return (
+    <div ref={ref} className="relative w-full sm:w-56">
+      <button
+        type="button"
+        data-slot="multiselect-trigger"
+        onClick={() => setOpen(!open)}
+        className="ui-input-surface !bg-muted inline-flex h-8 w-full !rounded-none [border-radius:0!important] items-center justify-between gap-1.5 border-0 px-3 font-body text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15"
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
+      </button>
+      {open && (
+        <div
+          data-slot="multiselect-content"
+          className="absolute right-0 z-50 mt-1 w-full overflow-hidden bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/5"
+        >
+          {metrics.map((metric) => {
+            const checked = selected.has(metric);
+            return (
+              <button
+                key={metric}
+                type="button"
+                data-slot="multiselect-item"
+                onClick={() => toggle(metric)}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground"
+              >
+                {checked ? (
+                  <CheckIcon className="size-4 shrink-0 text-[var(--acceptance)]" aria-hidden="true" />
+                ) : (
+                  <span className="size-4 shrink-0" aria-hidden="true" />
+                )}
+                <span className="truncate">{labels[metric]}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
