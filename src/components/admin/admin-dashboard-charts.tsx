@@ -20,6 +20,8 @@ export type DashboardActivityPoint = {
   visits: number;
   signups: number;
   applications: number;
+  posters: number;
+  referrals: number;
 };
 
 export type DashboardBreakdownPoint = {
@@ -32,6 +34,16 @@ export type DashboardFunnelPoint = {
   name: string;
   value: number;
   fill: string;
+};
+
+export type DashboardTopAmbassadorPoint = {
+  userId: string;
+  name: string;
+  posters: number;
+  verifiedPosters: number;
+  referrals: number;
+  verifiedReferrals: number;
+  rsvps: number;
 };
 
 type DashboardFlowMetric = {
@@ -51,6 +63,8 @@ type AdminDashboardChartsProps = {
   decisionData: DashboardBreakdownPoint[];
   funnelData: DashboardFunnelPoint[];
   referralDropOffData: DashboardBreakdownPoint[];
+  posterStatusData: DashboardBreakdownPoint[];
+  topAmbassadorsData: DashboardTopAmbassadorPoint[];
   pendingCount: number;
   locale: string;
   activeRange: string;
@@ -63,10 +77,16 @@ type AdminDashboardChartsProps = {
     applicationFlowEyebrow: string;
     applicationFlowTitle: string;
     referralDropOffTitle: string;
+    posterStatusTitle: string;
+    topAmbassadorsTitle: string;
+    topAmbassadorsEmpty: string;
     stillPending: string;
     visitsSeries: string;
     signupsSeries: string;
     applicationsSeries: string;
+    postersSeries: string;
+    referralsSeries: string;
+    rsvpsSeries: string;
   };
 };
 
@@ -75,6 +95,8 @@ export function AdminDashboardCharts({
   decisionData,
   funnelData,
   referralDropOffData,
+  posterStatusData,
+  topAmbassadorsData,
   pendingCount,
   locale,
   activeRange,
@@ -170,6 +192,24 @@ export function AdminDashboardCharts({
                   dot={false}
                   activeDot={{ r: 4, fill: "var(--chart-applications)" }}
                 />
+                <Line
+                  type="monotone"
+                  dataKey="posters"
+                  name={messages.postersSeries}
+                  stroke="var(--chart-approved)"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--chart-approved)" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="referrals"
+                  name={messages.referralsSeries}
+                  stroke="var(--chart-rejected)"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--chart-rejected)" }}
+                />
               </ComposedChart>
             </DashboardResponsiveChart>
           </div>
@@ -252,40 +292,140 @@ export function AdminDashboardCharts({
 
       <div className="p-6">
         <div className="min-w-0">
-          <h2 className="mb-6 text-2xl text-white">{messages.referralDropOffTitle}</h2>
-          <div className="h-[20rem] min-w-0">
-            <DashboardResponsiveChart height={320}>
-              <BarChart
-                data={referralDropOffData}
-                layout="vertical"
-                margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
-              >
-                <XAxis
-                  type="number"
-                  tick={{ fill: "var(--foreground)", fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                  domain={[0, getBarChartAxisMax(referralDropOffData)]}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="label"
-                  tick={{ fill: "var(--foreground)", fontSize: 13 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={120}
-                />
-                <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
-                <Bar dataKey="value" radius={[0, 10, 10, 0]}>
-                  {referralDropOffData.map((entry) => (
-                    <Cell key={entry.label} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </DashboardResponsiveChart>
+          <h2 className="mb-6 text-2xl text-white">{messages.topAmbassadorsTitle}</h2>
+          {topAmbassadorsData.length === 0 ? (
+            <p className="font-body text-base text-white">{messages.topAmbassadorsEmpty}</p>
+          ) : (
+            <div
+              className="min-w-0"
+              style={{ height: `${Math.max(240, topAmbassadorsData.length * 44)}px` }}
+            >
+              <DashboardResponsiveChart height={Math.max(240, topAmbassadorsData.length * 44)}>
+                <BarChart
+                  data={topAmbassadorsData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
+                >
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fill: "var(--foreground)", fontSize: 13 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={160}
+                  />
+                  <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
+                  <Bar
+                    dataKey="posters"
+                    name={messages.postersSeries}
+                    stackId="a"
+                    fill="var(--chart-approved)"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="referrals"
+                    name={messages.referralsSeries}
+                    stackId="a"
+                    fill="var(--chart-rejected)"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="rsvps"
+                    name={messages.rsvpsSeries}
+                    stackId="a"
+                    fill="var(--chart-signups)"
+                    radius={[0, 10, 10, 0]}
+                  />
+                </BarChart>
+              </DashboardResponsiveChart>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid xl:grid-cols-2">
+        <div className="p-6">
+          <div className="min-w-0">
+            <h2 className="mb-6 text-2xl text-white">{messages.referralDropOffTitle}</h2>
+            <div className="h-[20rem] min-w-0">
+              <DashboardResponsiveChart height={320}>
+                <BarChart
+                  data={referralDropOffData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
+                >
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, getBarChartAxisMax(referralDropOffData)]}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    tick={{ fill: "var(--foreground)", fontSize: 13 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={120}
+                  />
+                  <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
+                  <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                    {referralDropOffData.map((entry) => (
+                      <Cell key={entry.label} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </DashboardResponsiveChart>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="min-w-0">
+            <h2 className="mb-6 text-2xl text-white">{messages.posterStatusTitle}</h2>
+            <div className="h-[20rem] min-w-0">
+              <DashboardResponsiveChart height={320}>
+                <BarChart
+                  data={posterStatusData}
+                  layout="vertical"
+                  margin={{ top: 8, right: 16, left: 12, bottom: 8 }}
+                >
+                  <XAxis
+                    type="number"
+                    tick={{ fill: "var(--foreground)", fontSize: 12 }}
+                    axisLine={false}
+                    tickLine={false}
+                    domain={[0, getBarChartAxisMax(posterStatusData)]}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="label"
+                    tick={{ fill: "var(--foreground)", fontSize: 13 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={120}
+                  />
+                  <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
+                  <Bar dataKey="value" radius={[0, 10, 10, 0]}>
+                    {posterStatusData.map((entry) => (
+                      <Cell key={entry.label} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </DashboardResponsiveChart>
+            </div>
           </div>
         </div>
       </div>
+
     </section>
   );
 }

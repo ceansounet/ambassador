@@ -588,12 +588,21 @@ admin:
       no-flow-data: No flow data yet.
       still-pending: Still pending
       referral-drop-off-title: Referrals
+      poster-status-title: Posters
+      top-ambassadors-title: Top ambassadors
+      top-ambassadors-empty: No ambassadors with posters or referrals yet.
       referrals:
         total: Total referrals
         unverified: Unverified
         pending: Pending
         verified: Verified
         rejected: Rejected
+      posters:
+        pending: Pending
+        in-review: In review
+        success: Verified
+        rejected: Rejected
+        digital: Digital
       ranges:
         seven-days: 7 days
         fourteen-days: 14 days
@@ -603,6 +612,9 @@ admin:
         visits: Visits
         signups: Signups
         applications: Applications
+        posters: Posters
+        referrals: Referrals
+        rsvps: RSVPs
         pending: Pending
         approved: Approved
         rejected: Rejected
@@ -917,6 +929,12 @@ admin:
       orders:
         title: Orders
         description: Recent order records tied to this account.
+      posters:
+        title: Posters
+        description: Poster submissions by this ambassador.
+      referrals:
+        title: Referrals
+        description: Stardance referrals attributed to this ambassador.
     actions:
       current-review-target: Current review target
       impersonate: Impersonate user
@@ -1011,6 +1029,37 @@ admin:
       empty: No visits recorded yet.
     orders:
       empty: No orders on file.
+    posters:
+      empty: No posters on file.
+      total: "{count} total"
+      breakdown: "{pending} pending • {inReview} in review • {success} verified • {rejected} rejected • {digital} digital"
+      columns:
+        created: Created
+        proof: Proof
+        name: Name
+        code: Code
+        type: Type
+        status: Status
+        actions: Actions
+      reject: Reject
+      reject-confirmation: Are you sure you want to mark this poster as rejected?
+      no-name: Unnamed
+      no-proof: No proof
+    referrals:
+      empty: No referrals on file.
+      total: "{count} total"
+      breakdown: "{unverified} unverified • {pending} pending • {verified} verified • {rejected} rejected"
+      columns:
+        referred: Referred
+        name: Name
+        email: Email
+        hours: Hours
+        status: Status
+        actions: Actions
+      verify: Verify
+      reject: Reject
+      verify-confirmation: Are you sure you want to mark this referral as verified?
+      reject-confirmation: Are you sure you want to mark this referral as rejected?
 
 landing:
   metadata:

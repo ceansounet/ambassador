@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { ApproveWithGrantForm } from "@/components/admin/approve-with-grant-form";
 import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
 import { DetailFieldRow, DetailPager, DetailRow, DetailSection } from "@/components/admin/detail";
+import { ExpandableImage } from "@/components/admin/expandable-image";
 import { HackatimeTrustStatus } from "@/components/admin/hackatime-trust-status";
 import { SlackAvatar, SlackProfile } from "@/components/admin/slack-profile";
 import { StatusBadge } from "@/components/admin/status-badge";
@@ -95,6 +96,41 @@ type ApplicationListRow = {
 
 type CountRow = { count: number };
 type LatestNoteEventRow = { note: string | null };
+type PosterListRow = {
+  id: string;
+  name: string | null;
+  referral_code: string;
+  poster_type: string;
+  verification_status: string;
+  rejection_reason: string | null;
+  proof_path: string | null;
+  proof_content_type: string | null;
+  created_at: string;
+};
+type PosterCountsRow = {
+  total_count: number;
+  pending_count: number;
+  in_review_count: number;
+  success_count: number;
+  rejected_count: number;
+  digital_count: number;
+};
+type ReferralListRow = {
+  id: string;
+  name: string;
+  email: string;
+  hours_logged: string | number;
+  hours_approved: string | number;
+  verification_status: string;
+  referred_at: string;
+};
+type ReferralCountsRow = {
+  total_count: number;
+  unverified_count: number;
+  pending_count: number;
+  verified_count: number;
+  rejected_count: number;
+};
 type VisitRow = {
   id: string;
   ip: string;
@@ -133,6 +169,8 @@ export default async function AdminUserDetailPage({
   searchParams: Promise<{
     visitsPage?: string;
     notesPage?: string;
+    postersPage?: string;
+    referralsPage?: string;
     hcbGrant?: string;
     superuser?: string;
   }>;
@@ -152,6 +190,16 @@ export default async function AdminUserDetailPage({
   const notesPage = Number.isFinite(requestedNotesPage) && requestedNotesPage > 0
     ? Math.floor(requestedNotesPage)
     : 1;
+  const requestedPostersPage = Number(query.postersPage ?? "1");
+  const postersPage = Number.isFinite(requestedPostersPage) && requestedPostersPage > 0
+    ? Math.floor(requestedPostersPage)
+    : 1;
+  const requestedReferralsPage = Number(query.referralsPage ?? "1");
+  const referralsPage = Number.isFinite(requestedReferralsPage) && requestedReferralsPage > 0
+    ? Math.floor(requestedReferralsPage)
+    : 1;
+  const POSTERS_PER_PAGE = 10;
+  const REFERRALS_PER_PAGE = 10;
 
   await ensureSchema();
   await ensureUserAddressSchema();
@@ -202,6 +250,10 @@ export default async function AdminUserDetailPage({
     latestNoteEvent,
     noteCountResult,
     noteHistory,
+    posterCounts,
+    posterList,
+    referralCounts,
+    referralList,
   ] = await Promise.all([
     sql<ApplicationListRow[]>`
       SELECT id, status, name, date_of_birth, decision_note, created_at, updated_at
@@ -258,6 +310,57 @@ export default async function AdminUserDetailPage({
       LIMIT 3
       OFFSET ${(notesPage - 1) * 3}
     `,
+    sql<PosterCountsRow[]>`
+      SELECT
+        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE verification_status = 'pending')::int AS pending_count,
+        COUNT(*) FILTER (WHERE verification_status = 'in_review')::int AS in_review_count,
+        COUNT(*) FILTER (WHERE verification_status = 'success')::int AS success_count,
+        COUNT(*) FILTER (WHERE verification_status = 'rejected')::int AS rejected_count,
+        COUNT(*) FILTER (WHERE verification_status = 'digital')::int AS digital_count
+      FROM posters
+      WHERE user_id = ${user.id}
+    `.then((rows) => rows.at(0) ?? {
+      total_count: 0,
+      pending_count: 0,
+      in_review_count: 0,
+      success_count: 0,
+      rejected_count: 0,
+      digital_count: 0,
+    }),
+    sql<PosterListRow[]>`
+      SELECT id, name, referral_code, poster_type, verification_status, rejection_reason,
+             proof_path, proof_content_type, created_at
+      FROM posters
+      WHERE user_id = ${user.id}
+      ORDER BY created_at DESC, id DESC
+      LIMIT ${POSTERS_PER_PAGE}
+      OFFSET ${(postersPage - 1) * POSTERS_PER_PAGE}
+    `,
+    sql<ReferralCountsRow[]>`
+      SELECT
+        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE verification_status = 'unverified')::int AS unverified_count,
+        COUNT(*) FILTER (WHERE verification_status = 'pending')::int AS pending_count,
+        COUNT(*) FILTER (WHERE verification_status = 'verified')::int AS verified_count,
+        COUNT(*) FILTER (WHERE verification_status = 'rejected')::int AS rejected_count
+      FROM stardance_referrals
+      WHERE user_id = ${user.id}
+    `.then((rows) => rows.at(0) ?? {
+      total_count: 0,
+      unverified_count: 0,
+      pending_count: 0,
+      verified_count: 0,
+      rejected_count: 0,
+    }),
+    sql<ReferralListRow[]>`
+      SELECT id, name, email, hours_logged, hours_approved, verification_status, referred_at
+      FROM stardance_referrals
+      WHERE user_id = ${user.id}
+      ORDER BY referred_at DESC, id DESC
+      LIMIT ${REFERRALS_PER_PAGE}
+      OFFSET ${(referralsPage - 1) * REFERRALS_PER_PAGE}
+    `,
   ]);
   const currentUserNote =
     typeof latestNoteEvent?.note === "string" && latestNoteEvent.note.trim().length > 0
@@ -298,6 +401,14 @@ export default async function AdminUserDetailPage({
   const currentVisitPage = Math.min(visitsPage, totalVisitPages);
   const totalNotePages = Math.max(1, Math.ceil(noteCountResult / 3));
   const currentNotePage = Math.min(notesPage, totalNotePages);
+  const totalPosterPages = Math.max(1, Math.ceil(posterCounts.total_count / POSTERS_PER_PAGE));
+  const currentPosterPage = Math.min(postersPage, totalPosterPages);
+  const totalReferralPages = Math.max(1, Math.ceil(referralCounts.total_count / REFERRALS_PER_PAGE));
+  const currentReferralPage = Math.min(referralsPage, totalReferralPages);
+  const numberFormatter = new Intl.NumberFormat(locale);
+  const hoursFormatter = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 2,
+  });
   const shouldShowPermanentRejectionLabel =
     Boolean(user.permanently_rejected_at) &&
     !isRejectedPermanentlyApplicationStatus(latestApplication?.status);
@@ -1018,6 +1129,327 @@ export default async function AdminUserDetailPage({
           )}
         </div>
       </DetailSection>
+
+      <div id="posters">
+        <DetailSection
+          title={t("admin.user-detail.sections.posters.title")}
+          description={t("admin.user-detail.sections.posters.description")}
+        >
+          <div className="space-y-1">
+            <p className="font-body text-base text-white">
+              {t("admin.user-detail.posters.total", {
+                count: numberFormatter.format(posterCounts.total_count),
+              })}
+            </p>
+            <p className="font-body text-sm text-secondary">
+              {t("admin.user-detail.posters.breakdown", {
+                pending: numberFormatter.format(posterCounts.pending_count),
+                inReview: numberFormatter.format(posterCounts.in_review_count),
+                success: numberFormatter.format(posterCounts.success_count),
+                rejected: numberFormatter.format(posterCounts.rejected_count),
+                digital: numberFormatter.format(posterCounts.digital_count),
+              })}
+            </p>
+          </div>
+
+          {posterList.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white">
+                    <th className="px-0 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.created")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.proof")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.name")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.code")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.type")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.status")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.posters.columns.actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {posterList.map((poster) => {
+                    const canReject =
+                      poster.verification_status !== "rejected" &&
+                      poster.verification_status !== "success";
+                    const hasImageProof =
+                      poster.proof_path !== null &&
+                      poster.proof_path !== "" &&
+                      (poster.proof_content_type === null ||
+                        poster.proof_content_type.startsWith("image/"));
+                    return (
+                      <tr key={poster.id} className="border-b border-white last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm text-white">
+                          {formatDateTime(poster.created_at, locale)}
+                        </td>
+                        <td className="px-4 py-4">
+                          {hasImageProof ? (
+                            <ExpandableImage
+                              src={`/api/admin/users/${user.id}/posters/${poster.id}/proof`}
+                              alt={poster.name ?? poster.referral_code}
+                            />
+                          ) : (
+                            <span className="font-body text-sm text-secondary">
+                              {t("admin.user-detail.posters.no-proof")}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white">
+                          {poster.name && poster.name.trim() !== ""
+                            ? poster.name
+                            : t("admin.user-detail.posters.no-name")}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white">
+                          {poster.referral_code}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white">
+                          {poster.poster_type}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={pillVariants({
+                              tone:
+                                poster.verification_status === "success"
+                                  ? "green"
+                                  : poster.verification_status === "rejected"
+                                    ? "red"
+                                    : "black",
+                            })}
+                          >
+                            {poster.verification_status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          {canReject ? (
+                            <ConfirmSubmitForm
+                              action={`/api/admin/users/${user.id}/posters/${poster.id}/reject`}
+                              method="POST"
+                              confirmationMessage={t(
+                                "admin.user-detail.posters.reject-confirmation",
+                              )}
+                            >
+                              <input
+                                type="hidden"
+                                name="redirectTo"
+                                value={`/admin/users/${user.id}#posters`}
+                              />
+                              <button className={buttonVariants({ size: "app-sm" })}>
+                                {t("admin.user-detail.posters.reject")}
+                              </button>
+                            </ConfirmSubmitForm>
+                          ) : (
+                            <span className="font-body text-sm text-secondary">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="font-body text-base text-white">
+              {t("admin.user-detail.posters.empty")}
+            </p>
+          )}
+
+          <DetailPager
+            label={t("common.page-fraction", {
+              page: currentPosterPage,
+              totalPages: totalPosterPages,
+            })}
+            page={currentPosterPage}
+            totalPages={totalPosterPages}
+            href={(page) => {
+              const search = new URLSearchParams();
+              if (currentVisitPage > 1) search.set("visitsPage", String(currentVisitPage));
+              if (currentNotePage > 1) search.set("notesPage", String(currentNotePage));
+              if (currentReferralPage > 1) search.set("referralsPage", String(currentReferralPage));
+              if (page > 1) search.set("postersPage", String(page));
+              const queryString = search.toString();
+              return `${queryString ? `?${queryString}` : ""}#posters`;
+            }}
+          />
+        </DetailSection>
+      </div>
+
+      <div id="referrals">
+        <DetailSection
+          title={t("admin.user-detail.sections.referrals.title")}
+          description={t("admin.user-detail.sections.referrals.description")}
+        >
+          <div className="space-y-1">
+            <p className="font-body text-base text-white">
+              {t("admin.user-detail.referrals.total", {
+                count: numberFormatter.format(referralCounts.total_count),
+              })}
+            </p>
+            <p className="font-body text-sm text-secondary">
+              {t("admin.user-detail.referrals.breakdown", {
+                unverified: numberFormatter.format(referralCounts.unverified_count),
+                pending: numberFormatter.format(referralCounts.pending_count),
+                verified: numberFormatter.format(referralCounts.verified_count),
+                rejected: numberFormatter.format(referralCounts.rejected_count),
+              })}
+            </p>
+          </div>
+
+          {referralList.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white">
+                    <th className="px-0 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.referred")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.name")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.email")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.hours")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.status")}
+                    </th>
+                    <th className="px-4 py-3 font-body text-base text-secondary">
+                      {t("admin.user-detail.referrals.columns.actions")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referralList.map((referral) => {
+                    const hoursLogged = Number(referral.hours_logged);
+                    const hoursApproved = Number(referral.hours_approved);
+                    const isRsvp = referral.id.startsWith("rsvp:");
+                    const canVerify =
+                      !isRsvp && referral.verification_status !== "verified";
+                    const canReject =
+                      !isRsvp && referral.verification_status !== "rejected";
+                    return (
+                      <tr key={referral.id} className="border-b border-white last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm text-white">
+                          {formatDateTime(referral.referred_at, locale)}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white">
+                          {referral.name}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white break-words [overflow-wrap:anywhere]">
+                          {referral.email}
+                        </td>
+                        <td className="px-4 py-4 font-body text-sm text-white">
+                          {hoursFormatter.format(Number.isFinite(hoursApproved) ? hoursApproved : 0)}
+                          {" / "}
+                          {hoursFormatter.format(Number.isFinite(hoursLogged) ? hoursLogged : 0)}
+                        </td>
+                        <td className="px-4 py-4">
+                          <span
+                            className={pillVariants({
+                              tone:
+                                referral.verification_status === "verified"
+                                  ? "green"
+                                  : referral.verification_status === "rejected"
+                                    ? "red"
+                                    : "black",
+                            })}
+                          >
+                            {referral.verification_status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4">
+                          {isRsvp ? (
+                            <span className="font-body text-sm text-secondary">-</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {canVerify ? (
+                                <ConfirmSubmitForm
+                                  action={`/api/admin/users/${user.id}/referrals/${referral.id}/status`}
+                                  method="POST"
+                                  confirmationMessage={t(
+                                    "admin.user-detail.referrals.verify-confirmation",
+                                  )}
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="redirectTo"
+                                    value={`/admin/users/${user.id}#referrals`}
+                                  />
+                                  <input type="hidden" name="status" value="verified" />
+                                  <button
+                                    className={buttonVariants({ size: "app-sm", variant: "success" })}
+                                  >
+                                    {t("admin.user-detail.referrals.verify")}
+                                  </button>
+                                </ConfirmSubmitForm>
+                              ) : null}
+                              {canReject ? (
+                                <ConfirmSubmitForm
+                                  action={`/api/admin/users/${user.id}/referrals/${referral.id}/status`}
+                                  method="POST"
+                                  confirmationMessage={t(
+                                    "admin.user-detail.referrals.reject-confirmation",
+                                  )}
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="redirectTo"
+                                    value={`/admin/users/${user.id}#referrals`}
+                                  />
+                                  <input type="hidden" name="status" value="rejected" />
+                                  <button className={buttonVariants({ size: "app-sm" })}>
+                                    {t("admin.user-detail.referrals.reject")}
+                                  </button>
+                                </ConfirmSubmitForm>
+                              ) : null}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="font-body text-base text-white">
+              {t("admin.user-detail.referrals.empty")}
+            </p>
+          )}
+
+          <DetailPager
+            label={t("common.page-fraction", {
+              page: currentReferralPage,
+              totalPages: totalReferralPages,
+            })}
+            page={currentReferralPage}
+            totalPages={totalReferralPages}
+            href={(page) => {
+              const search = new URLSearchParams();
+              if (currentVisitPage > 1) search.set("visitsPage", String(currentVisitPage));
+              if (currentNotePage > 1) search.set("notesPage", String(currentNotePage));
+              if (currentPosterPage > 1) search.set("postersPage", String(currentPosterPage));
+              if (page > 1) search.set("referralsPage", String(page));
+              const queryString = search.toString();
+              return `${queryString ? `?${queryString}` : ""}#referrals`;
+            }}
+          />
+        </DetailSection>
+      </div>
     </div>
   );
 }
