@@ -416,7 +416,11 @@ function TopAmbassadorsChart({
           0,
         ),
       }))
-      .sort((a, b) => b.total - a.total);
+      // Stable, deterministic tie-break by name so equal totals don't reshuffle.
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+      // The server sends the union of each metric's top-10 candidates; once the
+      // active filter is applied we only ever show the top 10 of that view.
+      .slice(0, 10);
   }, [data, activeMetrics]);
 
   const chartHeight = Math.max(240, sortedData.length * 44);

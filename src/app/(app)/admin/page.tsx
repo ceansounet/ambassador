@@ -257,27 +257,46 @@ export default async function AdminDashboard({
         SELECT user_id FROM poster_counts
         UNION
         SELECT user_id FROM referral_counts
+      ),
+      metrics AS (
+        SELECT
+          u.id AS user_id,
+          u.display_name,
+          COALESCE(pc.poster_count, 0)::int AS poster_count,
+          COALESCE(pc.verified_poster_count, 0)::int AS verified_poster_count,
+          COALESCE(rc.referral_count, 0)::int AS referral_count,
+          COALESCE(rc.verified_referral_count, 0)::int AS verified_referral_count,
+          COALESCE(rc.rsvp_count, 0)::int AS rsvp_count
+        FROM combined c
+        JOIN users u ON u.id = c.user_id
+        LEFT JOIN poster_counts pc ON pc.user_id = c.user_id
+        LEFT JOIN referral_counts rc ON rc.user_id = c.user_id
+      ),
+      ranked AS (
+        SELECT
+          metrics.*,
+          ROW_NUMBER() OVER (
+            ORDER BY (verified_poster_count + verified_referral_count + rsvp_count) DESC, user_id
+          ) AS rank_total,
+          ROW_NUMBER() OVER (ORDER BY verified_poster_count DESC, user_id) AS rank_posters,
+          ROW_NUMBER() OVER (ORDER BY verified_referral_count DESC, user_id) AS rank_referrals,
+          ROW_NUMBER() OVER (ORDER BY rsvp_count DESC, user_id) AS rank_rsvps
+        FROM metrics
       )
       SELECT
-        u.id AS user_id,
-        u.display_name,
-        COALESCE(pc.poster_count, 0)::int AS poster_count,
-        COALESCE(pc.verified_poster_count, 0)::int AS verified_poster_count,
-        COALESCE(rc.referral_count, 0)::int AS referral_count,
-        COALESCE(rc.verified_referral_count, 0)::int AS verified_referral_count,
-        COALESCE(rc.rsvp_count, 0)::int AS rsvp_count
-      FROM combined c
-      JOIN users u ON u.id = c.user_id
-      LEFT JOIN poster_counts pc ON pc.user_id = c.user_id
-      LEFT JOIN referral_counts rc ON rc.user_id = c.user_id
-      ORDER BY (
-                 COALESCE(pc.verified_poster_count, 0)
-                 + COALESCE(rc.verified_referral_count, 0)
-                 + COALESCE(rc.rsvp_count, 0)
-               ) DESC,
-               COALESCE(pc.verified_poster_count, 0) DESC,
-               COALESCE(rc.verified_referral_count, 0) DESC
-      LIMIT 10
+        user_id,
+        display_name,
+        poster_count,
+        verified_poster_count,
+        referral_count,
+        verified_referral_count,
+        rsvp_count
+      FROM ranked
+      WHERE rank_total <= 10
+         OR rank_posters <= 10
+         OR rank_referrals <= 10
+         OR rank_rsvps <= 10
+      ORDER BY (verified_poster_count + verified_referral_count + rsvp_count) DESC, user_id
     `,
   ]);
 
