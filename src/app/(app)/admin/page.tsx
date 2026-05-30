@@ -3,6 +3,7 @@ import {
   type DashboardActivityPoint,
   type DashboardBreakdownPoint,
   type DashboardFunnelPoint,
+  type DashboardTopAmbassadorPoint,
 } from "@/components/admin/admin-dashboard-charts";
 import Icon from "@hackclub/icons";
 import type { Metadata } from "next";
@@ -31,6 +32,8 @@ type ActivityRow = {
   visits: number;
   signups: number;
   applications: number;
+  posters: number;
+  referrals: number;
 };
 
 type OutcomeSummaryRow = {
@@ -42,10 +45,30 @@ type OutcomeSummaryRow = {
 
 type ReferralDropOffRow = {
   total_count: number;
+  rsvp_count: number;
   unverified_count: number;
   pending_count: number;
   verified_count: number;
   rejected_count: number;
+};
+
+type PosterStatusRow = {
+  total_count: number;
+  pending_count: number;
+  in_review_count: number;
+  success_count: number;
+  rejected_count: number;
+  digital_count: number;
+};
+
+type TopAmbassadorRow = {
+  user_id: string;
+  display_name: string | null;
+  poster_count: number;
+  verified_poster_count: number;
+  referral_count: number;
+  verified_referral_count: number;
+  rsvp_count: number;
 };
 
 const activityRangeDays = {
@@ -82,7 +105,14 @@ export default async function AdminDashboard({
     day: "numeric",
   });
 
-  const [summaryRows, activityRows, outcomeRows, referralDropOffRows] = await Promise.all([
+  const [
+    summaryRows,
+    activityRows,
+    outcomeRows,
+    referralDropOffRows,
+    posterStatusRows,
+    topAmbassadorRows,
+  ] = await Promise.all([
     sql<SummaryRow[]>`
       SELECT
         (
@@ -135,16 +165,32 @@ export default async function AdminDashboard({
         FROM applications
         WHERE created_at >= CURRENT_DATE - ${rangeDays - 1} * INTERVAL '1 day'
         GROUP BY 1
+      ),
+      poster_totals AS (
+        SELECT DATE(created_at) AS day, COUNT(*)::int AS posters
+        FROM posters
+        WHERE created_at >= CURRENT_DATE - ${rangeDays - 1} * INTERVAL '1 day'
+        GROUP BY 1
+      ),
+      referral_totals AS (
+        SELECT DATE(referred_at) AS day, COUNT(*)::int AS referrals
+        FROM stardance_referrals
+        WHERE referred_at >= CURRENT_DATE - ${rangeDays - 1} * INTERVAL '1 day'
+        GROUP BY 1
       )
       SELECT
         days.day,
         COALESCE(visit_totals.visits, 0)::int AS visits,
         COALESCE(signup_totals.signups, 0)::int AS signups,
-        COALESCE(application_totals.applications, 0)::int AS applications
+        COALESCE(application_totals.applications, 0)::int AS applications,
+        COALESCE(poster_totals.posters, 0)::int AS posters,
+        COALESCE(referral_totals.referrals, 0)::int AS referrals
       FROM days
       LEFT JOIN visit_totals ON visit_totals.day = days.day
       LEFT JOIN signup_totals ON signup_totals.day = days.day
       LEFT JOIN application_totals ON application_totals.day = days.day
+      LEFT JOIN poster_totals ON poster_totals.day = days.day
+      LEFT JOIN referral_totals ON referral_totals.day = days.day
       ORDER BY days.day ASC
     `,
     sql<OutcomeSummaryRow[]>`
@@ -172,11 +218,85 @@ export default async function AdminDashboard({
     sql<ReferralDropOffRow[]>`
       SELECT
         COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE verification_status = 'rsvp')::int AS rsvp_count,
         COUNT(*) FILTER (WHERE verification_status = 'unverified')::int AS unverified_count,
         COUNT(*) FILTER (WHERE verification_status = 'pending')::int AS pending_count,
         COUNT(*) FILTER (WHERE verification_status = 'verified')::int AS verified_count,
         COUNT(*) FILTER (WHERE verification_status = 'rejected')::int AS rejected_count
       FROM stardance_referrals
+    `,
+    sql<PosterStatusRow[]>`
+      SELECT
+        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE verification_status = 'pending')::int AS pending_count,
+        COUNT(*) FILTER (WHERE verification_status = 'in_review')::int AS in_review_count,
+        COUNT(*) FILTER (WHERE verification_status = 'success')::int AS success_count,
+        COUNT(*) FILTER (WHERE verification_status = 'rejected')::int AS rejected_count,
+        COUNT(*) FILTER (WHERE verification_status = 'digital')::int AS digital_count
+      FROM posters
+    `,
+    sql<TopAmbassadorRow[]>`
+      WITH poster_counts AS (
+        SELECT
+          user_id,
+          COUNT(*)::int AS poster_count,
+          COUNT(*) FILTER (WHERE verification_status = 'success')::int AS verified_poster_count
+        FROM posters
+        GROUP BY user_id
+      ),
+      referral_counts AS (
+        SELECT
+          user_id,
+          COUNT(*)::int AS referral_count,
+          COUNT(*) FILTER (WHERE verification_status = 'verified')::int AS verified_referral_count,
+          COUNT(*) FILTER (WHERE verification_status = 'rsvp')::int AS rsvp_count
+        FROM stardance_referrals
+        GROUP BY user_id
+      ),
+      combined AS (
+        SELECT user_id FROM poster_counts
+        UNION
+        SELECT user_id FROM referral_counts
+      ),
+      metrics AS (
+        SELECT
+          u.id AS user_id,
+          u.display_name,
+          COALESCE(pc.poster_count, 0)::int AS poster_count,
+          COALESCE(pc.verified_poster_count, 0)::int AS verified_poster_count,
+          COALESCE(rc.referral_count, 0)::int AS referral_count,
+          COALESCE(rc.verified_referral_count, 0)::int AS verified_referral_count,
+          COALESCE(rc.rsvp_count, 0)::int AS rsvp_count
+        FROM combined c
+        JOIN users u ON u.id = c.user_id
+        LEFT JOIN poster_counts pc ON pc.user_id = c.user_id
+        LEFT JOIN referral_counts rc ON rc.user_id = c.user_id
+      ),
+      ranked AS (
+        SELECT
+          metrics.*,
+          ROW_NUMBER() OVER (
+            ORDER BY (verified_poster_count + verified_referral_count + rsvp_count) DESC, user_id
+          ) AS rank_total,
+          ROW_NUMBER() OVER (ORDER BY verified_poster_count DESC, user_id) AS rank_posters,
+          ROW_NUMBER() OVER (ORDER BY verified_referral_count DESC, user_id) AS rank_referrals,
+          ROW_NUMBER() OVER (ORDER BY rsvp_count DESC, user_id) AS rank_rsvps
+        FROM metrics
+      )
+      SELECT
+        user_id,
+        display_name,
+        poster_count,
+        verified_poster_count,
+        referral_count,
+        verified_referral_count,
+        rsvp_count
+      FROM ranked
+      WHERE rank_total <= 10
+         OR rank_posters <= 10
+         OR rank_referrals <= 10
+         OR rank_rsvps <= 10
+      ORDER BY (verified_poster_count + verified_referral_count + rsvp_count) DESC, user_id
     `,
   ]);
 
@@ -184,10 +304,19 @@ export default async function AdminDashboard({
   const outcomeSummary = outcomeRows[0];
   const referralDropOff = referralDropOffRows[0] ?? {
     total_count: 0,
+    rsvp_count: 0,
     unverified_count: 0,
     pending_count: 0,
     verified_count: 0,
     rejected_count: 0,
+  };
+  const posterStatus = posterStatusRows[0] ?? {
+    total_count: 0,
+    pending_count: 0,
+    in_review_count: 0,
+    success_count: 0,
+    rejected_count: 0,
+    digital_count: 0,
   };
 
   const activityData: DashboardActivityPoint[] = activityRows.map((row) => ({
@@ -195,6 +324,8 @@ export default async function AdminDashboard({
     visits: row.visits,
     signups: row.signups,
     applications: row.applications,
+    posters: row.posters,
+    referrals: row.referrals,
   }));
 
   const decisionData: DashboardBreakdownPoint[] = [
@@ -220,11 +351,54 @@ export default async function AdminDashboard({
     },
   ];
 
+  const posterStatusData: DashboardBreakdownPoint[] = [
+    {
+      label: t("admin.overview.charts.posters.pending"),
+      value: posterStatus.pending_count,
+      fill: "var(--chart-pending)",
+    },
+    {
+      label: t("admin.overview.charts.posters.in-review"),
+      value: posterStatus.in_review_count,
+      fill: "var(--chart-applications)",
+    },
+    {
+      label: t("admin.overview.charts.posters.success"),
+      value: posterStatus.success_count,
+      fill: "var(--chart-approved)",
+    },
+    {
+      label: t("admin.overview.charts.posters.rejected"),
+      value: posterStatus.rejected_count,
+      fill: "var(--chart-rejected)",
+    },
+    {
+      label: t("admin.overview.charts.posters.digital"),
+      value: posterStatus.digital_count,
+      fill: "var(--chart-signups)",
+    },
+  ];
+
+  const topAmbassadorsData: DashboardTopAmbassadorPoint[] = topAmbassadorRows.map((row) => ({
+    userId: row.user_id,
+    name: row.display_name ?? row.user_id,
+    posters: row.poster_count,
+    verifiedPosters: row.verified_poster_count,
+    referrals: row.referral_count,
+    verifiedReferrals: row.verified_referral_count,
+    rsvps: row.rsvp_count,
+  }));
+
   const referralDropOffData: DashboardBreakdownPoint[] = [
     {
       label: t("admin.overview.charts.referrals.total"),
       value: referralDropOff.total_count,
       fill: "var(--chart-visits)",
+    },
+    {
+      label: t("admin.overview.charts.referrals.rsvp"),
+      value: referralDropOff.rsvp_count,
+      fill: "var(--chart-signups)",
     },
     {
       label: t("admin.overview.charts.referrals.unverified"),
@@ -322,6 +496,8 @@ export default async function AdminDashboard({
         decisionData={decisionData}
         funnelData={funnelData}
         referralDropOffData={referralDropOffData}
+        posterStatusData={posterStatusData}
+        topAmbassadorsData={topAmbassadorsData}
         pendingCount={outcomeSummary.pending_count}
         locale={locale}
         activeRange={activeRange}
@@ -339,10 +515,18 @@ export default async function AdminDashboard({
           applicationFlowEyebrow: t("admin.overview.charts.application-flow-eyebrow"),
           applicationFlowTitle: t("admin.overview.charts.application-flow-title"),
           referralDropOffTitle: t("admin.overview.charts.referral-drop-off-title"),
+          posterStatusTitle: t("admin.overview.charts.poster-status-title"),
+          topAmbassadorsTitle: t("admin.overview.charts.top-ambassadors-title"),
+          topAmbassadorsEmpty: t("admin.overview.charts.top-ambassadors-empty"),
+          topAmbassadorsAllMetrics: t("admin.overview.charts.top-ambassadors-all-metrics"),
+          topAmbassadorsMetricsNoun: t("admin.overview.charts.top-ambassadors-metrics-noun"),
           stillPending: t("admin.overview.charts.still-pending"),
           visitsSeries: t("admin.overview.charts.series.visits"),
           signupsSeries: t("admin.overview.charts.series.signups"),
           applicationsSeries: t("admin.overview.charts.series.applications"),
+          postersSeries: t("admin.overview.charts.series.posters"),
+          referralsSeries: t("admin.overview.charts.series.referrals"),
+          rsvpsSeries: t("admin.overview.charts.series.rsvps"),
         }}
       />
     </div>

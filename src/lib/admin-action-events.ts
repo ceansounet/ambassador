@@ -10,6 +10,8 @@ export type AdminActionEvent =
   | "application_tshirt_sent_updated"
   | "poster_deleted"
   | "poster_group_deleted"
+  | "poster_rejected_by_admin"
+  | "referral_status_updated_by_admin"
   | "user_admin_password_rejected"
   | "user_demoted_from_admin"
   | "user_impersonation_started"

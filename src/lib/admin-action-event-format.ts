@@ -18,6 +18,8 @@ const EVENT_LABELS: Record<AdminActionEvent, string> = {
   hcb_credentials_reauthorized: "HCB credentials reauthorized",
   poster_deleted: "Poster deleted",
   poster_group_deleted: "Poster group deleted",
+  poster_rejected_by_admin: "Poster manually rejected",
+  referral_status_updated_by_admin: "Referral status updated",
   user_admin_password_rejected: "Superuser password rejected",
   user_demoted_from_admin: "User removed as admin",
   user_hcb_grant_linked: "HCB grant linked",
@@ -125,6 +127,13 @@ export function formatAuditEventSummary(event: AuditEventLike): string {
         `Deleted poster group ${formatMetadataValue(metadata.posterGroupName ?? metadata.posterGroupId)}.`,
         `It contained ${formatMetadataValue(metadata.posterCount)} poster${metadata.posterCount === 1 ? "" : "s"}.`,
       );
+    case "poster_rejected_by_admin":
+      return joinSentenceParts(
+        `Manually rejected poster ${formatMetadataValue(metadata.referralCode ?? metadata.posterId)}.`,
+        metadata.reason ? `Reason: ${formatMetadataValue(metadata.reason)}.` : null,
+      );
+    case "referral_status_updated_by_admin":
+      return `Set referral ${formatMetadataValue(metadata.referralId)} status to ${formatMetadataValue(metadata.nextStatus)}.`;
     case "user_admin_password_rejected":
       return `Rejected a superuser password attempt for ${formatAction(metadata.attemptedAction)}.`;
     case "user_demoted_from_admin":
