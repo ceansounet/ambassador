@@ -65,7 +65,7 @@ export default function ShirtOrderSection(props: ShirtOrderSectionProps) {
   const retryableWarningParts = retryableWarning?.split(/(rejected)/i) ?? [];
   return (
     <section>
-      <h2 className="font-sub text-2xl text-white md:text-3xl">{t("heading")}</h2>
+      <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("heading")}</h2>
       {retryableWarning !== null ? (
         <p className="mt-2 text-base text-black">
           {retryableWarningParts.map((part, index) =>
@@ -111,7 +111,7 @@ function NoAddressMessage({
 
   return (
     <div className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
-      <p className="font-body text-sm leading-relaxed text-white">
+      <p className="font-body text-sm leading-relaxed text-foreground">
         <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>
             {beforeLink}
@@ -215,15 +215,15 @@ function ShirtOrderBody({
   };
 
   const surfaceClass = cn(
-    "ui-input-surface h-14 w-full !rounded-none [border-radius:0!important] border-0 px-4 text-base focus-visible:ring-1 focus-visible:ring-white/15",
-    "disabled:cursor-not-allowed disabled:text-white/50",
+    "ui-input-surface h-14 w-full !rounded-none border-0 px-4 text-base focus-visible:ring-1 focus-visible:ring-foreground/15",
+    "disabled:cursor-not-allowed disabled:text-foreground/50",
   );
   const readOnlySurfaceClass = cn(
     surfaceClass,
     "text-foreground disabled:opacity-100 disabled:text-foreground disabled:[-webkit-text-fill-color:var(--foreground)]",
   );
   const selectContentClass =
-    "!rounded-none [border-radius:0!important] border-white/10 bg-black text-white !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
+    "!rounded-none border-foreground/10 bg-background text-foreground !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -278,7 +278,7 @@ function ShirtOrderBody({
 
   if (requiresOnboarding) {
     return (
-      <p className="mt-2 font-body text-base text-white">
+      <p className="mt-2 font-body text-base text-foreground">
         {t.rich("onboarding.body", {
           link: (chunks) => (
             <a
@@ -298,7 +298,7 @@ function ShirtOrderBody({
   if (needsAddressRefresh && !order) {
     return (
       <div className="mt-5 space-y-3">
-        <p className="font-body text-base text-white">{t("refresh-addresses.body")}</p>
+        <p className="font-body text-base text-foreground">{t("refresh-addresses.body")}</p>
         <a href={refreshAddressesHref} className={buttonVariants({ size: "app" })}>
           {t("refresh-addresses.cta")}
         </a>
@@ -322,7 +322,7 @@ function ShirtOrderBody({
       {addresses.length === 0 ? (
         needsAddressRefresh ? (
           <div className="space-y-4">
-            <p className="font-body text-base text-white">{t("refresh-addresses.body")}</p>
+            <p className="font-body text-base text-foreground">{t("refresh-addresses.body")}</p>
             <a href={refreshAddressesHref} className={buttonVariants({ size: "app" })}>
               {t("refresh-addresses.cta")}
             </a>
@@ -338,7 +338,7 @@ function ShirtOrderBody({
       ) : (
         <>
           <div>
-            <label className="mb-2 block font-body text-base tracking-wide text-white">
+            <label className="mb-2 block font-body text-base tracking-wide text-foreground">
               {t("labels.size")}
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -356,7 +356,7 @@ function ShirtOrderBody({
                     size="app"
                     selected={active}
                     className={cn(
-                      "h-14 w-full !rounded-none [border-radius:0!important] font-body text-base tracking-wide shadow-none",
+                      "h-14 w-full !rounded-none font-body text-base tracking-wide shadow-none",
                       "flex-col gap-0.5 leading-tight disabled:opacity-50",
                       !active && "bg-primary !text-white hover:opacity-100",
                     )}
@@ -378,7 +378,7 @@ function ShirtOrderBody({
 
           <div>
             <div className="mb-2 flex items-center gap-2">
-              <label className="block font-body text-base tracking-wide text-white">
+              <label className="block font-body text-base tracking-wide text-foreground">
                 {t("labels.shipping-address")}
               </label>
               <RefreshAddressButton
@@ -417,7 +417,7 @@ function ShirtOrderBody({
                     <SelectItem
                       key={index}
                       value={String(index)}
-                      className="focus:bg-card focus:text-white"
+                      className="focus:bg-card focus:text-foreground"
                     >
                       {formatHackClubAddress(address)}
                     </SelectItem>
@@ -605,7 +605,7 @@ function LatestOrderCard({ order }: { order: ShirtOrderState }) {
 
   return (
     <div>
-      <h3 className="font-sub text-2xl text-white">{title}</h3>
+      <h3 className="font-sub text-2xl text-foreground">{title}</h3>
       <p className="mt-2 font-body text-base text-muted-foreground">{body}</p>
 
       {(order.status === ORDER_STATUS_REJECTED ||
@@ -681,7 +681,7 @@ function PendingOrderCard({
           </button>
         </div>
       ) : (
-        <p className="font-body text-base leading-relaxed text-white md:text-lg">
+        <p className="font-body text-base leading-relaxed text-foreground md:text-lg">
           {t("order.pending-dispatching")}
         </p>
       )}

@@ -121,50 +121,49 @@ export async function geocodeIp(
     visitType !== undefined &&
     visitType !== ""
   ) {
-    const visit = (await sql<VisitIdRow[]>`
-      SELECT id FROM ip_visits
-      WHERE user_id = ${userId} AND visit_type = ${visitType}
-      ORDER BY created_at DESC LIMIT 1
-    `).at(0) ?? null;
-    if (visit !== null) {
-      await sql`
-        UPDATE ip_visits SET
-          latitude = ${geo.latitude},
-          longitude = ${geo.longitude},
-          city = ${geo.city},
-          region = ${geo.region},
-          country_code = ${geo.country_code},
-          country_name = ${geo.country_name},
-          postal_code = ${geo.postal_code ?? null},
-          timezone = ${geo.timezone ?? null},
-          org = ${geo.org ?? null},
-          geocoded_at = NOW()
-        WHERE id = ${visit.id}
-      `;
-    }
+    await sql`
+      UPDATE ip_visits SET
+        latitude = ${geo.latitude},
+        longitude = ${geo.longitude},
+        city = ${geo.city},
+        region = ${geo.region},
+        country_code = ${geo.country_code},
+        country_name = ${geo.country_name},
+        postal_code = ${geo.postal_code ?? null},
+        timezone = ${geo.timezone ?? null},
+        org = ${geo.org ?? null},
+        geocoded_at = NOW()
+      WHERE id = (
+        SELECT id
+        FROM ip_visits
+        WHERE user_id = ${userId} AND visit_type = ${visitType}
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+    `;
   }
 }
 
 export async function trackAnonymousVisit(ip: string) {
   if (isPrivateIp(ip)) return;
 
-  const recent = (await sql<VisitIdRow[]>`
-    SELECT id FROM ip_visits
-    WHERE ip = ${ip} AND visit_type = 'anonymous'
-    AND created_at > NOW() - INTERVAL '1 minute'
-    ORDER BY created_at DESC LIMIT 1
+  const visit = (await sql<VisitIdRow[]>`
+    INSERT INTO ip_visits (id, ip, visit_type)
+    SELECT ${crypto.randomUUID()}, ${ip}, 'anonymous'
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ip_visits
+      WHERE ip = ${ip}
+        AND visit_type = 'anonymous'
+        AND created_at > NOW() - INTERVAL '1 minute'
+    )
+    RETURNING id
   `).at(0) ?? null;
 
-  if (recent !== null) return;
+  if (visit === null) return;
 
-  const visitId = crypto.randomUUID();
-  await sql`
-    INSERT INTO ip_visits (id, ip, visit_type)
-    VALUES (${visitId}, ${ip}, 'anonymous')
-  `;
-
-  void geocodeVisit(ip, visitId).catch((error) => {
-    console.error("Failed to geocode anonymous visit", { visitId, error });
+  void geocodeVisit(ip, visit.id).catch((error) => {
+    console.error("Failed to geocode anonymous visit", { visitId: visit.id, error });
   });
 }
 
@@ -191,23 +190,23 @@ async function geocodeVisit(ip: string, visitId: string) {
 export async function trackAuthenticatedVisit(ip: string, userId: string) {
   if (isPrivateIp(ip)) return;
 
-  const recent = (await sql<VisitIdRow[]>`
-    SELECT id FROM ip_visits
-    WHERE user_id = ${userId} AND visit_type = 'revisit'
-    AND created_at > NOW() - INTERVAL '10 minutes'
-    ORDER BY created_at DESC LIMIT 1
+  const visit = (await sql<VisitIdRow[]>`
+    INSERT INTO ip_visits (id, ip, user_id, visit_type)
+    SELECT ${crypto.randomUUID()}, ${ip}, ${userId}, 'revisit'
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ip_visits
+      WHERE user_id = ${userId}
+        AND visit_type = 'revisit'
+        AND created_at > NOW() - INTERVAL '10 minutes'
+    )
+    RETURNING id
   `).at(0) ?? null;
 
-  if (recent !== null) return;
+  if (visit === null) return;
 
-  const visitId = crypto.randomUUID();
-  await sql`
-    INSERT INTO ip_visits (id, ip, user_id, visit_type)
-    VALUES (${visitId}, ${ip}, ${userId}, 'revisit')
-  `;
-
-  void geocodeVisit(ip, visitId).catch((error) => {
-    console.error("Failed to geocode authenticated visit", { visitId, error });
+  void geocodeVisit(ip, visit.id).catch((error) => {
+    console.error("Failed to geocode authenticated visit", { visitId: visit.id, error });
   });
 }
 

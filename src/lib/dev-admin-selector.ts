@@ -13,7 +13,7 @@ export type DevState =
   | "banned";
 export type ErrorCode = "401" | "403" | "404" | "500";
 
-export const isDevelopmentEnvironment = process.env.NODE_ENV === "development";
+const isDevelopmentEnvironment = process.env.NODE_ENV === "development";
 
 export function canShowDevAdminSelector(isAdmin: boolean) {
   return isDevelopmentEnvironment || isAdmin;

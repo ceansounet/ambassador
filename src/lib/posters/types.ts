@@ -1,22 +1,17 @@
 export const POSTER_STYLES = ["color", "bw", "printer_efficient", "a4", "a4_bw"] as const;
-export const POSTER_REGION_CODE_PATTERN = /^[a-z]{2,8}$/;
-export const POSTER_VERIFICATION_STATUSES = [
-  "pending",
-  "in_review",
-  "success",
-  "rejected",
-  "digital",
-] as const;
-export const POSTER_GROUP_CHARSETS = ["alphanumeric", "numeric", "alpha"] as const;
-
-export const MAX_POSTERS_PER_GROUP = 20;
-export const MAX_POSTERS_PER_USER = 5000;
-export const REFERRAL_CODE_LENGTH = 5;
+const POSTER_REGION_CODE_PATTERN = /^[a-z]{2,8}$/;
+export const MAX_POSTERS_PER_GROUP = 50;
+export const MAX_POSTERS_PER_USER = 6250;
 
 export type PosterStyleBase = (typeof POSTER_STYLES)[number];
 export type PosterStyle = PosterStyleBase | `${PosterStyleBase}:${string}`;
-export type PosterVerificationStatus = (typeof POSTER_VERIFICATION_STATUSES)[number];
-export type PosterGroupCharset = (typeof POSTER_GROUP_CHARSETS)[number];
+export type PosterVerificationStatus =
+  | "pending"
+  | "in_review"
+  | "success"
+  | "rejected"
+  | "digital";
+export type PosterGroupCharset = "alphanumeric" | "numeric" | "alpha";
 
 export function isPosterStyleBase(value: unknown): value is PosterStyleBase {
   return typeof value === "string" && (POSTER_STYLES as readonly string[]).includes(value);
@@ -85,16 +80,6 @@ export type PosterRow = {
   updated_at: Date;
 };
 
-export type PosterScanRow = {
-  id: string;
-  poster_id: string;
-  ip_address: string | null;
-  user_agent: string | null;
-  referrer: string | null;
-  metadata: PosterMetadata;
-  created_at: Date;
-};
-
 export type PosterTemplateCoordinates = {
   x: number;
   y: number;
@@ -106,11 +91,6 @@ export type PosterTemplateTextCoordinates = {
   y: number;
   size: number;
   color: string;
-};
-
-export type PosterCampaignDefinition = {
-  slug: string;
-  redirectBaseUrl: string;
 };
 
 export type CreatePosterInput = {
@@ -151,7 +131,7 @@ export type VerifiedPosterDisplay = {
 /**
  * The client only needs the outcome, detected codes, a message, and (on
  * success) the verified poster's display fields. Everything else on a
- * `PosterRow` — proof paths, QR tokens, coordinates, metadata — stays server
+ * `PosterRow` (proof paths, QR tokens, coordinates, metadata) stays server
  * side and is never sent back to the uploader.
  */
 export type PublicScanResult = {

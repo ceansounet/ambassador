@@ -2,6 +2,8 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import type postgres from "postgres";
+
 import { APPLICATION_STATUS_ACCEPTED } from "@/lib/applications/status";
 import { getAmbassadorOnboardingGrantContact } from "@/lib/ambassadors/airtable";
 import { logAdminActionEvent } from "@/lib/admin-action-events";
@@ -14,6 +16,8 @@ import {
   listHcbOrganizationCardGrants,
   type HcbCardGrant,
 } from "@/lib/hcb/service";
+
+type GrantQueryClient = postgres.Sql | postgres.TransactionSql;
 
 type UserGrantRow = {
   id: string;
@@ -253,8 +257,12 @@ async function queuePendingGrant(input: {
   `;
 }
 
-async function setPendingGrantError(grantRowId: string, message: string) {
-  await sql`
+async function setPendingGrantError(
+  grantRowId: string,
+  message: string,
+  db: GrantQueryClient = sql,
+) {
+  await db`
     UPDATE user_hcb_grants
     SET last_error = ${message},
         last_attempted_at = NOW(),
@@ -264,14 +272,17 @@ async function setPendingGrantError(grantRowId: string, message: string) {
   `;
 }
 
-async function linkGrantRecord(input: {
-  rowId: string;
-  userId: string;
-  grant: HcbCardGrant;
-  source: "automatic" | "manual";
-  actorUserId: string | null;
-}) {
-  await sql`
+async function linkGrantRecord(
+  input: {
+    rowId: string;
+    userId: string;
+    grant: HcbCardGrant;
+    source: "automatic" | "manual";
+    actorUserId: string | null;
+  },
+  db: GrantQueryClient = sql,
+) {
+  await db`
     UPDATE user_hcb_grants
     SET grant_id = ${input.grant.id},
         organization_id = ${input.grant.organizationId ?? "org_lbu4gX"},
@@ -395,60 +406,76 @@ async function processPendingGrantRow(
   },
 ) {
   try {
-    const provisioningTarget = await getOfficeGrantProvisioningTarget(row.user_id);
+    return await sql.begin(async (tx) => {
+      await tx`SELECT pg_advisory_xact_lock(hashtext(${`hcb-grant:${row.user_id}`})::bigint)`;
 
-    if (!provisioningTarget.hasCompletedOnboarding) {
-      await setPendingGrantError(row.id, "User is not yet onboarded for office grant provisioning");
-      return false;
-    }
+      const current = (await tx<{ provisioning_state: string }[]>`
+        SELECT provisioning_state
+        FROM user_hcb_grants
+        WHERE id = ${row.id}
+        LIMIT 1
+      `).at(0) ?? null;
 
-    const email = provisioningTarget.email?.trim() ?? "";
-    if (email === "") {
-      await setPendingGrantError(row.id, "Completed onboarding record is missing hcb_email for grant provisioning");
-      return false;
-    }
+      if (current === null || current.provisioning_state !== "pending") {
+        return current?.provisioning_state === "linked";
+      }
 
-    const matchedGrant = await findMatchingExistingGrant({
-      grants: input.existingGrants,
-      email,
+      const provisioningTarget = await getOfficeGrantProvisioningTarget(row.user_id);
+
+      if (!provisioningTarget.hasCompletedOnboarding) {
+        await setPendingGrantError(row.id, "User is not yet onboarded for office grant provisioning", tx);
+        return false;
+      }
+
+      const email = provisioningTarget.email?.trim() ?? "";
+      if (email === "") {
+        await setPendingGrantError(row.id, "Completed onboarding record is missing hcb_email for grant provisioning", tx);
+        return false;
+      }
+
+      const matchedGrant = await findMatchingExistingGrant({
+        grants: input.existingGrants,
+        email,
+      });
+
+      const grant = matchedGrant ?? await createHcbOrganizationCardGrant({
+        organizationId: "org_lbu4gX",
+        email,
+        amountCents: 2_000,
+        purpose: "Office grant!",
+        instructions: "Please ask if you are unsure about your purchase counting as an office expense, you may face consequences if it does not.",
+        idempotencyKey: `office-grant:${row.user_id}`,
+      });
+
+      assertValidOfficeGrant(grant, { email });
+
+      if (matchedGrant === null) {
+        input.existingGrants.push(grant);
+      }
+
+      const resolvedGrant = grant.balanceCents === null
+        ? await fetchHcbCardGrant(grant.id).catch(() => grant)
+        : grant;
+
+      assertValidOfficeGrant(resolvedGrant, { email });
+
+      await linkGrantRecord({
+        rowId: row.id,
+        userId: row.user_id,
+        grant: resolvedGrant,
+        source: row.provisioning_source === "manual" ? "manual" : "automatic",
+        actorUserId: input.actorUserId,
+      }, tx);
+
+      return true;
     });
-
-    const grant = matchedGrant ?? await createHcbOrganizationCardGrant({
-      organizationId: "org_lbu4gX",
-      email,
-      amountCents: 2_000,
-      purpose: "Office grant!",
-      instructions: "Please ask if you are unsure about your purchase counting as an office expense, you may face consequences if it does not.",
-    });
-
-    assertValidOfficeGrant(grant, { email });
-
-    if (matchedGrant === null) {
-      input.existingGrants.push(grant);
-    }
-
-    const resolvedGrant = grant.balanceCents === null
-      ? await fetchHcbCardGrant(grant.id).catch(() => grant)
-      : grant;
-
-    assertValidOfficeGrant(resolvedGrant, { email });
-
-    await linkGrantRecord({
-      rowId: row.id,
-      userId: row.user_id,
-      grant: resolvedGrant,
-      source: row.provisioning_source === "manual" ? "manual" : "automatic",
-      actorUserId: input.actorUserId,
-    });
-
-    return true;
   } catch (error) {
     await setPendingGrantError(row.id, normalizeHcbError(error));
     return false;
   }
 }
 
-export async function getOfficeGrantRecordForUser(userId: string) {
+async function getOfficeGrantRecordForUser(userId: string) {
   const row = (await sql<UserGrantRow[]>`
     SELECT id, user_id, grant_id, organization_id, provisioning_state, provisioning_source,
            purpose, amount_cents, balance_cents, balance_synced_at, linked_at, linked_by_user_id,
@@ -609,7 +636,7 @@ export async function processPendingOfficeGrants() {
   };
 }
 
-export async function validateManualGrantLink(input: {
+async function validateManualGrantLink(input: {
   grantId: string;
   email: string | null;
 }) {

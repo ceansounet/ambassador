@@ -7,8 +7,6 @@ import {
   isEncryptedToken as isEncryptedStoredToken,
 } from "@/lib/token-encryption";
 
-const LEGACY_HCB_TOKEN_ENCRYPTION_CONTEXT = "ambassador:hcb-oauth-token";
-
 export function encryptHcbOauthToken(token: string) {
   try {
     return encryptToken(token, AUTH_TOKEN_ENCRYPTION_CONTEXT);
@@ -31,7 +29,7 @@ export function readHcbOauthToken(value: string | null | undefined) {
 
   const plaintext = decryptToken(token, [
     AUTH_TOKEN_ENCRYPTION_CONTEXT,
-    LEGACY_HCB_TOKEN_ENCRYPTION_CONTEXT,
+    "ambassador:hcb-oauth-token",
   ]);
 
   if (plaintext === null) {

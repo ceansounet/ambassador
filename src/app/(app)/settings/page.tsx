@@ -78,8 +78,8 @@ export default async function SettingsPage() {
         showReferralsLink={showReferralsLink}
       />
       <div className="mx-auto max-w-2xl px-6 py-12">
-        <h1 className="text-4xl text-white">{t("settings.heading")}</h1>
-        <hr className="mt-6 border-white/10" />
+        <h1 className="text-4xl text-foreground">{t("settings.heading")}</h1>
+        <hr className="mt-6 border-foreground/10" />
 
         <SettingsClient
           displayName={settingsUser.display_name}

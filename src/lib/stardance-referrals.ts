@@ -9,7 +9,6 @@ const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 const CODE_LENGTH = 5;
 const CODE_PATTERN = /^a-[a-z0-9]{5}$/;
 const STARDANCE_BASE_URL = "https://stardance.hackclub.com";
-const DEFAULT_STARDANCE_REFERRAL_LABEL = "Default";
 const MAX_STARDANCE_REFERRAL_LABEL_LENGTH = 80;
 
 let ensureStardanceReferralCodeFormatPromise: Promise<void> | null = null;
@@ -25,7 +24,7 @@ export type StardanceReferralVerificationStatus =
   | "verified"
   | "rejected";
 
-export type StardanceReferralCodeKind = "primary" | "secondary";
+type StardanceReferralCodeKind = "primary" | "secondary";
 
 export type StardanceReferralCodeRow = {
   id: string;
@@ -36,6 +35,10 @@ export type StardanceReferralCodeRow = {
   archived_at: Date | null;
   created_at: Date;
   updated_at: Date;
+};
+
+type StardanceReferralCodeRowWithUses = StardanceReferralCodeRow & {
+  uses_count: string;
 };
 
 export type StardanceReferralCode = {
@@ -73,10 +76,6 @@ export class StardanceReferralCodeError extends Error {
     super(message);
     this.name = "StardanceReferralCodeError";
   }
-}
-
-export function isStardanceReferralCode(value: unknown): value is string {
-  return parseStoredStardanceReferralCode(value) !== null;
 }
 
 function parseStoredStardanceReferralCode(value: unknown) {
@@ -164,7 +163,7 @@ export function canAccessStardanceReferrals(input: {
   return hasApprovedAmbassadorStatus(input) && input?.isOnboardingComplete === true;
 }
 
-export function buildStardanceReferralUrl(code: string) {
+function buildStardanceReferralUrl(code: string) {
   return `${optionalEnv("STARDANCE_REFERRAL_BASE_URL") ?? STARDANCE_BASE_URL}/${code}`;
 }
 
@@ -270,7 +269,7 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
           ${crypto.randomUUID()},
           ${userId},
           ${candidate},
-          ${DEFAULT_STARDANCE_REFERRAL_LABEL},
+          ${"Default"},
           'primary'
         )
         ON CONFLICT DO NOTHING
@@ -316,93 +315,75 @@ async function getOrCreateDefaultStardanceReferralCodeRow(userId: string) {
   });
 }
 
-export async function getOrCreateStardanceReferralCode(userId: string) {
-  const defaultCode = await getOrCreateDefaultStardanceReferralCodeRow(userId);
-  return defaultCode.code;
-}
-
-async function countUsesByCodeId(userId: string) {
-  const rows = await sql<{ referral_code_id: string; count: string }[]>`
-    SELECT referral_code_id, COUNT(*)::text AS count
-    FROM stardance_referrals
-    WHERE user_id = ${userId}
-    GROUP BY referral_code_id
-  `;
-
-  const map = new Map<string, number>();
-  for (const row of rows) {
-    map.set(row.referral_code_id, Number.parseInt(row.count, 10));
-  }
-  return map;
-}
-
 export async function listStardanceReferralCodesForUser(userId: string) {
   await getOrCreateDefaultStardanceReferralCodeRow(userId);
 
-  const rows = await sql<StardanceReferralCodeRow[]>`
-    SELECT *
-    FROM stardance_referral_codes
-    WHERE user_id = ${userId}
-      AND archived_at IS NULL
+  const rows = await sql<StardanceReferralCodeRowWithUses[]>`
+    SELECT c.*, COUNT(r.id)::text AS uses_count
+    FROM stardance_referral_codes c
+    LEFT JOIN stardance_referrals r ON r.referral_code_id = c.id
+    WHERE c.user_id = ${userId}
+      AND c.archived_at IS NULL
       AND NOT EXISTS (
         SELECT 1
         FROM posters
-        WHERE posters.user_id = stardance_referral_codes.user_id
+        WHERE posters.user_id = c.user_id
           AND (
-            LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            LOWER(posters.referral_code) = LOWER(c.code)
             OR (
               posters.referral_code ~ '^a-[a-z0-9]{5}$'
-              AND stardance_referral_codes.code ~ '^[a-z0-9]{5}$'
-              AND LOWER(posters.referral_code) = 'a-' || LOWER(stardance_referral_codes.code)
+              AND c.code ~ '^[a-z0-9]{5}$'
+              AND LOWER(posters.referral_code) = 'a-' || LOWER(c.code)
             )
             OR (
               posters.referral_code ~ '^[a-z0-9]{5}$'
-              AND stardance_referral_codes.code ~ '^a-[a-z0-9]{5}$'
-              AND 'a-' || LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+              AND c.code ~ '^a-[a-z0-9]{5}$'
+              AND 'a-' || LOWER(posters.referral_code) = LOWER(c.code)
             )
           )
       )
-      AND stardance_referral_codes.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      AND c.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    GROUP BY c.id
     ORDER BY
-      CASE WHEN kind = 'primary' THEN 0 ELSE 1 END,
-      created_at ASC,
-      id ASC
+      CASE WHEN c.kind = 'primary' THEN 0 ELSE 1 END,
+      c.created_at ASC,
+      c.id ASC
   `;
 
-  const uses = await countUsesByCodeId(userId);
-  return rows.map((row) => toStardanceReferralCode(row, uses.get(row.id) ?? 0));
+  return rows.map((row) => toStardanceReferralCode(row, Number.parseInt(row.uses_count, 10)));
 }
 
 export async function listArchivedStardanceReferralCodesForUser(userId: string) {
-  const rows = await sql<StardanceReferralCodeRow[]>`
-    SELECT *
-    FROM stardance_referral_codes
-    WHERE user_id = ${userId}
-      AND archived_at IS NOT NULL
+  const rows = await sql<StardanceReferralCodeRowWithUses[]>`
+    SELECT c.*, COUNT(r.id)::text AS uses_count
+    FROM stardance_referral_codes c
+    LEFT JOIN stardance_referrals r ON r.referral_code_id = c.id
+    WHERE c.user_id = ${userId}
+      AND c.archived_at IS NOT NULL
       AND NOT EXISTS (
         SELECT 1
         FROM posters
-        WHERE posters.user_id = stardance_referral_codes.user_id
+        WHERE posters.user_id = c.user_id
           AND (
-            LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+            LOWER(posters.referral_code) = LOWER(c.code)
             OR (
               posters.referral_code ~ '^a-[a-z0-9]{5}$'
-              AND stardance_referral_codes.code ~ '^[a-z0-9]{5}$'
-              AND LOWER(posters.referral_code) = 'a-' || LOWER(stardance_referral_codes.code)
+              AND c.code ~ '^[a-z0-9]{5}$'
+              AND LOWER(posters.referral_code) = 'a-' || LOWER(c.code)
             )
             OR (
               posters.referral_code ~ '^[a-z0-9]{5}$'
-              AND stardance_referral_codes.code ~ '^a-[a-z0-9]{5}$'
-              AND 'a-' || LOWER(posters.referral_code) = LOWER(stardance_referral_codes.code)
+              AND c.code ~ '^a-[a-z0-9]{5}$'
+              AND 'a-' || LOWER(posters.referral_code) = LOWER(c.code)
             )
           )
       )
-      AND stardance_referral_codes.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    ORDER BY archived_at DESC, id ASC
+      AND c.label !~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    GROUP BY c.id
+    ORDER BY c.archived_at DESC, c.id ASC
   `;
 
-  const uses = await countUsesByCodeId(userId);
-  return rows.map((row) => toStardanceReferralCode(row, uses.get(row.id) ?? 0));
+  return rows.map((row) => toStardanceReferralCode(row, Number.parseInt(row.uses_count, 10)));
 }
 
 export async function restoreStardanceReferralCodeForUser(userId: string, codeId: string) {
@@ -421,31 +402,29 @@ export async function restoreStardanceReferralCodeForUser(userId: string, codeId
     return toStardanceReferralCode(existing);
   }
 
-  const [activeCountRow] = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
+  const [constraints] = await sql<{ active_count: string; duplicate_label: boolean }[]>`
+    SELECT
+      COUNT(*) FILTER (WHERE archived_at IS NULL)::text AS active_count,
+      EXISTS(
+        SELECT 1
+        FROM stardance_referral_codes
+        WHERE user_id = ${userId}
+          AND id <> ${codeId}
+          AND archived_at IS NULL
+          AND LOWER(label) = LOWER(${existing.label})
+      ) AS duplicate_label
     FROM stardance_referral_codes
-    WHERE user_id = ${userId} AND archived_at IS NULL
+    WHERE user_id = ${userId}
   `;
 
-  if (activeCountRow !== undefined && Number.parseInt(activeCountRow.count, 10) >= 100) {
+  if (constraints !== undefined && Number.parseInt(constraints.active_count, 10) >= 100) {
     throw new StardanceReferralCodeError(
       "You can have at most 100 active referral codes. Delete one to free up space.",
       400,
     );
   }
 
-  const duplicateLabel = (await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM stardance_referral_codes
-      WHERE user_id = ${userId}
-        AND id <> ${codeId}
-        AND archived_at IS NULL
-        AND LOWER(label) = LOWER(${existing.label})
-    ) AS exists
-  `).at(0);
-
-  if (duplicateLabel?.exists === true) {
+  if (constraints?.duplicate_label === true) {
     throw new StardanceReferralCodeError(
       "An active referral code already uses that label. Rename it first.",
       409,
@@ -515,10 +494,18 @@ export async function renameStardanceReferralCodeForUser(
     throw new StardanceReferralCodeError("Referral code labels must be 80 characters or fewer.", 400);
   }
 
-  const [existing] = await sql<StardanceReferralCodeRow[]>`
-    SELECT *
-    FROM stardance_referral_codes
-    WHERE id = ${codeId} AND user_id = ${userId}
+  const [existing] = await sql<(StardanceReferralCodeRow & { duplicate_label: boolean })[]>`
+    SELECT c.*,
+           EXISTS(
+             SELECT 1
+             FROM stardance_referral_codes other
+             WHERE other.user_id = ${userId}
+               AND other.id <> c.id
+               AND other.archived_at IS NULL
+               AND LOWER(other.label) = LOWER(${label})
+           ) AS duplicate_label
+    FROM stardance_referral_codes c
+    WHERE c.id = ${codeId} AND c.user_id = ${userId}
     LIMIT 1
   `;
 
@@ -526,18 +513,7 @@ export async function renameStardanceReferralCodeForUser(
     throw new StardanceReferralCodeError("Referral code not found.", 404);
   }
 
-  const duplicateLabel = (await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM stardance_referral_codes
-      WHERE user_id = ${userId}
-        AND id <> ${codeId}
-        AND archived_at IS NULL
-        AND LOWER(label) = LOWER(${label})
-    ) AS exists
-  `).at(0);
-
-  if (duplicateLabel?.exists === true) {
+  if (existing.duplicate_label) {
     throw new StardanceReferralCodeError("A referral code with that label already exists.", 409);
   }
 
@@ -568,30 +544,28 @@ export async function createStardanceReferralCodeForUser(userId: string, rawLabe
 
   await getOrCreateDefaultStardanceReferralCodeRow(userId);
 
-  const [activeCountRow] = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
+  const [constraints] = await sql<{ active_count: string; duplicate_label: boolean }[]>`
+    SELECT
+      COUNT(*) FILTER (WHERE archived_at IS NULL)::text AS active_count,
+      EXISTS(
+        SELECT 1
+        FROM stardance_referral_codes
+        WHERE user_id = ${userId}
+          AND archived_at IS NULL
+          AND LOWER(label) = LOWER(${label})
+      ) AS duplicate_label
     FROM stardance_referral_codes
-    WHERE user_id = ${userId} AND archived_at IS NULL
+    WHERE user_id = ${userId}
   `;
 
-  if (activeCountRow !== undefined && Number.parseInt(activeCountRow.count, 10) >= 100) {
+  if (constraints !== undefined && Number.parseInt(constraints.active_count, 10) >= 100) {
     throw new StardanceReferralCodeError(
       "You can have at most 100 active referral codes. Delete one to free up space.",
       400,
     );
   }
 
-  const duplicateLabel = (await sql<{ exists: boolean }[]>`
-    SELECT EXISTS(
-      SELECT 1
-      FROM stardance_referral_codes
-      WHERE user_id = ${userId}
-        AND archived_at IS NULL
-        AND LOWER(label) = LOWER(${label})
-    ) AS exists
-  `).at(0);
-
-  if (duplicateLabel?.exists === true) {
+  if (constraints?.duplicate_label === true) {
     throw new StardanceReferralCodeError("A referral code with that label already exists.", 409);
   }
 
@@ -643,11 +617,22 @@ type StardanceReferralRow = {
   poster_referral_code: string | null;
 };
 
+type StardanceSignupPayload = {
+  displayName: string | null;
+  slackId: string | null;
+  verificationStatus: string | null;
+  banned: boolean;
+  hoursLogged: number;
+  hoursApproved: number;
+};
+
 type StardanceRsvpReferralPayload = {
   id: string;
+  anchor: "rsvp" | "user";
   email: string;
   ref: string;
   createdAt: string;
+  signup: StardanceSignupPayload | null;
 };
 
 type StardanceRsvpReferralRow = {
@@ -659,7 +644,7 @@ type StardanceRsvpReferralRow = {
   email: string;
   hours_logged: number;
   hours_approved: number;
-  verification_status: Extract<StardanceReferralVerificationStatus, "rsvp">;
+  verification_status: StardanceReferralVerificationStatus;
   referred_at: string;
 };
 
@@ -673,7 +658,25 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function parseStardanceRsvpReferral(value: unknown) {
+function parseFiniteHours(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+}
+
+function parseStardanceSignup(value: unknown): StardanceSignupPayload | null {
+  if (!isRecord(value)) return null;
+
+  return {
+    displayName: typeof value.display_name === "string" ? value.display_name : null,
+    slackId: typeof value.slack_id === "string" ? value.slack_id : null,
+    verificationStatus:
+      typeof value.verification_status === "string" ? value.verification_status : null,
+    banned: value.banned === true,
+    hoursLogged: parseFiniteHours(value.hours_logged),
+    hoursApproved: parseFiniteHours(value.hours_approved),
+  };
+}
+
+function parseStardanceRsvpReferral(value: unknown, anchor: "rsvp" | "user") {
   if (!isRecord(value)) return null;
 
   const id = value.id;
@@ -693,43 +696,30 @@ function parseStardanceRsvpReferral(value: unknown) {
 
   return {
     id: String(id),
+    anchor,
     email,
-    ref,
+    ref: ref.trim().toLowerCase(),
     createdAt,
+    signup: value.type === "signup" ? parseStardanceSignup(value.signup) : null,
   } satisfies StardanceRsvpReferralPayload;
 }
 
-async function fetchStardanceRsvpReferralsForCode(
-  code: string,
-  apiKey: string,
-) {
-  const baseUrl = optionalEnv("STARDANCE_API_BASE_URL") ?? STARDANCE_BASE_URL;
-  const url = new URL(
-    `/api/v1/ambassador_referrals/${encodeURIComponent(code)}`,
-    baseUrl,
-  );
+function deriveVerificationStatus(
+  entry: StardanceRsvpReferralPayload,
+): StardanceReferralVerificationStatus {
+  if (entry.signup === null) return "rsvp";
+  if (entry.signup.banned) return "rejected";
 
-  const response = await fetch(url, {
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      accept: "application/json",
-    },
-  });
-
-  if (response.status === 404) return [];
-
-  if (!response.ok) {
-    throw new Error(`Stardance RSVP API returned ${response.status}.`);
+  switch (entry.signup.verificationStatus) {
+    case "verified":
+      return "verified";
+    case "pending":
+      return "pending";
+    case "ineligible":
+      return "rejected";
+    default:
+      return "unverified";
   }
-
-  const body: unknown = await response.json();
-  const referrals = isRecord(body) && Array.isArray(body.referrals)
-    ? body.referrals
-    : [];
-
-  return referrals
-    .map(parseStardanceRsvpReferral)
-    .filter((referral): referral is StardanceRsvpReferralPayload => referral !== null);
 }
 
 async function fetchAllStardanceRsvpReferrals(apiKey: string) {
@@ -751,49 +741,146 @@ async function fetchAllStardanceRsvpReferrals(apiKey: string) {
   const referrals = isRecord(body) && Array.isArray(body.referrals)
     ? body.referrals
     : [];
+  const signups = isRecord(body) && Array.isArray(body.signups)
+    ? body.signups
+    : [];
 
-  return referrals
-    .map(parseStardanceRsvpReferral)
-    .filter((referral): referral is StardanceRsvpReferralPayload => referral !== null);
+  return [
+    ...referrals.map((value) => parseStardanceRsvpReferral(value, "rsvp")),
+    ...signups.map((value) => parseStardanceRsvpReferral(value, "user")),
+  ].filter((referral): referral is StardanceRsvpReferralPayload => referral !== null);
 }
 
-async function upsertStardanceRsvpReferralRows(rows: StardanceRsvpReferralRow[]) {
+function buildStardanceReferralRows(
+  referrals: StardanceRsvpReferralPayload[],
+  codeByRef: Map<string, StardanceReferralCodeRow>,
+) {
+  const rows: StardanceRsvpReferralRow[] = [];
+
+  for (const referral of referrals) {
+    const code = codeByRef.get(referral.ref);
+    if (code === undefined) continue;
+
+    const email = referral.email.trim().toLowerCase();
+    if (email === "") continue;
+
+    rows.push({
+      id: `${referral.anchor}:${referral.id}`,
+      user_id: code.user_id,
+      referral_code_id: code.id,
+      name: referral.signup?.displayName?.trim() || email,
+      slack_id: referral.signup?.slackId ?? "",
+      email,
+      hours_logged: referral.signup?.hoursLogged ?? 0,
+      hours_approved: referral.signup?.hoursApproved ?? 0,
+      verification_status: deriveVerificationStatus(referral),
+      referred_at: new Date(referral.createdAt).toISOString(),
+    });
+  }
+
+  return rows;
+}
+
+async function ingestStardanceRsvpReferralRows(rows: StardanceRsvpReferralRow[]) {
   if (rows.length === 0) return;
 
+  // A signup-only referral that has already been paid out keeps its `user:`
+  // row as the canonical identity: skip late-arriving RSVP twins instead of
+  // creating a second (double-payable) row for the same person.
+  const paidSignupRows = await sql<{ email: string }[]>`
+    SELECT DISTINCT LOWER(stale.email) AS email
+    FROM stardance_referrals stale
+    WHERE stale.id LIKE 'user:%'
+      AND EXISTS (
+        SELECT 1 FROM payout_referrals pr WHERE pr.referral_id = stale.id
+      )
+  `;
+  const paidSignupEmails = new Set(paidSignupRows.map((row) => row.email));
+  const insertable = rows.filter(
+    (row) => !row.id.startsWith("rsvp:") || !paidSignupEmails.has(row.email),
+  );
+
+  if (insertable.length > 0) {
+    // Facts (name, contact details, hours) refresh whenever the incoming row
+    // carries signup data, or while the stored row is still RSVP-stage. The
+    // status itself only ratchets forward (rsvp -> unverified -> pending ->
+    // verified); 'rejected' is terminal in both directions so an admin
+    // rejection sticks and a stardance ban/ineligibility always lands.
+    await sql`
+      INSERT INTO stardance_referrals ${sql(insertable)}
+      ON CONFLICT (id) DO UPDATE
+      SET
+        user_id = EXCLUDED.user_id,
+        referral_code_id = EXCLUDED.referral_code_id,
+        name = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.name
+          ELSE stardance_referrals.name
+        END,
+        slack_id = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.slack_id
+          ELSE stardance_referrals.slack_id
+        END,
+        email = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.email
+          ELSE stardance_referrals.email
+        END,
+        hours_logged = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.hours_logged
+          ELSE stardance_referrals.hours_logged
+        END,
+        hours_approved = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.hours_approved
+          ELSE stardance_referrals.hours_approved
+        END,
+        referred_at = CASE
+          WHEN EXCLUDED.verification_status <> 'rsvp'
+            OR stardance_referrals.verification_status = 'rsvp'
+            THEN EXCLUDED.referred_at
+          ELSE stardance_referrals.referred_at
+        END,
+        verification_status = CASE
+          WHEN stardance_referrals.verification_status = 'rejected'
+            THEN stardance_referrals.verification_status
+          WHEN EXCLUDED.verification_status = 'rejected'
+            THEN EXCLUDED.verification_status
+          WHEN ARRAY_POSITION(
+              ARRAY['rsvp', 'unverified', 'pending', 'verified'],
+              EXCLUDED.verification_status
+            ) > ARRAY_POSITION(
+              ARRAY['rsvp', 'unverified', 'pending', 'verified'],
+              stardance_referrals.verification_status
+            )
+            THEN EXCLUDED.verification_status
+          ELSE stardance_referrals.verification_status
+        END
+    `;
+  }
+
+  // When a person who first appeared as a signup later shows up with an RSVP,
+  // the feed re-anchors them on the RSVP id; drop the superseded (and unpaid)
+  // signup-anchored duplicate.
   await sql`
-    INSERT INTO stardance_referrals ${sql(rows)}
-    ON CONFLICT (id) DO UPDATE
-    SET
-      user_id = EXCLUDED.user_id,
-      referral_code_id = EXCLUDED.referral_code_id,
-      name = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.name
-        ELSE stardance_referrals.name
-      END,
-      slack_id = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.slack_id
-        ELSE stardance_referrals.slack_id
-      END,
-      email = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.email
-        ELSE stardance_referrals.email
-      END,
-      hours_logged = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.hours_logged
-        ELSE stardance_referrals.hours_logged
-      END,
-      hours_approved = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.hours_approved
-        ELSE stardance_referrals.hours_approved
-      END,
-      verification_status = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.verification_status
-        ELSE stardance_referrals.verification_status
-      END,
-      referred_at = CASE
-        WHEN stardance_referrals.verification_status = 'rsvp' THEN EXCLUDED.referred_at
-        ELSE stardance_referrals.referred_at
-      END
+    DELETE FROM stardance_referrals AS stale
+    WHERE stale.id LIKE 'user:%'
+      AND EXISTS (
+        SELECT 1
+        FROM stardance_referrals AS keep
+        WHERE keep.id LIKE 'rsvp:%'
+          AND LOWER(keep.email) = LOWER(stale.email)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM payout_referrals pr WHERE pr.referral_id = stale.id
+      )
   `;
 }
 
@@ -872,38 +959,15 @@ export async function syncStardanceRsvpReferralsForUser(userId: string) {
     FROM stardance_referral_codes
     WHERE user_id = ${userId}
       AND code ~ '^a-[a-z0-9]{5}$'
-    ORDER BY created_at ASC, id ASC
   `;
 
   if (codes.length === 0) return;
 
-  const rows: StardanceRsvpReferralRow[] = [];
-
-  await Promise.all(codes.map(async (code) => {
-    const referrals = await fetchStardanceRsvpReferralsForCode(code.code, apiKey);
-
-    for (const referral of referrals) {
-      if (referral.ref !== code.code) continue;
-
-      const email = referral.email.trim().toLowerCase();
-      if (email === "") continue;
-
-      rows.push({
-        id: `rsvp:${referral.id}`,
-        user_id: userId,
-        referral_code_id: code.id,
-        name: email,
-        slack_id: "",
-        email,
-        hours_logged: 0,
-        hours_approved: 0,
-        verification_status: "rsvp",
-        referred_at: new Date(referral.createdAt).toISOString(),
-      });
-    }
-  }));
-
-  await upsertStardanceRsvpReferralRows(rows);
+  const codeByRef = new Map<string, StardanceReferralCodeRow>(
+    codes.map((code) => [code.code, code]),
+  );
+  const referrals = await fetchAllStardanceRsvpReferrals(apiKey);
+  await ingestStardanceRsvpReferralRows(buildStardanceReferralRows(referrals, codeByRef));
 }
 
 export async function syncAllStardanceRsvpReferrals() {
@@ -928,30 +992,8 @@ export async function syncAllStardanceRsvpReferrals() {
     codes.map((code) => [code.code, code]),
   );
   const referrals = await fetchAllStardanceRsvpReferrals(apiKey);
-  const rows: StardanceRsvpReferralRow[] = [];
-
-  for (const referral of referrals) {
-    const code = codeByRef.get(referral.ref);
-    if (code === undefined) continue;
-
-    const email = referral.email.trim().toLowerCase();
-    if (email === "") continue;
-
-    rows.push({
-      id: `rsvp:${referral.id}`,
-      user_id: code.user_id,
-      referral_code_id: code.id,
-      name: email,
-      slack_id: "",
-      email,
-      hours_logged: 0,
-      hours_approved: 0,
-      verification_status: "rsvp",
-      referred_at: new Date(referral.createdAt).toISOString(),
-    });
-  }
-
-  await upsertStardanceRsvpReferralRows(rows);
+  const rows = buildStardanceReferralRows(referrals, codeByRef);
+  await ingestStardanceRsvpReferralRows(rows);
   return { processed: referrals.length, insertedOrUpdated: rows.length };
 }
 
@@ -963,88 +1005,50 @@ export async function listStardanceReferralsForUser(
   const pattern = query === "" ? null : `%${query.toLowerCase()}%`;
   await ensurePosterNameColumn();
 
-  const rows = pattern === null
-    ? await sql<StardanceReferralRow[]>`
-        SELECT
-          r.id,
-          r.user_id,
-          r.referral_code_id,
-          r.name,
-          r.slack_id,
-          r.email,
-          r.hours_logged::text AS hours_logged,
-          r.hours_approved::text AS hours_approved,
-          r.verification_status,
-          r.referred_at,
-          c.label AS referral_code_label,
-          (
-            p.id IS NOT NULL
-            OR c.label ~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-          ) AS is_poster_referral,
-          p.id AS poster_id,
-          NULLIF(BTRIM(p.name), '') AS poster_name,
-          COALESCE(p.referral_code, c.code) AS poster_referral_code
-        FROM stardance_referrals r
-        JOIN stardance_referral_codes c ON c.id = r.referral_code_id
-        LEFT JOIN posters p ON p.user_id = r.user_id AND (
-          LOWER(p.referral_code) = LOWER(c.code)
-          OR (
-            p.referral_code ~ '^a-[a-z0-9]{5}$'
-            AND c.code ~ '^[a-z0-9]{5}$'
-            AND LOWER(p.referral_code) = 'a-' || LOWER(c.code)
-          )
-          OR (
-            p.referral_code ~ '^[a-z0-9]{5}$'
-            AND c.code ~ '^a-[a-z0-9]{5}$'
-            AND 'a-' || LOWER(p.referral_code) = LOWER(c.code)
-          )
-        )
-        WHERE r.user_id = ${userId}
-        ORDER BY r.referred_at DESC, r.id ASC
-      `
-    : await sql<StardanceReferralRow[]>`
-        SELECT
-          r.id,
-          r.user_id,
-          r.referral_code_id,
-          r.name,
-          r.slack_id,
-          r.email,
-          r.hours_logged::text AS hours_logged,
-          r.hours_approved::text AS hours_approved,
-          r.verification_status,
-          r.referred_at,
-          c.label AS referral_code_label,
-          (
-            p.id IS NOT NULL
-            OR c.label ~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-          ) AS is_poster_referral,
-          p.id AS poster_id,
-          NULLIF(BTRIM(p.name), '') AS poster_name,
-          COALESCE(p.referral_code, c.code) AS poster_referral_code
-        FROM stardance_referrals r
-        JOIN stardance_referral_codes c ON c.id = r.referral_code_id
-        LEFT JOIN posters p ON p.user_id = r.user_id AND (
-          LOWER(p.referral_code) = LOWER(c.code)
-          OR (
-            p.referral_code ~ '^a-[a-z0-9]{5}$'
-            AND c.code ~ '^[a-z0-9]{5}$'
-            AND LOWER(p.referral_code) = 'a-' || LOWER(c.code)
-          )
-          OR (
-            p.referral_code ~ '^[a-z0-9]{5}$'
-            AND c.code ~ '^a-[a-z0-9]{5}$'
-            AND 'a-' || LOWER(p.referral_code) = LOWER(c.code)
-          )
-        )
-        WHERE r.user_id = ${userId}
-          AND (
-            LOWER(c.label) LIKE ${pattern}
-            OR LOWER(NULLIF(BTRIM(p.name), '')) LIKE ${pattern}
-            OR LOWER(p.referral_code) LIKE ${pattern}
-          )
-        ORDER BY r.referred_at DESC, r.id ASC
-      `;
+  const rows = await sql<StardanceReferralRow[]>`
+    SELECT
+      r.id,
+      r.user_id,
+      r.referral_code_id,
+      r.name,
+      r.slack_id,
+      r.email,
+      r.hours_logged::text AS hours_logged,
+      r.hours_approved::text AS hours_approved,
+      r.verification_status,
+      r.referred_at,
+      c.label AS referral_code_label,
+      (
+        p.id IS NOT NULL
+        OR c.label ~ '^Poster [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      ) AS is_poster_referral,
+      p.id AS poster_id,
+      NULLIF(BTRIM(p.name), '') AS poster_name,
+      COALESCE(p.referral_code, c.code) AS poster_referral_code
+    FROM stardance_referrals r
+    JOIN stardance_referral_codes c ON c.id = r.referral_code_id
+    LEFT JOIN posters p ON p.user_id = r.user_id AND (
+      LOWER(p.referral_code) = LOWER(c.code)
+      OR (
+        p.referral_code ~ '^a-[a-z0-9]{5}$'
+        AND c.code ~ '^[a-z0-9]{5}$'
+        AND LOWER(p.referral_code) = 'a-' || LOWER(c.code)
+      )
+      OR (
+        p.referral_code ~ '^[a-z0-9]{5}$'
+        AND c.code ~ '^a-[a-z0-9]{5}$'
+        AND 'a-' || LOWER(p.referral_code) = LOWER(c.code)
+      )
+    )
+    WHERE r.user_id = ${userId}
+      AND (
+        ${pattern}::text IS NULL
+        OR LOWER(c.label) LIKE ${pattern}
+        OR LOWER(NULLIF(BTRIM(p.name), '')) LIKE ${pattern}
+        OR LOWER(p.referral_code) LIKE ${pattern}
+      )
+    ORDER BY r.referred_at DESC, r.id ASC
+  `;
 
   return rows
     .map((row) => ({
@@ -1067,70 +1071,4 @@ export async function listStardanceReferralsForUser(
       const diff = new Date(b.referredAt).getTime() - new Date(a.referredAt).getTime();
       return diff !== 0 ? diff : a.id.localeCompare(b.id);
     });
-}
-
-export async function seedFakeStardanceReferralsForUser(userId: string) {
-  if (process.env.NODE_ENV === "production") {
-    return;
-  }
-
-  await sql`
-    UPDATE stardance_referrals
-    SET verification_status = 'unverified'
-    WHERE user_id = ${userId} AND verification_status = 'rejected'
-  `;
-
-  const [existing] = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
-    FROM stardance_referrals
-    WHERE user_id = ${userId}
-  `;
-
-  if (existing !== undefined && Number.parseInt(existing.count, 10) > 0) {
-    return;
-  }
-
-  const codes = await sql<StardanceReferralCodeRow[]>`
-    SELECT *
-    FROM stardance_referral_codes
-    WHERE user_id = ${userId} AND archived_at IS NULL
-  `;
-
-  if (codes.length === 0) {
-    return;
-  }
-
-  const sampleNames = [
-    "Aria Patel", "Ben Carter", "Cleo Nakamura", "Dani Ortiz", "Eli Becker",
-    "Farah Idris", "Gus Lindqvist", "Hana Park", "Iris Vaughn", "Jules Tan",
-    "Kai Mendez", "Lior Avraham", "Mira Singh", "Noor Hassan", "Omar Rivers",
-    "Pia Conti", "Quinn Hayes", "Rafa Dovado", "Sana Karim", "Theo Walsh",
-  ];
-  const statuses: StardanceReferralVerificationStatus[] = [
-    "unverified", "pending", "verified", "verified",
-  ];
-
-  const rowsToInsert = sampleNames.map((name, idx) => {
-    const code = codes[idx % codes.length]!;
-    const handle = name.toLowerCase().replace(/[^a-z]+/g, "");
-    const hoursLogged = Math.round((idx * 1.7 + 3) * 10) / 10;
-    const hoursApproved = Math.round(hoursLogged * 0.65 * 10) / 10;
-    const daysAgo = idx * 3 + 1;
-    return {
-      id: crypto.randomUUID(),
-      user_id: userId,
-      referral_code_id: code.id,
-      name,
-      slack_id: `U${handle.toUpperCase().slice(0, 8)}`,
-      email: `${handle}@example.test`,
-      hours_logged: hoursLogged,
-      hours_approved: hoursApproved,
-      verification_status: statuses[idx % statuses.length]!,
-      referred_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),
-    };
-  });
-
-  await sql`
-    INSERT INTO stardance_referrals ${sql(rowsToInsert)}
-  `;
 }

@@ -208,10 +208,6 @@ export function getAirtableTableId<TTable extends AirtableTableKey>(tableKey: TT
   return override !== undefined && override !== "" ? override : getAirtableTable(tableKey).id;
 }
 
-export function getAirtableTableName<TTable extends AirtableTableKey>(tableKey: TTable) {
-  return getAirtableTable(tableKey).name;
-}
-
 export function getAirtableFieldId<TTable extends AirtableFieldTableKey>(
   tableKey: TTable,
   fieldKey: AirtableFieldKeysByTable[TTable],

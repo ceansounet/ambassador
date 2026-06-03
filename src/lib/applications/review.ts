@@ -54,7 +54,7 @@ type ReviewDecisionInput = {
 
 export async function getLatestApplicationForUser(userId: string) {
   const application = (await sql<ReviewApplicationRow[]>`
-    SELECT id, user_id, status
+    SELECT id, user_id, applicant_email, status, airtable_record_id, airtable_payload
     FROM applications
     WHERE user_id = ${userId}
     ORDER BY created_at DESC, id DESC
@@ -122,18 +122,12 @@ async function syncPermanentRejectionStateForUser(
   `;
 }
 
-export async function reviewApplication(applicationId: string, input: ReviewDecisionInput) {
+async function applyApplicationReview(
+  application: ReviewApplicationRow,
+  input: ReviewDecisionInput,
+) {
   const trimmedNote = input.note?.trim();
   const note = trimmedNote !== undefined && trimmedNote !== "" ? trimmedNote : null;
-
-  const application = (await sql<ReviewApplicationRow[]>`
-    SELECT id, user_id, airtable_record_id, status
-    FROM applications
-    WHERE id = ${applicationId}
-    LIMIT 1
-  `).at(0);
-
-  if (!application) return null;
 
   if (!canChangeApplicationReviewStatus(application.status, input.status)) {
     throw new DuplicateReviewDecisionError(input.status);
@@ -170,6 +164,19 @@ export async function reviewApplication(applicationId: string, input: ReviewDeci
   });
 }
 
+export async function reviewApplication(applicationId: string, input: ReviewDecisionInput) {
+  const application = (await sql<ReviewApplicationRow[]>`
+    SELECT id, user_id, airtable_record_id, status
+    FROM applications
+    WHERE id = ${applicationId}
+    LIMIT 1
+  `).at(0);
+
+  if (!application) return null;
+
+  return applyApplicationReview(application, input);
+}
+
 export async function reviewLatestApplicationForUser(
   userId: string,
   input: ReviewDecisionInput,
@@ -178,22 +185,13 @@ export async function reviewLatestApplicationForUser(
 
   if (!latestApplication) return null;
 
-  return reviewApplication(latestApplication.id, input);
+  return applyApplicationReview(latestApplication, input);
 }
 
-export async function setApplicationTshirtSent(
-  applicationId: string,
+async function applyApplicationTshirtSent(
+  application: ReviewApplicationRow,
   sent: boolean,
 ) {
-  const application = (await sql<ReviewApplicationRow[]>`
-    SELECT id, airtable_record_id, airtable_payload
-    FROM applications
-    WHERE id = ${applicationId}
-    LIMIT 1
-  `).at(0);
-
-  if (!application) return null;
-
   const ambassadorAirtableSync = await syncAmbassadorTshirtSentToAirtable({
     applicationAirtableRecordId: application.airtable_record_id,
     applicationAirtablePayload: application.airtable_payload ?? null,
@@ -215,6 +213,22 @@ export async function setApplicationTshirtSent(
   return updatedApplication ?? null;
 }
 
+export async function setApplicationTshirtSent(
+  applicationId: string,
+  sent: boolean,
+) {
+  const application = (await sql<ReviewApplicationRow[]>`
+    SELECT id, airtable_record_id, airtable_payload
+    FROM applications
+    WHERE id = ${applicationId}
+    LIMIT 1
+  `).at(0);
+
+  if (!application) return null;
+
+  return applyApplicationTshirtSent(application, sent);
+}
+
 export async function setLatestApplicationTshirtSentForUser(
   userId: string,
   sent: boolean,
@@ -223,5 +237,5 @@ export async function setLatestApplicationTshirtSentForUser(
 
   if (!latestApplication) return null;
 
-  return setApplicationTshirtSent(latestApplication.id, sent);
+  return applyApplicationTshirtSent(latestApplication, sent);
 }

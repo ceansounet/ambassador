@@ -172,7 +172,7 @@ function readAddressField(
   return undefined;
 }
 
-export function coerceHackClubAddress(value: unknown): HackClubAddress | null {
+function coerceHackClubAddress(value: unknown): HackClubAddress | null {
   if (typeof value === "string") {
     try {
       return coerceHackClubAddress(JSON.parse(value) as unknown);

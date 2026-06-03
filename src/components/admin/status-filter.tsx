@@ -46,7 +46,7 @@ export function StatusFilter({
       >
         <SelectTrigger
           size="sm"
-          className="ui-input-surface !bg-muted w-full !rounded-none [border-radius:0!important] border-0 px-3 text-sm focus-visible:ring-white/15 aria-[invalid]:!border-transparent aria-[invalid]:!ring-0 sm:w-60"
+          className="ui-input-surface !bg-muted w-full !rounded-none border-0 px-3 text-sm focus-visible:ring-foreground/15 aria-[invalid]:!border-transparent aria-[invalid]:!ring-0 sm:w-60"
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>

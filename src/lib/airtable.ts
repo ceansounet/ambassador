@@ -4,7 +4,7 @@ export type AirtableRecord<TFields extends Record<string, unknown> = Record<stri
   fields: TFields
 }
 
-export type AirtableListResponse<TFields extends Record<string, unknown>> = {
+type AirtableListResponse<TFields extends Record<string, unknown>> = {
   records: AirtableRecord<TFields>[]
   offset?: string
 }
@@ -101,26 +101,11 @@ function sanitizeAirtableValue(value: unknown): unknown {
   return String(value)
 }
 
-export function sanitizeAirtableFields<TFields extends Record<string, unknown>>(fields: TFields) {
+function sanitizeAirtableFields<TFields extends Record<string, unknown>>(fields: TFields) {
   const sanitized = sanitizeAirtableValue(fields)
   return typeof sanitized === "object" && sanitized !== null && !Array.isArray(sanitized)
     ? Object.fromEntries(Object.entries(sanitized))
     : {}
-}
-
-export function escapeAirtableFormulaValue(value: string | number | boolean) {
-  if (typeof value === "number") return String(value)
-  if (typeof value === "boolean") return value ? "TRUE()" : "FALSE()"
-
-  const sanitized = sanitizeAirtableString(value)
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-
-  return `'${sanitized}'`
-}
-
-export function buildAirtableEqualsFormula(fieldName: string, value: string | number | boolean) {
-  return `{${fieldName}}=${escapeAirtableFormulaValue(value)}`
 }
 
 export function createAirtableClient(baseId: string) {

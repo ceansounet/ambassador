@@ -463,11 +463,11 @@ export default async function AdminUserDetailPage({
     <div className="space-y-10">
       <header className="space-y-5">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
-          <Link href="/admin/users" className="hover:text-white">
+          <Link href="/admin/users" className="hover:text-foreground">
             {t("admin.user-detail.breadcrumb")}
           </Link>
           <span>/</span>
-          <span className="font-body text-white">{user.id}</span>
+          <span className="font-body text-foreground">{user.id}</span>
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
@@ -478,7 +478,7 @@ export default async function AdminUserDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-white">{user.display_name}</h1>
+              <h1 className="text-4xl text-foreground">{user.display_name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {headerStatus !== null ? (
@@ -496,7 +496,7 @@ export default async function AdminUserDetailPage({
                   ) : null}
                 </>
               ) : (
-                <span className="text-sm text-white">{t("admin.user-detail.no-application")}</span>
+                <span className="text-sm text-foreground">{t("admin.user-detail.no-application")}</span>
               )}
               {shouldShowPermanentRejectionLabel && (
                 <span className={pillVariants({ tone: "red" })}>
@@ -523,11 +523,11 @@ export default async function AdminUserDetailPage({
       >
         <div className="space-y-6">
           {superuserFlashMessage !== null ? (
-            <p className="max-w-xl font-body text-base text-white">
+            <p className="max-w-xl font-body text-base text-foreground">
               {superuserFlashMessage}
             </p>
           ) : !superuserConfigured ? (
-            <p className="max-w-xl font-body text-base text-white">
+            <p className="max-w-xl font-body text-base text-foreground">
               {t("admin.user-detail.superuser.missing")}
             </p>
           ) : null}
@@ -569,7 +569,7 @@ export default async function AdminUserDetailPage({
               <div className="pb-2">
                 <div className="text-sm text-secondary">{t("admin.user-detail.actions.current-review-target")}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-3">
-                  <span className="font-body text-sm text-white">{latestApplication.id}</span>
+                  <span className="font-body text-sm text-foreground">{latestApplication.id}</span>
                   <StatusBadge status={latestApplication.status} />
                   {shouldShowHeaderLatestApplicationLabel ? (
                     <span className={pillVariants({ tone: "green" })}>
@@ -606,7 +606,7 @@ export default async function AdminUserDetailPage({
                       name="note"
                       required
                       rows={5}
-                      className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                      className="ui-input-surface mt-2 min-h-24 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                       placeholder={t("admin.user-detail.actions.reject-note-placeholder")}
                     />
                   </label>
@@ -629,7 +629,7 @@ export default async function AdminUserDetailPage({
                     <Textarea
                       name="note"
                       rows={4}
-                      className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                      className="ui-input-surface mt-2 min-h-20 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                       placeholder={t("admin.user-detail.actions.permanent-rejection-note-placeholder")}
                     />
                   </label>
@@ -640,17 +640,17 @@ export default async function AdminUserDetailPage({
               ) : null}
             </div>
           ) : (
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.user-detail.actions.no-review-target")}
             </p>
           )}
 
-          <div className="space-y-4 border-t border-white/10 pt-6">
+          <div className="space-y-4 border-t border-foreground/10 pt-6">
             <div className="space-y-2">
-              <h3 className="text-2xl text-white">
+              <h3 className="text-2xl text-foreground">
                 {t("admin.user-detail.sections.dashboard-state.title")}
               </h3>
-              <p className="max-w-3xl font-body text-base text-white">
+              <p className="max-w-3xl font-body text-base text-foreground">
                 {t("admin.user-detail.sections.dashboard-state.description")}
               </p>
             </div>
@@ -700,13 +700,13 @@ export default async function AdminUserDetailPage({
                 key={control.key}
                 action={`/api/admin/users/${user.id}/flags`}
                 method="POST"
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3 last:border-b-0"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/10 pb-3 last:border-b-0"
               >
                 <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
                 <input type="hidden" name="flagKey" value={control.key} />
                 <input type="hidden" name="action" value={enabled ? "disable" : "enable"} />
                 <div className="flex flex-col">
-                  <span className="font-body text-sm text-white">{t(control.labelKey)}</span>
+                  <span className="font-body text-sm text-foreground">{t(control.labelKey)}</span>
                   <span className="text-xs text-secondary">
                     {enabled
                       ? t("admin.user-detail.flags.override-active")
@@ -735,7 +735,7 @@ export default async function AdminUserDetailPage({
           description="Manage the linked HCB office-expenses grant for this ambassador."
         >
           {hcbGrantFlashMessage !== null ? (
-            <p className="font-body text-base text-white">{hcbGrantFlashMessage}</p>
+            <p className="font-body text-base text-foreground">{hcbGrantFlashMessage}</p>
           ) : null}
           <DetailFieldRow
             label="Provisioning state"
@@ -770,12 +770,12 @@ export default async function AdminUserDetailPage({
                 href={officeGrantUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="font-body text-sm text-white underline transition-opacity hover:opacity-80"
+                className="font-body text-sm text-foreground underline transition-opacity hover:opacity-80"
               >
                 {officeGrantUrl}
               </a>
             ) : (
-              <div className="font-body text-sm text-white">-</div>
+              <div className="font-body text-sm text-foreground">-</div>
             )}
           </DetailRow>
           <DetailFieldRow
@@ -834,7 +834,7 @@ export default async function AdminUserDetailPage({
                 name="grantId"
                 type="text"
                 placeholder="grt_..."
-                className="ui-input-surface !bg-muted mt-2 h-11 !rounded-none [border-radius:0!important] border-0 px-4 font-body text-base font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-base"
+                className="ui-input-surface !bg-muted mt-2 h-11 !rounded-none border-0 px-4 font-body text-base font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-base"
               />
             </label>
             <button className={buttonVariants({ variant: "success", size: "app" })}>
@@ -863,7 +863,7 @@ export default async function AdminUserDetailPage({
                 name="note"
                 rows={5}
                 defaultValue={currentUserNote ?? ""}
-                className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                className="ui-input-surface mt-2 min-h-24 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                 placeholder={t("admin.user-detail.notes.note-placeholder")}
               />
             </label>
@@ -878,9 +878,9 @@ export default async function AdminUserDetailPage({
             </h3>
             {noteHistory.length > 0 ? (
               noteHistory.map((entry) => (
-                <div key={entry.id} className="border-t border-white/10 pt-4 first:border-t-0 first:pt-0">
+                <div key={entry.id} className="border-t border-foreground/10 pt-4 first:border-t-0 first:pt-0">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="font-body text-sm text-white">
+                    <span className="font-body text-sm text-foreground">
                       {entry.actor_display_name ??
                         entry.actor_email ??
                         entry.created_by ??
@@ -890,7 +890,7 @@ export default async function AdminUserDetailPage({
                       {formatDateTime(entry.created_at, locale)}
                     </span>
                   </div>
-                  <div className="mt-2 whitespace-pre-line font-body text-base text-white break-words [overflow-wrap:anywhere]">
+                  <div className="mt-2 whitespace-pre-line font-body text-base text-foreground break-words [overflow-wrap:anywhere]">
                       {typeof entry.note === "string" && entry.note.trim() !== ""
                         ? entry.note
                         : t("admin.user-detail.notes.cleared")}
@@ -898,7 +898,7 @@ export default async function AdminUserDetailPage({
                 </div>
               ))
             ) : (
-              <p className="font-body text-base text-white">{t("admin.user-detail.notes.empty")}</p>
+              <p className="font-body text-base text-foreground">{t("admin.user-detail.notes.empty")}</p>
             )}
           </div>
           <DetailPager
@@ -998,17 +998,17 @@ export default async function AdminUserDetailPage({
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-white">
-                  <th className="px-0 py-3 font-body text-base text-secondary">{t("admin.user-detail.applications.submitted")}</th>
-                  <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.user-detail.applications.status")}</th>
-                  <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.user-detail.applications.name")}</th>
-                  <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.user-detail.applications.open")}</th>
+                <tr className="border-b border-foreground/10">
+                  <th className="px-0 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.submitted")}</th>
+                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.status")}</th>
+                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.name")}</th>
+                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.open")}</th>
                 </tr>
               </thead>
               <tbody>
                 {applications.map((application) => (
-                  <tr key={application.id} className="border-b border-white last:border-b-0">
-                    <td className="px-0 py-4 font-body text-sm text-white">{formatDateTime(application.created_at, locale)}</td>
+                  <tr key={application.id} className="border-b border-foreground/10 last:border-b-0">
+                    <td className="px-0 py-4 font-body text-sm text-foreground">{formatDateTime(application.created_at, locale)}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={application.status} />
@@ -1023,7 +1023,7 @@ export default async function AdminUserDetailPage({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 font-body text-sm text-white">{application.name}</td>
+                    <td className="px-4 py-4 font-body text-sm text-foreground">{application.name}</td>
                     <td className="px-4 py-4">
                       <Link
                         href={`/admin/applications/${application.id}`}
@@ -1039,7 +1039,7 @@ export default async function AdminUserDetailPage({
             </table>
           </div>
         ) : (
-          <p className="font-body text-base text-white">{t("admin.user-detail.applications.empty")}</p>
+          <p className="font-body text-base text-foreground">{t("admin.user-detail.applications.empty")}</p>
         )}
       </DetailSection>
 
@@ -1057,7 +1057,7 @@ export default async function AdminUserDetailPage({
             <DetailFieldRow label={t("admin.user-detail.latest-application-snapshot.decision-note")} value={latestApplication.decision_note} />
           </>
         ) : (
-          <p className="font-body text-base text-white">{t("admin.user-detail.latest-application-snapshot.empty")}</p>
+          <p className="font-body text-base text-foreground">{t("admin.user-detail.latest-application-snapshot.empty")}</p>
         )}
       </DetailSection>
 
@@ -1085,14 +1085,14 @@ export default async function AdminUserDetailPage({
               return (
                 <div key={visit.id} className="pb-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-body text-sm text-white">{visit.ip}</span>
+                    <span className="font-body text-sm text-foreground">{visit.ip}</span>
                     <span className="text-xs text-secondary">{visit.visit_type}</span>
                   </div>
-                  <div className="mt-1 font-body text-sm text-white">
+                  <div className="mt-1 font-body text-sm text-foreground">
                     {joinNonEmpty(visit.city, visit.region, null, visit.country_code) ?? "-"}
                   </div>
-                  <div className="mt-1 font-body text-sm text-white">{visit.org ?? t("admin.user-detail.visits.unknown-network")}</div>
-                  <div className="mt-1 text-xs text-white">
+                  <div className="mt-1 font-body text-sm text-foreground">{visit.org ?? t("admin.user-detail.visits.unknown-network")}</div>
+                  <div className="mt-1 text-xs text-foreground">
                     {formatDateTime(visit.created_at, locale)}
                     {localVisitTime !== null ? ` (${t("admin.user-detail.visits.local-time", { time: localVisitTime })})` : ""}
                   </div>
@@ -1100,7 +1100,7 @@ export default async function AdminUserDetailPage({
               );
             })
           ) : (
-            <p className="font-body text-base text-white">{t("admin.user-detail.visits.empty")}</p>
+            <p className="font-body text-base text-foreground">{t("admin.user-detail.visits.empty")}</p>
           )}
         </div>
         <DetailPager
@@ -1132,15 +1132,15 @@ export default async function AdminUserDetailPage({
           {orders.length > 0 ? (
             orders.map((order) => (
               <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 pb-4">
-                <span className="font-body text-sm text-white">{order.id}</span>
+                <span className="font-body text-sm text-foreground">{order.id}</span>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={order.status} />
-                  <span className="text-xs text-white">{formatDateTime(order.created_at, locale)}</span>
+                  <span className="text-xs text-foreground">{formatDateTime(order.created_at, locale)}</span>
                 </div>
               </div>
             ))
           ) : (
-            <p className="font-body text-base text-white">{t("admin.user-detail.orders.empty")}</p>
+            <p className="font-body text-base text-foreground">{t("admin.user-detail.orders.empty")}</p>
           )}
         </div>
       </DetailSection>
@@ -1151,12 +1151,12 @@ export default async function AdminUserDetailPage({
           description={t("admin.user-detail.sections.posters.description")}
         >
           <div className="space-y-1">
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.user-detail.posters.total", {
                 count: numberFormatter.format(posterCounts.total_count),
               })}
             </p>
-            <p className="font-body text-sm text-secondary">
+            <p className="font-body text-sm text-muted-foreground">
               {t("admin.user-detail.posters.breakdown", {
                 pending: numberFormatter.format(posterCounts.pending_count),
                 inReview: numberFormatter.format(posterCounts.in_review_count),
@@ -1171,26 +1171,26 @@ export default async function AdminUserDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white">
-                    <th className="px-0 py-3 font-body text-base text-secondary">
+                  <tr className="border-b border-foreground/10">
+                    <th className="px-0 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.created")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.proof")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.name")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.code")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.type")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.status")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.posters.columns.actions")}
                     </th>
                   </tr>
@@ -1202,8 +1202,8 @@ export default async function AdminUserDetailPage({
                       poster.verification_status !== "success";
                     const proofUrl = posterProofUrls.get(poster.id) ?? null;
                     return (
-                      <tr key={poster.id} className="border-b border-white last:border-b-0">
-                        <td className="px-0 py-4 font-body text-sm text-white">
+                      <tr key={poster.id} className="border-b border-foreground/10 last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm text-foreground">
                           {formatDateTime(poster.created_at, locale)}
                         </td>
                         <td className="px-4 py-4">
@@ -1218,15 +1218,15 @@ export default async function AdminUserDetailPage({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white">
+                        <td className="px-4 py-4 font-body text-sm text-foreground">
                           {poster.name && poster.name.trim() !== ""
                             ? poster.name
                             : t("admin.user-detail.posters.no-name")}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white">
+                        <td className="px-4 py-4 font-body text-sm text-foreground">
                           {poster.referral_code}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white">
+                        <td className="px-4 py-4 font-body text-sm text-foreground">
                           {poster.poster_type}
                         </td>
                         <td className="px-4 py-4">
@@ -1272,7 +1272,7 @@ export default async function AdminUserDetailPage({
               </table>
             </div>
           ) : (
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.user-detail.posters.empty")}
             </p>
           )}
@@ -1303,12 +1303,12 @@ export default async function AdminUserDetailPage({
           description={t("admin.user-detail.sections.referrals.description")}
         >
           <div className="space-y-1">
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.user-detail.referrals.total", {
                 count: numberFormatter.format(referralCounts.total_count),
               })}
             </p>
-            <p className="font-body text-sm text-secondary">
+            <p className="font-body text-sm text-muted-foreground">
               {t("admin.user-detail.referrals.breakdown", {
                 unverified: numberFormatter.format(referralCounts.unverified_count),
                 pending: numberFormatter.format(referralCounts.pending_count),
@@ -1322,23 +1322,23 @@ export default async function AdminUserDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white">
-                    <th className="px-0 py-3 font-body text-base text-secondary">
+                  <tr className="border-b border-foreground/10">
+                    <th className="px-0 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.referred")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.name")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.email")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.hours")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.status")}
                     </th>
-                    <th className="px-4 py-3 font-body text-base text-secondary">
+                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
                       {t("admin.user-detail.referrals.columns.actions")}
                     </th>
                   </tr>
@@ -1347,23 +1347,23 @@ export default async function AdminUserDetailPage({
                   {referralList.map((referral) => {
                     const hoursLogged = Number(referral.hours_logged);
                     const hoursApproved = Number(referral.hours_approved);
-                    const isRsvp = referral.id.startsWith("rsvp:");
+                    const isRsvp = referral.verification_status === "rsvp";
                     const canVerify =
                       !isRsvp && referral.verification_status !== "verified";
                     const canReject =
                       !isRsvp && referral.verification_status !== "rejected";
                     return (
-                      <tr key={referral.id} className="border-b border-white last:border-b-0">
-                        <td className="px-0 py-4 font-body text-sm text-white">
+                      <tr key={referral.id} className="border-b border-foreground/10 last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm text-foreground">
                           {formatDateTime(referral.referred_at, locale)}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white">
+                        <td className="px-4 py-4 font-body text-sm text-foreground">
                           {referral.name}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white break-words [overflow-wrap:anywhere]">
+                        <td className="px-4 py-4 font-body text-sm text-foreground break-words [overflow-wrap:anywhere]">
                           {referral.email}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-white">
+                        <td className="px-4 py-4 font-body text-sm text-foreground">
                           {hoursFormatter.format(Number.isFinite(hoursApproved) ? hoursApproved : 0)}
                           {" / "}
                           {hoursFormatter.format(Number.isFinite(hoursLogged) ? hoursLogged : 0)}
@@ -1437,7 +1437,7 @@ export default async function AdminUserDetailPage({
               </table>
             </div>
           ) : (
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.user-detail.referrals.empty")}
             </p>
           )}

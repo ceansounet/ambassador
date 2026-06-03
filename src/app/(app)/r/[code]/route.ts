@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: Request,
-  context: { params: Promise<{ code: string }> },
+  context: RouteContext<"/r/[code]">,
 ) {
   const { code } = await context.params;
 

@@ -22,7 +22,7 @@ function getAirtableAmbassadorsClient() {
   return createAirtableClient(getAirtableBaseId());
 }
 
-export function getAirtableAmbassadorsTableId() {
+function getAirtableAmbassadorsTableId() {
   return getAirtableTableId("ambassadors");
 }
 
@@ -134,12 +134,10 @@ function getAmbassadorRecordIdsFromApplicationPayload(payload: unknown) {
 async function getAmbassadorRecordIds(input: {
   client: AirtableClient;
   applicationAirtableRecordId?: string | null;
-  applicationAirtablePayload?: unknown;
+  cachedAmbassadorRecordIds: string[];
 }) {
   const applicationAirtableRecordId = input.applicationAirtableRecordId?.trim();
-  let ambassadorRecordIds = getAmbassadorRecordIdsFromApplicationPayload(
-    input.applicationAirtablePayload,
-  );
+  let ambassadorRecordIds = input.cachedAmbassadorRecordIds;
 
   if (
     ambassadorRecordIds.length === 0 &&
@@ -191,7 +189,7 @@ export async function getAmbassadorOnboardingStatus(input: {
   const ambassadorRecordIds = await getAmbassadorRecordIds({
     client,
     applicationAirtableRecordId,
-    applicationAirtablePayload: input.applicationAirtablePayload,
+    cachedAmbassadorRecordIds,
   });
 
   if (ambassadorRecordIds.length === 0) {
@@ -294,7 +292,7 @@ export async function getAmbassadorOnboardingGrantContact(input: {
   const ambassadorRecordIds = await getAmbassadorRecordIds({
     client,
     applicationAirtableRecordId,
-    applicationAirtablePayload: input.applicationAirtablePayload,
+    cachedAmbassadorRecordIds,
   });
 
   if (ambassadorRecordIds.length === 0) {
@@ -379,7 +377,9 @@ export async function syncAmbassadorTshirtSentToAirtable(input: {
   const ambassadorRecordIds = await getAmbassadorRecordIds({
     client,
     applicationAirtableRecordId: input.applicationAirtableRecordId,
-    applicationAirtablePayload: input.applicationAirtablePayload,
+    cachedAmbassadorRecordIds: getAmbassadorRecordIdsFromApplicationPayload(
+      input.applicationAirtablePayload,
+    ),
   });
 
   if (ambassadorRecordIds.length === 0) return null;

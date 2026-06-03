@@ -57,29 +57,20 @@ function throwIfAborted(signal?: AbortSignal) {
 async function findMatchedUser(record: AirtableApplicationRecord): Promise<MatchedUser | null> {
   const slackIdValue = getAirtableApplicationFieldValue(record.fields, "slackId");
   const slackId = getTrimmedStringOrNull(slackIdValue);
-
-  if (slackId !== null) {
-    const user = (await sql<MatchedUser[]>`
-      SELECT id, hca_id
-      FROM users
-      WHERE slack_id = ${slackId}
-      ORDER BY updated_at DESC, created_at DESC
-      LIMIT 1
-    `).at(0) ?? null;
-
-    if (user !== null) return user;
-  }
-
   const emailValue = getAirtableApplicationFieldValue(record.fields, "email");
   const email = getTrimmedStringOrNull(emailValue);
 
-  if (email === null) return null;
+  if (slackId === null && email === null) return null;
 
   const user = (await sql<MatchedUser[]>`
     SELECT id, hca_id
     FROM users
-    WHERE LOWER(email) = LOWER(${email})
-    ORDER BY updated_at DESC, created_at DESC
+    WHERE (${slackId !== null} AND slack_id = ${slackId})
+       OR (${email !== null} AND LOWER(email) = LOWER(${email}))
+    ORDER BY
+      CASE WHEN ${slackId !== null} AND slack_id = ${slackId} THEN 0 ELSE 1 END,
+      updated_at DESC,
+      created_at DESC
     LIMIT 1
   `).at(0) ?? null;
 
@@ -178,15 +169,15 @@ export async function syncAirtableApplicationsToPostgres(
   for (const record of records) {
     throwIfAborted(options.signal);
 
-    const matchedUser = await findMatchedUser(record);
-    throwIfAborted(options.signal);
-
-    const existingApplication = (await sql<ApplicationIdentityRow[]>`
-      SELECT id, user_id
-      FROM applications
-      WHERE airtable_record_id = ${record.id}
-      LIMIT 1
-    `).at(0) ?? null;
+    const [matchedUser, existingApplication] = await Promise.all([
+      findMatchedUser(record),
+      sql<ApplicationIdentityRow[]>`
+        SELECT id, user_id
+        FROM applications
+        WHERE airtable_record_id = ${record.id}
+        LIMIT 1
+      `.then((rows) => rows.at(0) ?? null),
+    ]);
     throwIfAborted(options.signal);
 
     const rawStatus = getAirtableApplicationFieldValue(record.fields, "status");

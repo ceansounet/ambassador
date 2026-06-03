@@ -116,11 +116,11 @@ export default async function AdminOrderDetailPage({
     <div className="space-y-10">
       <header className="space-y-5">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
-          <Link href="/admin/orders" className="hover:text-white">
+          <Link href="/admin/orders" className="hover:text-foreground">
             {t("admin.order-detail.breadcrumb")}
           </Link>
           <span>/</span>
-          <span className="font-body text-white">{order.id}</span>
+          <span className="font-body text-foreground">{order.id}</span>
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
@@ -131,7 +131,7 @@ export default async function AdminOrderDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-white">
+              <h1 className="text-4xl text-foreground">
                 {order.user_name ?? t("admin.order-detail.unknown-user")}
               </h1>
             </div>
@@ -174,7 +174,7 @@ export default async function AdminOrderDetailPage({
           order.status === ORDER_STATUS_PENDING ? (
             <div className="space-y-6">
               <div className="max-w-xl space-y-2">
-                <p className="font-body text-base text-white">
+                <p className="font-body text-base text-foreground">
                   {withinEmbargo
                     ? t("admin.order-detail.actions.embargo-active", {
                         dispatchAt: formatDateTime(order.dispatch_at, locale) ?? "",
@@ -226,7 +226,7 @@ export default async function AdminOrderDetailPage({
                   <Textarea
                     name="note"
                     rows={4}
-                    className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    className="ui-input-surface mt-2 min-h-20 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                     placeholder={t("admin.order-detail.actions.reject-note-placeholder")}
                   />
                 </label>
@@ -236,12 +236,12 @@ export default async function AdminOrderDetailPage({
               </ConfirmSubmitForm>
             </div>
           ) : (
-            <p className="font-body text-base text-white">
+            <p className="font-body text-base text-foreground">
               {t("admin.order-detail.actions.non-pending")}
             </p>
           )
         ) : (
-          <p className="font-body text-base text-white">
+          <p className="font-body text-base text-foreground">
             {t("admin.order-detail.actions.historical-order")}
           </p>
         )}

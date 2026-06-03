@@ -40,6 +40,7 @@ export default async function AdminLayout({
         balanceCents={user.balance_cents ?? 0}
         showPostersLink={showPostersLink}
         showReferralsLink={showReferralsLink}
+        showPayouts
       />
       <div className="mx-auto max-w-5xl px-6 py-8">
         <AdminTabs />

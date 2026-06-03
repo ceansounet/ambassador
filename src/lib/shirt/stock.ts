@@ -18,9 +18,7 @@ type PendingShirtOrderCountRow = {
   quantity: number;
 };
 
-const SHIRT_SKUS = SHIRT_SIZES.map((size) => shirtSku(size));
-
-export async function countPendingShirtOrdersBySize(
+async function countPendingShirtOrdersBySize(
   query: QueryClient = sql,
 ): Promise<Record<ShirtSize, number>> {
   const pendingBySize: Record<ShirtSize, number> = {
@@ -34,7 +32,7 @@ export async function countPendingShirtOrdersBySize(
     SELECT sku, COALESCE(SUM(quantity), 0)::int AS quantity
     FROM orders
     WHERE status = ${ORDER_STATUS_PENDING}
-      AND sku = ANY(${SHIRT_SKUS}::text[])
+      AND sku = ANY(${SHIRT_SIZES.map((size) => shirtSku(size))}::text[])
     GROUP BY sku
   `;
 
@@ -48,7 +46,7 @@ export async function countPendingShirtOrdersBySize(
   return pendingBySize;
 }
 
-export function deductPendingOrdersFromShirtStock(
+function deductPendingOrdersFromShirtStock(
   stockBySize: ShirtStockBySize,
   pendingBySize: Record<ShirtSize, number>,
 ): ShirtStockBySize {

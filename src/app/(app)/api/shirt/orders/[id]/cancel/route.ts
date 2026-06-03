@@ -20,7 +20,7 @@ type CancelOrderRow = {
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> },
+  context: RouteContext<"/api/shirt/orders/[id]/cancel">,
 ) {
   if (!isSameOriginRequest(request)) {
     return Response.json({ error: "forbidden" }, { status: 403 });
@@ -41,7 +41,7 @@ export async function POST(
   }
 
   await ensureSchema();
-  const { id } = await params;
+  const { id } = await context.params;
 
   const result = await sql.begin(async (transaction) => {
     const order = (await transaction<CancelOrderRow[]>`

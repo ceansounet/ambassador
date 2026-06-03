@@ -21,6 +21,7 @@ jobs:
         run: |
           set -euo pipefail
           fail=0
+          problems=()
 
           shopt -s nullglob
           campaign_dirs=(public/posters/*/regionals)
@@ -56,6 +57,7 @@ jobs:
                     file="$regionals_dir/stardance-${paper}-${color}-${region}.${ext}"
                     if [ ! -f "$file" ]; then
                       echo "::error file=$file::Missing $file"
+                      problems+=("missing: $file")
                       fail=1
                     fi
                   done
@@ -72,13 +74,17 @@ jobs:
               | sort
             )
             for file in "${stray[@]}"; do
-              echo "::error file=$file::File does not follow stardance-(letter|a4)-(color|bw)-<region>.(pdf|webp) naming"
+              echo "::error file=$file::$file does not follow the stardance-(letter|a4)-(color|bw)-<region>.(pdf|webp) naming scheme (region code must be lowercase a-z, 2-8 chars)"
+              problems+=("bad name: $file")
               fail=1
             done
           done
 
           if [ "$fail" -ne 0 ]; then
-            echo "::error::Poster translation validation failed. Each region needs the 4 PDFs and 4 .webp previews."
+            echo "::error::Poster translation validation failed (${#problems[@]} problem(s)). Each region needs the 4 PDFs and 4 .webp previews, all lowercase-named:"
+            for problem in "${problems[@]}"; do
+              echo "  - $problem"
+            done
             exit 1
           fi
           echo "Poster translation validation passed."

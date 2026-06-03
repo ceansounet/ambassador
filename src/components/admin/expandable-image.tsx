@@ -33,7 +33,7 @@ export function ExpandableImage({
         onClick={() => setOpen(true)}
         className={
           thumbnailClassName ??
-          "block h-16 w-16 overflow-hidden border border-white/30 bg-black transition-opacity hover:opacity-80"
+          "block h-16 w-16 overflow-hidden border border-foreground/30 bg-background transition-opacity hover:opacity-80"
         }
         aria-label={alt}
       >
@@ -44,7 +44,7 @@ export function ExpandableImage({
           role="dialog"
           aria-modal="true"
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6"
+          className="ui-modal-backdrop items-center p-6"
         >
           <img
             src={src}
@@ -55,7 +55,7 @@ export function ExpandableImage({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="absolute right-6 top-6 font-body text-base text-white underline hover:opacity-80"
+            className="absolute right-6 top-6 font-body text-base text-foreground underline hover:opacity-80"
           >
             Close
           </button>

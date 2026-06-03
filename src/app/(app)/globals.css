@@ -147,11 +147,6 @@ h6 {
   box-sizing: border-box;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -159,6 +154,11 @@ a {
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
   }
 }
 
@@ -172,12 +172,16 @@ a {
     background-size: var(--paper-grid-size) var(--paper-grid-size);
   }
 
-  nav.bg-\[var\(--topbar\)\] {
-    background-color: var(--topbar) !important;
+  .ui-card {
+    @apply rounded-none border border-border bg-card p-5 md:p-6;
   }
 
-  .ui-panel {
-    @apply rounded-3xl border border-white/10 p-5 md:p-6;
+  .ui-table-card {
+    @apply overflow-x-auto rounded-none border border-border bg-card p-3 md:p-4;
+  }
+
+  .ui-modal-backdrop {
+    @apply fixed inset-0 z-50 flex justify-center bg-black/80 backdrop-blur-sm;
   }
 
   .ui-input-surface {
@@ -185,183 +189,39 @@ a {
   }
 
   .ui-open-link {
-    appearance: none;
-    background: transparent;
-    border: 0;
-    color: var(--foreground) !important;
-    cursor: pointer;
-    padding: 0;
-    transition: color 150ms ease, opacity 150ms ease;
+    @apply inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-foreground transition-[color,opacity];
   }
 
   .ui-open-link:hover,
   .ui-open-link:focus-visible {
-    color: var(--acceptance) !important;
+    @apply text-acceptance;
   }
 
   .ui-hover-underline {
-    cursor: pointer;
-    text-decoration-line: none !important;
+    @apply cursor-pointer underline-offset-[0.14em] transition-[opacity,text-decoration-color];
+
+    text-decoration-line: none;
     text-decoration-color: currentcolor;
     text-decoration-thickness: from-font;
-    text-underline-offset: 0.14em;
-    transition:
-      opacity 150ms ease,
-      text-decoration-color 150ms ease;
   }
 
   .ui-hover-underline:hover,
   .ui-hover-underline:focus-visible {
-    text-decoration-line: underline !important;
+    text-decoration-line: underline;
   }
 }
 
 @layer utilities {
-  .bg-black {
-    background-color: var(--background) !important;
+  :is(p, div, span, th, td, label).text-secondary,
+  :is(p, div, span, th, td, label).text-acceptance {
+    font-weight: 700;
   }
+}
 
-  .hover\:bg-black:hover {
-    background-color: var(--background) !important;
-  }
-
-  .text-white {
-    color: var(--foreground) !important;
-  }
-
-  .text-white\/50 {
-    color: color-mix(in srgb, var(--foreground) 50%, transparent) !important;
-  }
-
-  p.text-secondary,
-  div.text-secondary,
-  span.text-secondary,
-  th.text-secondary,
-  td.text-secondary,
-  label.text-secondary,
-  .text-acceptance {
-    font-weight: 700 !important;
-  }
-
-  .border-white {
-    border-color: var(--foreground) !important;
-  }
-
-  .border-white\/5 {
-    border-color: color-mix(
-      in srgb,
-      var(--foreground) 5%,
-      transparent
-    ) !important;
-  }
-
-  .border-white\/10 {
-    border-color: color-mix(
-      in srgb,
-      var(--foreground) 10%,
-      transparent
-    ) !important;
-  }
-
-  .ring-white\/10 {
-    --tw-ring-color: color-mix(
-      in srgb,
-      var(--foreground) 10%,
-      transparent
-    ) !important;
-  }
-
-  .focus-visible\:ring-white\/15:focus-visible {
-    --tw-ring-color: color-mix(
-      in srgb,
-      var(--foreground) 15%,
-      transparent
-    ) !important;
-  }
-
-  .hover\:bg-white:hover {
-    background-color: var(--background) !important;
-  }
-
-  .hover\:text-white:hover {
-    color: var(--foreground) !important;
-  }
-
-  .hover\:border-white:hover {
-    border-color: var(--foreground) !important;
-  }
-
-  nav a {
-    background-color: transparent !important;
-  }
-
-  nav .text-white,
-  nav .text-accent {
-    color: #fff !important;
-  }
-
-  [data-slot="select-content"] {
-    background-color: #fff !important;
-    box-shadow: 0 4px 20px rgb(0 0 0 / 15%) !important;
-  }
-
-  [data-slot="select-item"]:focus {
-    background-color: color-mix(
-      in srgb,
-      var(--foreground) 8%,
-      transparent
-    ) !important;
-    color: var(--foreground) !important;
-  }
-
-  .placeholder\:text-white::placeholder {
-    color: color-mix(in srgb, var(--foreground) 55%, transparent) !important;
-  }
-
-  .bg-primary.text-white,
-  .bg-acceptance.text-white,
-  .bg-primary .text-white,
-  .bg-acceptance .text-white {
-    color: #fff !important;
-  }
-
-  :is(
-    button:not([data-slot^="select-"], [data-slot^="multiselect-"], [data-slot="icon-link"], [data-slot="open-link"], [data-slot="text-link"]),
-    [data-slot="button"],
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ) {
-    color: #fff !important;
-  }
-
-  :is(
-    button:not(:disabled, [data-slot^="select-"], [data-slot^="multiselect-"], [data-slot="icon-link"], [data-slot="open-link"], [data-slot="text-link"]),
-    [data-slot="button"]:not(:disabled),
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ) {
-    cursor: pointer;
-  }
-
-  :is(
-    button:not(:disabled, [data-slot^="select-"], [data-slot^="multiselect-"], [data-slot="icon-link"], [data-slot="open-link"], [data-slot="text-link"]),
-    [data-slot="button"]:not(:disabled),
-    a[data-slot="button"],
-    a.inline-flex.rounded-xl
-  ):is(:hover, :focus-visible) {
-    background-color: #000 !important;
-    border-color: #000 !important;
-    color: #fff !important;
-    opacity: 1 !important;
-  }
-
-  :is(
-      button:not(:disabled, [data-slot^="select-"], [data-slot^="multiselect-"], [data-slot="icon-link"], [data-slot="open-link"], [data-slot="text-link"]),
-      [data-slot="button"]:not(:disabled),
-      a[data-slot="button"],
-      a.inline-flex.rounded-xl
-    ):is(:hover, :focus-visible)
-    svg {
-    color: #fff !important;
-  }
+/* Placeholders are never bold, even inside bold (text-secondary) labels,
+   and stay a step smaller than the input's own text. */
+input::placeholder,
+textarea::placeholder {
+  font-weight: 400;
+  font-size: 0.875rem;
 }

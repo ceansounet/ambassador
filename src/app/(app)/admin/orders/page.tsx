@@ -40,10 +40,6 @@ type OrderRow = {
   user_slack_name: string | null;
 };
 
-type CountRow = {
-  total: number;
-};
-
 const ORDER_STATUS_FILTER_OPTIONS = [
   { value: ORDER_STATUS_PENDING, labelKey: "admin.orders.status-filter.pending" },
   { value: ORDER_STATUS_APPROVED, labelKey: "admin.orders.status-filter.approved" },
@@ -60,6 +56,11 @@ const HCB_AUTH_STATUS_MESSAGES = new Map<string, string>([
   ["forbidden", "HCB authorization requires an active admin session."],
   ["failed", "HCB authorization failed."],
 ]);
+
+type OrderListResultRow = {
+  orders: OrderRow[];
+  total: number;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   return getTranslatedPageMetadata("admin.orders.metadata.title");
@@ -80,46 +81,49 @@ export default async function AdminOrdersPage({
   const statusFilter = query.status?.trim() ?? "";
   const filterByStatus = statusFilter !== "" ? statusFilter : null;
 
-  const [orders, countResult, hcbConnection, stockBySize] = await Promise.all([
-    sql<OrderRow[]>`
-      SELECT o.id, o.status, o.sku, o.variant, o.address, o.note, o.created_at, o.dispatch_at,
-             u.display_name AS user_name, u.email AS user_email,
-             u.slack_id AS user_slack_id, u.slack_name AS user_slack_name
-      FROM orders o
-      LEFT JOIN users u ON u.id = o.user_id
-      WHERE (${searchFilter}::text IS NULL OR (
-        u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        ${filterByStatus}::text IS NULL OR o.status = ${filterByStatus}
+  const [orderList, hcbConnection, stockBySize] = await Promise.all([
+    sql<OrderListResultRow[]>`
+      WITH filtered AS (
+        SELECT o.id, o.status, o.sku, o.variant, o.address, o.note, o.created_at, o.dispatch_at,
+               u.display_name AS user_name, u.email AS user_email,
+               u.slack_id AS user_slack_id, u.slack_name AS user_slack_name
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        WHERE (${searchFilter}::text IS NULL OR (
+          u.display_name ILIKE ${searchFilter}
+          OR u.email ILIKE ${searchFilter}
+          OR u.slack_id ILIKE ${searchFilter}
+          OR u.slack_name ILIKE ${searchFilter}
+        ))
+        AND (
+          ${filterByStatus}::text IS NULL OR o.status = ${filterByStatus}
+        )
+      ),
+      page AS (
+        SELECT *, COUNT(*) OVER()::int AS total
+        FROM filtered
+        ORDER BY
+          CASE WHEN status = ${ORDER_STATUS_PENDING} THEN 0 ELSE 1 END,
+          created_at DESC
+        LIMIT ${20} OFFSET ${offset}
       )
-      ORDER BY
-        CASE WHEN o.status = ${ORDER_STATUS_PENDING} THEN 0 ELSE 1 END,
-        o.created_at DESC
-      LIMIT ${20} OFFSET ${offset}
-    `,
-    sql<CountRow[]>`
-      SELECT COUNT(*)::int AS total
-      FROM orders o
-      LEFT JOIN users u ON u.id = o.user_id
-      WHERE (${searchFilter}::text IS NULL OR (
-        u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        ${filterByStatus}::text IS NULL OR o.status = ${filterByStatus}
-      )
+      SELECT
+        COALESCE(
+          jsonb_agg(
+            to_jsonb(page) - 'total'
+            ORDER BY CASE WHEN page.status = ${ORDER_STATUS_PENDING} THEN 0 ELSE 1 END, page.created_at DESC
+          ),
+          '[]'::jsonb
+        ) AS orders,
+        COALESCE(MAX(page.total), (SELECT COUNT(*)::int FROM filtered)) AS total
+      FROM page
     `,
     getHcbOauthConnection(),
     loadAvailableShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
   ]);
 
-  const totalCount = countResult.at(0)?.total ?? 0;
+  const orders = orderList.at(0)?.orders ?? [];
+  const totalCount = orderList.at(0)?.total ?? 0;
   const hcbStatus = query.hcb?.trim() ?? "";
   const hcbStatusMessage = hcbStatus === "" ? null : HCB_AUTH_STATUS_MESSAGES.get(hcbStatus) ?? null;
   const lastHcbError = hcbConnection?.lastError?.trim() ?? "";
@@ -128,8 +132,8 @@ export default async function AdminOrdersPage({
       <header className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-3">
-            <h1 className="text-4xl leading-none text-white">{t("admin.orders.title")}</h1>
-            <div className="flex flex-wrap items-center self-center gap-x-4 gap-y-2 font-body text-sm text-white tabular-nums">
+            <h1 className="text-4xl leading-none text-foreground">{t("admin.orders.title")}</h1>
+            <div className="flex flex-wrap items-center self-center gap-x-4 gap-y-2 font-body text-sm text-foreground tabular-nums">
               {SHIRT_SIZES.map((size) => (
                 <div key={size} className="flex items-center gap-2">
                   <span className="text-secondary">{size}</span>
@@ -161,10 +165,10 @@ export default async function AdminOrdersPage({
         {lastHcbError !== "" || hcbStatusMessage !== null ? (
           <div className="space-y-1">
             {lastHcbError !== "" ? (
-              <p className="font-body text-sm text-white">{`Last HCB error: ${lastHcbError}`}</p>
+              <p className="font-body text-sm text-foreground">{`Last HCB error: ${lastHcbError}`}</p>
             ) : null}
             {hcbStatusMessage !== null ? (
-              <p className="font-body text-sm text-white">{hcbStatusMessage}</p>
+              <p className="font-body text-sm text-foreground">{hcbStatusMessage}</p>
             ) : null}
           </div>
         ) : null}
@@ -184,10 +188,10 @@ export default async function AdminOrdersPage({
           />
         </div>
       </div>
-      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
+      <div className="ui-table-card">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white">
+            <tr className="border-b border-foreground">
               <th className="px-5 py-4 font-body text-base text-secondary">
                 {t("admin.orders.columns.user")}
               </th>
@@ -210,7 +214,7 @@ export default async function AdminOrdersPage({
           </thead>
           <tbody>
             {orders.map((order) => (
-              <tr key={order.id} className="border-b border-white last:border-b-0 align-top">
+              <tr key={order.id} className="border-b border-foreground last:border-b-0 align-top">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <SlackAvatar
@@ -219,7 +223,7 @@ export default async function AdminOrdersPage({
                       sizeClassName="h-12 w-12"
                     />
                     <div>
-                      <div className="font-body text-base text-white">
+                      <div className="font-body text-base text-foreground">
                         {order.user_name ?? "-"}
                       </div>
                       <div className="font-body text-sm text-black">
@@ -228,7 +232,7 @@ export default async function AdminOrdersPage({
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   <div>{order.sku ?? "-"}</div>
                   {order.variant !== null && order.variant !== "" ? (
                     <div className="font-body text-sm text-black">
@@ -236,7 +240,7 @@ export default async function AdminOrdersPage({
                     </div>
                   ) : null}
                 </td>
-                <td className="px-5 py-4 max-w-xs font-body text-sm text-white">
+                <td className="px-5 py-4 max-w-xs font-body text-sm text-foreground">
                   {formatHackClubAddress(order.address) || "-"}
                 </td>
                 <td className="px-5 py-4">
@@ -262,7 +266,7 @@ export default async function AdminOrdersPage({
                     </p>
                   ) : null}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {new Date(order.created_at).toLocaleDateString(locale)}
                 </td>
                 <td className="px-5 py-4">
@@ -278,7 +282,7 @@ export default async function AdminOrdersPage({
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-white">
+                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
                   {t("admin.orders.empty")}
                 </td>
               </tr>

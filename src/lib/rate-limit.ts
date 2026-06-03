@@ -6,8 +6,6 @@ import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getRequestIp } from "@/lib/http";
 
-const DEFAULT_WINDOW_SECONDS = 60 * 60;
-
 type RateLimitOptions = {
   scope: string;
   key: string;
@@ -47,7 +45,7 @@ export async function checkRateLimit({
   scope,
   key,
   limit,
-  windowSeconds = DEFAULT_WINDOW_SECONDS,
+  windowSeconds = 60 * 60,
 }: RateLimitOptions): Promise<RateLimitResult> {
   const safeLimit = Math.max(1, Math.trunc(limit));
   const safeWindowSeconds = Math.max(1, Math.trunc(windowSeconds));

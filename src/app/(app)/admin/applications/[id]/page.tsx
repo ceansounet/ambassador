@@ -258,11 +258,11 @@ export default async function AdminApplicationDetailPage({
     <div className="space-y-10">
       <header className="space-y-5">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
-          <Link href="/admin/applications" className="hover:text-white">
+          <Link href="/admin/applications" className="hover:text-foreground">
             {t("admin.application-detail.breadcrumb")}
           </Link>
           <span>/</span>
-          <span className="font-body text-white">{application.id}</span>
+          <span className="font-body text-foreground">{application.id}</span>
         </div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-2">
@@ -273,7 +273,7 @@ export default async function AdminApplicationDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-white">{application.name ?? application.user_name}</h1>
+              <h1 className="text-4xl text-foreground">{application.name ?? application.user_name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={application.status} />
@@ -307,8 +307,8 @@ export default async function AdminApplicationDetailPage({
 
       {!isLatest && (
         <section className="pt-4">
-          <h2 className="text-2xl text-white">{t("admin.application-detail.locked.title")}</h2>
-          <p className="mt-2 max-w-3xl font-body text-base text-white">
+          <h2 className="text-2xl text-foreground">{t("admin.application-detail.locked.title")}</h2>
+          <p className="mt-2 max-w-3xl font-body text-base text-foreground">
             {t("admin.application-detail.locked.body")}{" "}
             <Link
               href={`/admin/applications/${application.latest_application_id}`}
@@ -379,7 +379,7 @@ export default async function AdminApplicationDetailPage({
                     name="note"
                     required
                     rows={5}
-                    className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    className="ui-input-surface mt-2 min-h-24 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                     placeholder={t("admin.application-detail.actions.reject-note-placeholder")}
                   />
                 </label>
@@ -402,7 +402,7 @@ export default async function AdminApplicationDetailPage({
                   <Textarea
                     name="note"
                     rows={4}
-                    className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                    className="ui-input-surface mt-2 min-h-20 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                     placeholder={t("admin.application-detail.actions.permanent-rejection-note-placeholder")}
                   />
                 </label>
@@ -445,7 +445,7 @@ export default async function AdminApplicationDetailPage({
             ) : null}
           </div>
         ) : (
-          <p className="font-body text-base text-white">
+          <p className="font-body text-base text-foreground">
             {t("admin.application-detail.actions.historical-disabled")}
           </p>
         )}
@@ -481,7 +481,7 @@ export default async function AdminApplicationDetailPage({
           <div className="text-sm text-secondary">
             {t("admin.application-detail.answers.first-thing-do")}
           </div>
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-foreground">
             {application.application_first_thing_do ?? "-"}
           </p>
         </div>
@@ -489,7 +489,7 @@ export default async function AdminApplicationDetailPage({
           <div className="text-sm text-secondary">
             {t("admin.application-detail.answers.best-place-poster")}
           </div>
-          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+          <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-foreground">
             {application.application_best_place_poster ?? "-"}
           </p>
         </div>
@@ -604,7 +604,7 @@ export default async function AdminApplicationDetailPage({
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-white">
+              <tr className="border-b border-foreground">
                 <th className="px-0 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.when")}</th>
                 <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.status")}</th>
                 <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.name")}</th>
@@ -613,8 +613,8 @@ export default async function AdminApplicationDetailPage({
             </thead>
             <tbody>
               {history.map((entry) => (
-                <tr key={entry.id} className="border-b border-white last:border-b-0">
-                  <td className="px-0 py-4 font-body text-sm text-white">{formatDateTime(entry.created_at, locale)}</td>
+                <tr key={entry.id} className="border-b border-foreground last:border-b-0">
+                  <td className="px-0 py-4 font-body text-sm text-foreground">{formatDateTime(entry.created_at, locale)}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={entry.status} />
@@ -627,7 +627,7 @@ export default async function AdminApplicationDetailPage({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 font-body text-sm text-white">{entry.name ?? "-"}</td>
+                  <td className="px-4 py-4 font-body text-sm text-foreground">{entry.name ?? "-"}</td>
                   <td className="px-4 py-4">
                     <Link
                       href={`/admin/applications/${entry.id}`}
@@ -653,18 +653,18 @@ export default async function AdminApplicationDetailPage({
             visits.map((visit) => (
               <div key={visit.id} className="pb-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-body text-sm text-white">{visit.ip}</span>
+                  <span className="font-body text-sm text-foreground">{visit.ip}</span>
                   <span className="text-xs text-secondary">{visit.visit_type}</span>
                 </div>
-                <div className="mt-1 font-body text-sm text-white">
+                <div className="mt-1 font-body text-sm text-foreground">
                   {joinNonEmpty(visit.city, visit.region, null, visit.country_code) ?? "-"}
                 </div>
-                <div className="mt-1 font-body text-sm text-white">{visit.org ?? t("admin.application-detail.visits.unknown-network")}</div>
-                <div className="mt-1 text-xs text-white">{formatDateTime(visit.created_at, locale)}</div>
+                <div className="mt-1 font-body text-sm text-foreground">{visit.org ?? t("admin.application-detail.visits.unknown-network")}</div>
+                <div className="mt-1 text-xs text-foreground">{formatDateTime(visit.created_at, locale)}</div>
               </div>
             ))
           ) : (
-            <p className="font-body text-base text-white">{t("admin.application-detail.visits.empty")}</p>
+            <p className="font-body text-base text-foreground">{t("admin.application-detail.visits.empty")}</p>
           )}
         </div>
         <DetailPager
@@ -684,15 +684,15 @@ export default async function AdminApplicationDetailPage({
           {orders.length > 0 ? (
             orders.map((order) => (
               <div key={order.id} className="flex flex-wrap items-center justify-between gap-3 pb-4">
-                <span className="font-body text-sm text-white">{order.id}</span>
+                <span className="font-body text-sm text-foreground">{order.id}</span>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={order.status} />
-                  <span className="text-xs text-white">{formatDateTime(order.created_at, locale)}</span>
+                  <span className="text-xs text-foreground">{formatDateTime(order.created_at, locale)}</span>
                 </div>
               </div>
             ))
           ) : (
-            <p className="font-body text-base text-white">{t("admin.application-detail.orders.empty")}</p>
+            <p className="font-body text-base text-foreground">{t("admin.application-detail.orders.empty")}</p>
           )}
         </div>
       </DetailSection>

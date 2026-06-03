@@ -78,5 +78,9 @@ function getSafeguardAuditName(key: string) {
     return "posters";
   }
 
+  if (key === SAFEGUARD_KEYS.payoutsEnabled) {
+    return "payouts";
+  }
+
   return "referrals";
 }

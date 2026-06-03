@@ -20,8 +20,6 @@ import {
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 
-type CountRow = { total: number };
-
 type ApplicationListRow = {
   id: string;
   status: string;
@@ -41,6 +39,11 @@ type ApplicationListRow = {
   user_email: string | null;
   slack_id: string | null;
   slack_name: string | null;
+};
+
+type ApplicationListResultRow = {
+  applications: ApplicationListRow[];
+  total: number;
 };
 
 const APPLICATION_STATUS_FILTER_OPTIONS = [
@@ -94,65 +97,62 @@ export default async function AdminApplicationsPage({
   const filterByStatus = statusFilter !== "" && !filterOnHold ? statusFilter : null;
   const sortOrder = query.sort === "newest" ? "DESC" : "ASC";
 
-  const [applications, countResult] = await Promise.all([
-    sql<ApplicationListRow[]>`
-      SELECT a.id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
+  const applicationList = (await sql<ApplicationListResultRow[]>`
+    WITH filtered AS (
+      SELECT a.id, a.user_id, a.status, a.name, a.applicant_email, a.applicant_slack_id,
              a.address_city, a.address_state, a.address_country, a.submitted_ip,
              a.city, a.country_code, a.created_at, a.review_on_hold,
-             COALESCE(latest.id = a.id, TRUE) AS is_latest,
              u.display_name AS user_name, u.email AS user_email, u.slack_id, u.slack_name
       FROM applications a
       LEFT JOIN users u ON u.id = a.user_id
+      WHERE (${searchFilter}::text IS NULL OR (
+        a.name ILIKE ${searchFilter}
+        OR a.applicant_email ILIKE ${searchFilter}
+        OR a.applicant_slack_id ILIKE ${searchFilter}
+        OR u.display_name ILIKE ${searchFilter}
+        OR u.email ILIKE ${searchFilter}
+        OR u.slack_id ILIKE ${searchFilter}
+        OR u.slack_name ILIKE ${searchFilter}
+      ))
+      AND (
+        (${filterOnHold}::boolean IS TRUE AND a.review_on_hold IS TRUE)
+        OR (${filterOnHold}::boolean IS FALSE AND (${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}))
+      )
+    ),
+    page AS (
+      SELECT *, COUNT(*) OVER()::int AS total
+      FROM filtered
+      ORDER BY created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}
+      LIMIT ${20} OFFSET ${offset}
+    ),
+    page_with_latest AS (
+      SELECT page.*, COALESCE(latest.id = page.id, TRUE) AS is_latest
+      FROM page
       LEFT JOIN LATERAL (
         SELECT id
         FROM applications
-        WHERE (a.user_id IS NOT NULL AND user_id = a.user_id)
-           OR (a.user_id IS NULL AND a.applicant_email IS NOT NULL AND user_id IS NULL AND LOWER(applicant_email) = LOWER(a.applicant_email))
+        WHERE (page.user_id IS NOT NULL AND user_id = page.user_id)
+           OR (page.user_id IS NULL AND page.applicant_email IS NOT NULL AND user_id IS NULL AND LOWER(applicant_email) = LOWER(page.applicant_email))
         ORDER BY created_at DESC, id DESC
         LIMIT 1
       ) latest ON true
-      WHERE (${searchFilter}::text IS NULL OR (
-        a.name ILIKE ${searchFilter}
-        OR a.applicant_email ILIKE ${searchFilter}
-        OR a.applicant_slack_id ILIKE ${searchFilter}
-        OR u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        (${filterOnHold}::boolean IS TRUE AND a.review_on_hold IS TRUE)
-        OR (${filterOnHold}::boolean IS FALSE AND (${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}))
-      )
-      ORDER BY a.created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}
-      LIMIT ${20} OFFSET ${offset}
-    `,
-    sql<CountRow[]>`
-      SELECT COUNT(*)::int AS total
-      FROM applications a
-      LEFT JOIN users u ON u.id = a.user_id
-      WHERE (${searchFilter}::text IS NULL OR (
-        a.name ILIKE ${searchFilter}
-        OR a.applicant_email ILIKE ${searchFilter}
-        OR a.applicant_slack_id ILIKE ${searchFilter}
-        OR u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        (${filterOnHold}::boolean IS TRUE AND a.review_on_hold IS TRUE)
-        OR (${filterOnHold}::boolean IS FALSE AND (${filterByStatus}::text IS NULL OR a.status = ${filterByStatus}))
-      )
-    `,
-  ]);
+    )
+    SELECT
+      COALESCE(
+        jsonb_agg(to_jsonb(page_with_latest) - 'total' - 'user_id' ORDER BY page_with_latest.created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}),
+        '[]'::jsonb
+      ) AS applications,
+      COALESCE(MAX(page_with_latest.total), (SELECT COUNT(*)::int FROM filtered)) AS total
+    FROM page_with_latest
+  `).at(0);
 
-  const totalCount = countResult.at(0)?.total ?? 0;
+  const applications = applicationList?.applications ?? [];
+  const totalCount = applicationList?.total ?? 0;
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-4xl text-white">{t("admin.applications-list.title")}</h1>
+        <h1 className="text-4xl text-foreground">{t("admin.applications-list.title")}</h1>
         <Link
           href="/admin/applications/review"
           className="ui-open-link inline-flex items-center gap-1 whitespace-nowrap font-body text-lg leading-none"
@@ -177,10 +177,10 @@ export default async function AdminApplicationsPage({
           <SortToggle />
         </div>
       </div>
-      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
+      <div className="ui-table-card">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white">
+            <tr className="border-b border-foreground">
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.applicant")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.name-on-app")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.status")}</th>
@@ -198,7 +198,7 @@ export default async function AdminApplicationsPage({
               const applicationName = dedupeRepeatedLastName(application.name) ?? "-";
 
               return (
-                <tr key={application.id} className="border-b border-white last:border-b-0">
+                <tr key={application.id} className="border-b border-foreground last:border-b-0">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative shrink-0">
@@ -210,23 +210,23 @@ export default async function AdminApplicationsPage({
                         {application.review_on_hold === true ? (
                           <span
                             aria-label={t("admin.applications-list.on-hold")}
-                            className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border border-white bg-card text-xs leading-none"
+                            className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border border-foreground bg-card text-xs leading-none"
                           >
                             ⚠️
                           </span>
                         ) : null}
                       </div>
                       <div>
-                        <div className="font-body text-base text-white">
+                        <div className="font-body text-base text-foreground">
                           {applicantName}
                         </div>
-                        <div className="font-body text-sm text-white">
+                        <div className="font-body text-sm text-foreground">
                           {application.user_email ?? application.applicant_email ?? "-"}
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-white">
+                  <td className="px-5 py-4 font-body text-base text-foreground">
                     {applicationName}
                   </td>
                   <td className="px-5 py-4">
@@ -243,14 +243,14 @@ export default async function AdminApplicationsPage({
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-white">
+                  <td className="px-5 py-4 font-body text-base text-foreground">
                     {application.city !== null && application.country_code !== null
                       ? `${application.city}, ${application.country_code}`
                       : application.address_city !== null && application.address_country !== null
                         ? `${application.address_city}, ${application.address_country}`
                         : "-"}
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-white">
+                  <td className="px-5 py-4 font-body text-base text-foreground">
                     {new Date(application.created_at).toLocaleDateString(locale)}
                   </td>
                   <td className="px-5 py-4">
@@ -267,7 +267,7 @@ export default async function AdminApplicationsPage({
             })}
             {applications.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-white">
+                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
                   {t("admin.applications-list.empty")}
                 </td>
               </tr>

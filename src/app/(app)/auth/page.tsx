@@ -36,7 +36,7 @@ export default async function LoginPage() {
       />
       <div className="flex w-full max-w-md bg-white border border-neutral-300 p-8 flex-col">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-foreground">
             {t("app.login.title")}
           </h1>
           <Image
@@ -62,12 +62,12 @@ export default async function LoginPage() {
               type="email"
               required
               placeholder={t("app.login.email-placeholder")}
-              className="h-full rounded-none border-0 bg-transparent pl-10 py-0 text-base text-white shadow-none placeholder:text-foreground focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
+              className="h-full rounded-none border-0 bg-transparent pl-10 py-0 text-base text-foreground shadow-none placeholder:text-foreground focus-visible:border-0 focus-visible:ring-0 dark:bg-transparent"
             />
           </div>
           <button
             type="submit"
-            className="flex size-12 flex-none rounded-sm cursor-pointer items-center justify-center bg-primary text-white"
+            className="flex size-12 flex-none rounded-sm cursor-pointer items-center justify-center bg-primary text-white transition-colors hover:bg-foreground"
           >
             <ArrowRightIcon className="size-5" strokeWidth={2.5} />
             <span className="sr-only">Next</span>
@@ -76,7 +76,7 @@ export default async function LoginPage() {
       </div>
       <a
         href="/api/auth/login"
-        className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white"
+        className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white transition-colors hover:bg-foreground"
       >
         <Image
           src={hackClub}

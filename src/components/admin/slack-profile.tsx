@@ -15,7 +15,7 @@ export function SlackAvatar({
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center rounded-full border border-white p-1 ${sizeClassName}`}
+      className={`flex shrink-0 items-center justify-center rounded-full border border-foreground p-1 ${sizeClassName}`}
     >
       {slackId !== null && slackId !== undefined && slackId !== "" ? (
         <div
@@ -53,7 +53,7 @@ export function SlackProfile({
       <div className="text-sm text-secondary">{label}</div>
       <div className="flex items-center gap-3">
         <SlackAvatar slackId={slackId} fallbackName={displayName} />
-        <div className="font-body text-base text-white">
+        <div className="font-body text-base text-foreground">
           {displayName}
           {slackId !== null && slackId !== undefined && slackId !== "" ? ` (${slackId})` : ""}
         </div>

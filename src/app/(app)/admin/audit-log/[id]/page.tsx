@@ -68,15 +68,15 @@ export default async function AdminAuditLogEventPage({
     <div className="space-y-8">
       <header className="space-y-5">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
-          <Link href="/admin/audit-log" className="hover:text-white">
+          <Link href="/admin/audit-log" className="hover:text-foreground">
             {t("admin.audit-log.event-detail.breadcrumb")}
           </Link>
           <span>/</span>
-          <span className="font-body text-white">{event.id}</span>
+          <span className="font-body text-foreground">{event.id}</span>
         </div>
         <div className="space-y-2">
-          <h1 className="text-4xl text-white">{formatEventType(event.action)}</h1>
-          <p className="max-w-3xl font-body text-base text-white">
+          <h1 className="text-4xl text-foreground">{formatEventType(event.action)}</h1>
+          <p className="max-w-3xl font-body text-base text-foreground">
             {formatAuditEventSummary(event)}
           </p>
         </div>
@@ -96,7 +96,7 @@ export default async function AdminAuditLogEventPage({
         />
         <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-5">
           <div className="text-sm text-secondary">{t("admin.audit-log.columns.when")}</div>
-          <div className="font-body text-base text-white">
+          <div className="font-body text-base text-foreground">
             <LocalDateTime value={event.created_at} locale={locale} />
           </div>
         </div>
@@ -131,7 +131,7 @@ export default async function AdminAuditLogEventPage({
             <AuditDetailRow key={row.label} label={row.label} value={row.value} />
           ))
         ) : (
-          <p className="font-body text-base text-white">
+          <p className="font-body text-base text-foreground">
             {t("admin.audit-log.event-detail.no-details")}
           </p>
         )}
@@ -152,7 +152,7 @@ function AuditDetailRow({
   return (
     <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-5">
       <div className="text-sm text-secondary">{label}</div>
-      <div className="break-words font-body text-base font-bold text-white [overflow-wrap:anywhere]">
+      <div className="break-words font-body text-base font-bold text-foreground [overflow-wrap:anywhere]">
         {displayValue}
       </div>
     </div>
@@ -177,7 +177,7 @@ function UserEventRow({
   return (
     <div className="grid gap-2 sm:grid-cols-[14rem_minmax(0,1fr)] sm:gap-5">
       <div className="text-sm text-secondary">{label}</div>
-      <div className="font-body text-base text-white break-words [overflow-wrap:anywhere]">
+      <div className="font-body text-base text-foreground break-words [overflow-wrap:anywhere]">
         {userId !== null && name !== null ? (
           <Link href={`/admin/users/${userId}`} className="ui-open-link">
             {name}

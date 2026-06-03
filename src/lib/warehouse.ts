@@ -18,12 +18,12 @@ export type HackClubAuthAddress = {
   primary?: boolean
 }
 
-export type WarehouseAddressInput = {
+type WarehouseAddressInput = {
   name: string
   address: HackClubAuthAddress
 }
 
-export type WarehouseOrderAddress = {
+type WarehouseOrderAddress = {
   first_name: string
   last_name?: string
   line_1: string
@@ -67,7 +67,7 @@ export type WarehouseOrderResponse = {
   idempotency_key?: string
 }
 
-export type WarehouseSkuResponse = {
+type WarehouseSkuResponse = {
   name: string
   in_stock: number | null
   inbound: number | null
@@ -328,7 +328,7 @@ export function parseWarehouseOrderResponse(value: unknown): WarehouseOrderRespo
   }
 }
 
-export function parseWarehouseSkuResponse(value: unknown): WarehouseSkuResponse | null {
+function parseWarehouseSkuResponse(value: unknown): WarehouseSkuResponse | null {
   const payload = unwrapWarehouseSkuResponse(value)
 
   if (payload === null) {
@@ -350,7 +350,7 @@ export function parseWarehouseSkuResponse(value: unknown): WarehouseSkuResponse 
   }
 }
 
-export function pickPrimaryHackClubAddress(addresses: HackClubAuthAddress[]) {
+function pickPrimaryHackClubAddress(addresses: HackClubAuthAddress[]) {
   const normalizedAddresses = addresses
     .map((address) => coerceHackClubAuthAddress(address))
     .filter((address): address is HackClubAuthAddress => address !== null)
@@ -358,7 +358,7 @@ export function pickPrimaryHackClubAddress(addresses: HackClubAuthAddress[]) {
   return normalizedAddresses.find((address) => address.primary === true) ?? normalizedAddresses.at(0) ?? null
 }
 
-export function normalizeHackClubAddress(input: WarehouseAddressInput): WarehouseOrderAddress {
+function normalizeHackClubAddress(input: WarehouseAddressInput): WarehouseOrderAddress {
   const splitRecipientName = splitName(input.name)
 
   const firstNameSource =
@@ -385,11 +385,11 @@ export function normalizeHackClubAddress(input: WarehouseAddressInput): Warehous
   }
 }
 
-export function buildAmbassadorIdempotencyKey(orderNumber: string, name: string) {
+function buildAmbassadorIdempotencyKey(orderNumber: string, name: string) {
   return `${cleanInput(orderNumber)}-ambassadors-${slugify(name)}`
 }
 
-export function buildWarehouseOrderPayload(input: SendWarehouseSkuInput): WarehouseCreatePayload {
+function buildWarehouseOrderPayload(input: SendWarehouseSkuInput): WarehouseCreatePayload {
   const selectedAddress =
     coerceHackClubAuthAddress(input.address) ?? pickPrimaryHackClubAddress(input.addresses ?? [])
 

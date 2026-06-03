@@ -19,7 +19,14 @@ const EVENT_LABELS: Record<AdminActionEvent, string> = {
   poster_deleted: "Poster deleted",
   poster_group_deleted: "Poster group deleted",
   poster_rejected_by_admin: "Poster manually rejected",
+  poster_approved_by_admin: "Poster proof approved",
   referral_status_updated_by_admin: "Referral status updated",
+  payout_balance_adjusted: "Balance manually adjusted",
+  payout_created_via_impersonation: "Payout created while impersonating",
+  payout_manual_created: "Manual payout created",
+  payout_retro_rejected: "Approved payout retroactively rejected",
+  payout_reviewed: "Payout reviewed",
+  payout_transfer_link_updated: "Payout transfer link updated",
   user_admin_password_rejected: "Superuser password rejected",
   user_demoted_from_admin: "User removed as admin",
   user_hcb_grant_linked: "HCB grant linked",
@@ -53,6 +60,14 @@ const METADATA_LABELS: Record<string, string> = {
   nextSent: "Next T-shirt status",
   nextState: "Next dashboard state",
   organizationId: "Organization",
+  payoutId: "Payout",
+  previousTransferLink: "Previous transfer link",
+  forfeited: "Balance forfeited",
+  reversed: "Balance returned",
+  transferLink: "Transfer link",
+  balanceAfterCents: "Balance after",
+  reason: "Reason",
+  publicNote: "Public note",
   posterGroupId: "Poster group",
   posterGroupName: "Poster group name",
   posterId: "Poster",
@@ -132,8 +147,37 @@ export function formatAuditEventSummary(event: AuditEventLike): string {
         `Manually rejected poster ${formatMetadataValue(metadata.referralCode ?? metadata.posterId)}.`,
         metadata.reason ? `Reason: ${formatMetadataValue(metadata.reason)}.` : null,
       );
+    case "poster_approved_by_admin":
+      return metadata.status === "in_review"
+        ? `Reverted poster ${formatMetadataValue(metadata.referralCode ?? metadata.posterId)} back to review.`
+        : `Approved poster proof ${formatMetadataValue(metadata.referralCode ?? metadata.posterId)}.`;
     case "referral_status_updated_by_admin":
       return `Set referral ${formatMetadataValue(metadata.referralId)} status to ${formatMetadataValue(metadata.nextStatus)}.`;
+    case "payout_balance_adjusted":
+      return joinSentenceParts(
+        `Adjusted balance by ${formatMetadataValue(metadata.amountCents)} cents.`,
+        metadata.reason ? `Reason: ${formatMetadataValue(metadata.reason)}.` : null,
+      );
+    case "payout_created_via_impersonation":
+      return `Created payout ${formatMetadataValue(metadata.payoutId)} for ${formatMetadataValue(metadata.amountCents)} cents while impersonating this user.`;
+    case "payout_manual_created":
+      return `Created a manual payout ${formatMetadataValue(metadata.payoutId)} of ${formatMetadataValue(metadata.amountCents)} cents.`;
+    case "payout_retro_rejected":
+      return joinSentenceParts(
+        `Retroactively rejected approved payout ${formatMetadataValue(metadata.payoutId)}.`,
+        metadata.reversed === true
+          ? `Returned ${formatMetadataValue(metadata.amountCents)} cents to the balance.`
+          : "The balance stayed debited.",
+      );
+    case "payout_reviewed":
+      return joinSentenceParts(
+        `Marked payout ${formatMetadataValue(metadata.payoutId)} as ${formatMetadataValue(metadata.status)}.`,
+        metadata.forfeited === true
+          ? `Forfeited ${formatMetadataValue(metadata.amountCents)} cents from the balance.`
+          : null,
+      );
+    case "payout_transfer_link_updated":
+      return `Updated the transfer link on payout ${formatMetadataValue(metadata.payoutId)}.`;
     case "user_admin_password_rejected":
       return `Rejected a superuser password attempt for ${formatAction(metadata.attemptedAction)}.`;
     case "user_demoted_from_admin":

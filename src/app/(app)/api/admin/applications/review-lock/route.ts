@@ -4,8 +4,6 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getActorSession } from "@/lib/session";
 import sql from "@/lib/database/client";
 
-const LOCK_TTL_SECONDS = 10;
-
 /** Acquire or refresh a lock on an application */
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -32,7 +30,7 @@ export async function POST(request: Request) {
   // Clear expired locks
   await sql`
     DELETE FROM review_locks
-    WHERE locked_at < NOW() - make_interval(secs => ${LOCK_TTL_SECONDS}::double precision)
+    WHERE locked_at < NOW() - make_interval(secs => ${10}::double precision)
   `;
 
   // Check if someone else holds the lock
@@ -41,7 +39,7 @@ export async function POST(request: Request) {
     FROM review_locks
     WHERE application_id = ${applicationId}
       AND locked_by != ${session.sub}
-      AND locked_at >= NOW() - make_interval(secs => ${LOCK_TTL_SECONDS}::double precision)
+      AND locked_at >= NOW() - make_interval(secs => ${10}::double precision)
     LIMIT 1
   `).at(0);
 

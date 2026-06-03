@@ -112,7 +112,7 @@ function isTokenPayloadRecord(value: unknown): value is TokenPayload {
   );
 }
 
-export async function verifyImpersonationToken(
+async function verifyImpersonationToken(
   token: string,
 ): Promise<ImpersonationTokenPayload | null> {
   const payload = await verifyJwt(token);

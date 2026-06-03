@@ -9,13 +9,16 @@ export function AdminTabs() {
   const pathname = usePathname();
 
   return (
-    <div className="mb-8 flex items-center gap-6 border-b border-white pb-4">
+    <div className="mb-8 flex items-center gap-4 overflow-x-auto border-b border-foreground pb-4 sm:gap-6">
       {[
         { href: "/admin", label: t("dashboard") },
         { href: "/admin/audit-log", label: t("audit-log") },
         { href: "/admin/safeguards", label: t("flags") },
         { href: "/admin/users", label: t("users") },
         { href: "/admin/orders", label: t("orders") },
+        // Tabs are ordered by label length; "Payouts" slots between
+        // "Orders" and "Applications".
+        { href: "/admin/payouts", label: t("payouts") },
         { href: "/admin/applications", label: t("applications") },
       ].map((tab) => {
         const active =
@@ -27,8 +30,8 @@ export function AdminTabs() {
             href={tab.href}
             className={
               active
-                ? "text-lg font-bold text-white"
-                : "text-lg text-secondary hover:text-white"
+                ? "shrink-0 whitespace-nowrap text-lg font-bold text-foreground"
+                : "shrink-0 whitespace-nowrap text-lg text-muted-foreground hover:text-foreground"
             }
           >
             {tab.label}

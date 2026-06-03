@@ -184,7 +184,7 @@ function DecisionReasonModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      className="ui-modal-backdrop items-center p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
           onOpenChange(false);
@@ -197,13 +197,13 @@ function DecisionReasonModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-lg space-y-4 border border-white/10 bg-card p-5 shadow-xl"
+        className="w-full max-w-lg space-y-4 ui-card shadow-xl"
         confirmationMessage={confirmationMessage}
       >
         <input type="hidden" name="redirectTo" value={`/admin/applications/review/${applicationId}`} />
 
         <div className="space-y-1">
-          <h3 id={titleId} className="text-xl text-white">
+          <h3 id={titleId} className="text-xl text-foreground">
             {title}
           </h3>
           <p className="font-body text-sm text-secondary">Add a reason before submitting.</p>
@@ -219,7 +219,7 @@ function DecisionReasonModal({
             required={noteRequired}
             rows={noteRequired ? 5 : 4}
             autoFocus
-            className="ui-input-surface mt-2 min-h-24 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+            className="ui-input-surface mt-2 min-h-24 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
             placeholder={notePlaceholder}
           />
         </label>

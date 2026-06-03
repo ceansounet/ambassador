@@ -10,10 +10,10 @@ import {
   createPoster,
   createPosterGroup,
   createPostersForGroup,
-  countStardanceReferralsByPosterId,
+  countStardanceReferralsForPosterIds,
   countStardanceReferralsForPoster,
-  countUserPosterGroups,
   countUserPosters,
+  countUserPosterUsage,
   deletePosterById,
   deletePosterGroupById,
   findPosterByPublicScanCode,
@@ -23,7 +23,7 @@ import {
   getGroupPosters,
   getUserPendingPosters,
   listUserPosterGroups,
-  listUserPosters,
+  listUserPostersWithReferralCounts,
   movePosterToGroup,
   updatePosterGroupName,
   updatePosterMetadata,
@@ -48,8 +48,6 @@ import {
   type VerifiedPosterDisplay,
 } from "@/lib/posters/types";
 
-const MAX_POSTER_NAME_LENGTH = 80;
-
 function isPosterStyle(value: string | null | undefined): value is PosterStyle {
   return typeof value === "string" && parsePosterStyle(value) !== null;
 }
@@ -68,7 +66,7 @@ function isPosterGroupCharset(value: string | null | undefined): value is Poster
 
 function normalizePosterName(value: string | null | undefined) {
   const name = value?.trim() ?? "";
-  return name === "" ? null : name.slice(0, MAX_POSTER_NAME_LENGTH);
+  return name === "" ? null : name.slice(0, 80);
 }
 
 function requirePosterName(value: string | null | undefined, label: string) {
@@ -155,17 +153,16 @@ async function persistPosterDecision(input: {
 }
 
 export async function listPosterDataForUser(userId: string) {
-  const [groups, posters, referralCounts] = await Promise.all([
+  const [groups, posters] = await Promise.all([
     listUserPosterGroups(userId),
-    listUserPosters(userId),
-    countStardanceReferralsByPosterId(userId),
+    listUserPostersWithReferralCounts(userId),
   ]);
 
   const groupedPosters = new Map<string, ReturnType<typeof toClientPoster>[]>();
   const standalonePosters: ReturnType<typeof toClientPoster>[] = [];
 
-  for (const poster of posters) {
-    const clientPoster = toClientPoster(poster, referralCounts.get(poster.id) ?? 0);
+  for (const { poster, referralCount } of posters) {
+    const clientPoster = toClientPoster(poster, referralCount);
     if (poster.poster_group_id !== null) {
       const existing = groupedPosters.get(poster.poster_group_id) ?? [];
       existing.push(clientPoster);
@@ -223,14 +220,14 @@ export async function createPosterGroupForUser(
     charset?: string | null;
   },
 ) {
-  const [existingPosterCount, existingGroupCount] = await Promise.all([
-    countUserPosters(input.userId),
-    countUserPosterGroups(input.userId),
-  ]);
-  if (existingGroupCount >= 300) {
-    throw new PosterRequestError("You can have at most 300 poster groups.", 400);
+  const usage = await countUserPosterUsage(input.userId);
+  if (usage.groupCount >= MAX_POSTERS_PER_USER / MAX_POSTERS_PER_GROUP) {
+    throw new PosterRequestError(
+      `You can have at most ${MAX_POSTERS_PER_USER / MAX_POSTERS_PER_GROUP} poster groups.`,
+      400,
+    );
   }
-  const remaining = MAX_POSTERS_PER_USER - existingPosterCount;
+  const remaining = MAX_POSTERS_PER_USER - usage.posterCount;
   if (input.count > 0 && remaining <= 0) {
     throw new PosterRequestError(`You can have at most ${MAX_POSTERS_PER_USER} posters.`, 400);
   }
@@ -274,7 +271,7 @@ export async function addPostersToGroupForUser(input: {
 }) {
   const { group, posters } = await getPosterGroupForUserOrThrow(input.userId, input.groupId);
   const count = Math.max(1, Math.floor(input.count));
-  const [userPosterCount] = await Promise.all([countUserPosters(input.userId)]);
+  const userPosterCount = await countUserPosters(input.userId);
   const remaining = Math.min(
     MAX_POSTERS_PER_GROUP - posters.length,
     MAX_POSTERS_PER_USER - userPosterCount,
@@ -360,10 +357,11 @@ export async function deletePosterGroupForUser(userId: string, groupId: string) 
   if (posters.some((poster) => poster.verification_status === "success")) {
     throw new PosterRequestError("Poster groups with accepted posters cannot be deleted.", 400);
   }
-  const referralCounts = await Promise.all(
-    posters.map((poster) => countStardanceReferralsForPoster(poster)),
+  const referralCounts = await countStardanceReferralsForPosterIds(
+    userId,
+    posters.map((poster) => poster.id),
   );
-  if (referralCounts.some((count) => count > 0)) {
+  if (posters.some((poster) => (referralCounts.get(poster.id) ?? 0) > 0)) {
     throw new PosterRequestError("Poster groups with referrals cannot be deleted.", 400);
   }
 

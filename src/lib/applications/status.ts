@@ -6,19 +6,15 @@ export const APPLICATION_STATUS_PENDING_REVIEW = "Pending Review";
 export const APPLICATION_STATUS_ACCEPTED = "Accepted";
 export const APPLICATION_STATUS_REJECTED = "Rejected";
 export const APPLICATION_STATUS_REJECTED_PERMANENT = "Rejected Permenant";
-export const APPLICATION_STATUS_REJECTED_PERMENANT = APPLICATION_STATUS_REJECTED_PERMANENT;
 
 const LEGACY_APPLICATION_STATUS_REJECTED_PERMANENT = "Rejected Permanent";
 
-export const APPLICATION_STATUS_VALUES = [
-  APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS,
-  APPLICATION_STATUS_PENDING_REVIEW,
-  APPLICATION_STATUS_ACCEPTED,
-  APPLICATION_STATUS_REJECTED,
-  APPLICATION_STATUS_REJECTED_PERMANENT,
-] as const;
-
-export type ApplicationStatus = (typeof APPLICATION_STATUS_VALUES)[number];
+export type ApplicationStatus =
+  | typeof APPLICATION_STATUS_PENDING_AUTOMATIC_CHECKS
+  | typeof APPLICATION_STATUS_PENDING_REVIEW
+  | typeof APPLICATION_STATUS_ACCEPTED
+  | typeof APPLICATION_STATUS_REJECTED
+  | typeof APPLICATION_STATUS_REJECTED_PERMANENT;
 
 const legacyApplicationStatusMap = {
   pending: APPLICATION_STATUS_PENDING_REVIEW,
@@ -80,14 +76,6 @@ export function isRejectedPermanentlyApplicationStatus(
   status: string | null | undefined,
 ) {
   return normalizeApplicationStatus(status) === APPLICATION_STATUS_REJECTED_PERMANENT;
-}
-
-export function isTerminalApplicationStatus(status: string | null | undefined) {
-  return (
-    isAcceptedApplicationStatus(status) ||
-    isRejectedApplicationStatus(status) ||
-    isRejectedPermanentlyApplicationStatus(status)
-  );
 }
 
 export function canChangeApplicationReviewStatus(

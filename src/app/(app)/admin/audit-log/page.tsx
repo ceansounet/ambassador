@@ -16,8 +16,6 @@ import type { AdminActionEvent } from "@/lib/admin-action-events";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 
-type CountRow = { total: number };
-
 type AuditLogRow = {
   id: string;
   actor_user_id: string | null;
@@ -27,6 +25,11 @@ type AuditLogRow = {
   created_at: string;
   actor_display_name: string | null;
   target_display_name: string | null;
+};
+
+type AuditLogResultRow = {
+  events: AuditLogRow[];
+  total: number;
 };
 
 type AdminUser = {
@@ -83,57 +86,47 @@ export default async function AdminAuditLogPage({
       : null;
   const filterNone = usersParam === "__none__";
 
-  const [events, countResult, adminUsers] = await Promise.all([
-    sql<AuditLogRow[]>`
+  const [eventList, adminUsers] = await Promise.all([
+    sql<AuditLogResultRow[]>`
+      WITH filtered AS (
+        SELECT
+          e.id, e.actor_user_id, e.target_user_id, e.action, e.metadata, e.created_at,
+          actor.display_name AS actor_display_name,
+          target.display_name AS target_display_name
+        FROM admin_action_events e
+        LEFT JOIN users actor ON actor.id = e.actor_user_id
+        LEFT JOIN users target ON target.id = e.target_user_id
+        WHERE (${searchFilter}::text IS NULL OR (
+          actor.display_name ILIKE ${searchFilter}
+          OR actor.email ILIKE ${searchFilter}
+          OR actor.slack_id ILIKE ${searchFilter}
+          OR actor.slack_name ILIKE ${searchFilter}
+          OR target.display_name ILIKE ${searchFilter}
+          OR target.email ILIKE ${searchFilter}
+          OR target.slack_id ILIKE ${searchFilter}
+          OR target.slack_name ILIKE ${searchFilter}
+        ))
+        AND (${filterByEvent}::text IS NULL OR e.action = ${filterByEvent})
+        AND (
+          ${filterNone} = false AND (
+            ${filterUserIds}::text[] IS NULL
+            OR e.actor_user_id = ANY(${filterUserIds ?? []})
+          )
+        )
+      ),
+      page AS (
+        SELECT *, COUNT(*) OVER()::int AS total
+        FROM filtered
+        ORDER BY created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}, id ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}
+        LIMIT ${20} OFFSET ${offset}
+      )
       SELECT
-        e.id, e.actor_user_id, e.target_user_id, e.action, e.metadata, e.created_at,
-        actor.display_name AS actor_display_name,
-        target.display_name AS target_display_name
-      FROM admin_action_events e
-      LEFT JOIN users actor ON actor.id = e.actor_user_id
-      LEFT JOIN users target ON target.id = e.target_user_id
-      WHERE (${searchFilter}::text IS NULL OR (
-        actor.display_name ILIKE ${searchFilter}
-        OR actor.email ILIKE ${searchFilter}
-        OR actor.slack_id ILIKE ${searchFilter}
-        OR actor.slack_name ILIKE ${searchFilter}
-        OR target.display_name ILIKE ${searchFilter}
-        OR target.email ILIKE ${searchFilter}
-        OR target.slack_id ILIKE ${searchFilter}
-        OR target.slack_name ILIKE ${searchFilter}
-      ))
-      AND (${filterByEvent}::text IS NULL OR e.action = ${filterByEvent})
-      AND (
-        ${filterNone} = false AND (
-          ${filterUserIds}::text[] IS NULL
-          OR e.actor_user_id = ANY(${filterUserIds ?? []})
-        )
-      )
-      ORDER BY e.created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}, e.id ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}
-      LIMIT ${20} OFFSET ${offset}
-    `,
-    sql<CountRow[]>`
-      SELECT COUNT(*)::int AS total
-      FROM admin_action_events e
-      LEFT JOIN users actor ON actor.id = e.actor_user_id
-      LEFT JOIN users target ON target.id = e.target_user_id
-      WHERE (${searchFilter}::text IS NULL OR (
-        actor.display_name ILIKE ${searchFilter}
-        OR actor.email ILIKE ${searchFilter}
-        OR actor.slack_id ILIKE ${searchFilter}
-        OR actor.slack_name ILIKE ${searchFilter}
-        OR target.display_name ILIKE ${searchFilter}
-        OR target.email ILIKE ${searchFilter}
-        OR target.slack_id ILIKE ${searchFilter}
-        OR target.slack_name ILIKE ${searchFilter}
-      ))
-      AND (${filterByEvent}::text IS NULL OR e.action = ${filterByEvent})
-      AND (
-        ${filterNone} = false AND (
-          ${filterUserIds}::text[] IS NULL
-          OR e.actor_user_id = ANY(${filterUserIds ?? []})
-        )
-      )
+        COALESCE(
+          jsonb_agg(to_jsonb(page) - 'total' ORDER BY page.created_at ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}, page.id ${sortOrder === "ASC" ? sql`ASC` : sql`DESC`}),
+          '[]'::jsonb
+        ) AS events,
+        COALESCE(MAX(page.total), (SELECT COUNT(*)::int FROM filtered)) AS total
+      FROM page
     `,
     sql<AdminUser[]>`
       SELECT id, display_name, slack_id
@@ -143,12 +136,13 @@ export default async function AdminAuditLogPage({
     `,
   ]);
 
-  const totalCount = countResult.at(0)?.total ?? 0;
+  const events = eventList.at(0)?.events ?? [];
+  const totalCount = eventList.at(0)?.total ?? 0;
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-4xl text-white">{t("admin.audit-log.title")}</h1>
+        <h1 className="text-4xl text-foreground">{t("admin.audit-log.title")}</h1>
       </header>
       <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
         <div className="w-full max-w-sm">
@@ -173,10 +167,10 @@ export default async function AdminAuditLogPage({
           <SortToggle defaultSort="newest" />
         </div>
       </div>
-      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
+      <div className="ui-table-card">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white">
+            <tr className="border-b border-foreground">
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.event")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.actor")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.target")}</th>
@@ -187,11 +181,11 @@ export default async function AdminAuditLogPage({
           </thead>
           <tbody>
             {events.map((event) => (
-              <tr key={event.id} className="border-b border-white last:border-b-0">
-                <td className="px-5 py-4 font-body text-base text-white">
+              <tr key={event.id} className="border-b border-foreground last:border-b-0">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {formatEventType(event.action)}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {event.actor_user_id ? (
                     <Link
                       href={`/admin/users/${event.actor_user_id}`}
@@ -203,7 +197,7 @@ export default async function AdminAuditLogPage({
                     <span className="text-secondary">{t("admin.audit-log.system")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {event.target_user_id ? (
                     <Link
                       href={`/admin/users/${event.target_user_id}`}
@@ -215,12 +209,12 @@ export default async function AdminAuditLogPage({
                     <span className="text-secondary">-</span>
                   )}
                 </td>
-                <td className="max-w-sm px-5 py-4 font-body text-sm font-bold text-white">
+                <td className="max-w-sm px-5 py-4 font-body text-sm font-bold text-foreground">
                   <span className="line-clamp-2" title={formatAuditEventSummary(event)}>
                     {formatAuditEventSummary(event)}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-5 py-4 font-body text-base text-white">
+                <td className="whitespace-nowrap px-5 py-4 font-body text-base text-foreground">
                   <LocalDateTime value={event.created_at} locale={locale} />
                 </td>
                 <td className="px-5 py-4">
@@ -236,7 +230,7 @@ export default async function AdminAuditLogPage({
             ))}
             {events.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-white">
+                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
                   {t("admin.audit-log.empty")}
                 </td>
               </tr>

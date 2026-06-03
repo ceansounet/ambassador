@@ -373,89 +373,67 @@ export default async function AdminDashboard({
       <header className="space-y-2">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] xl:items-start">
           <div className="space-y-2">
-            <h1 className="text-4xl leading-none text-white xl:flex xl:h-6 xl:items-center">
+            <h1 className="text-4xl leading-none text-foreground xl:flex xl:h-6 xl:items-center">
               {t("admin.overview.title")}
             </h1>
-            <p className="font-body text-base text-white">{t("admin.overview.description")}</p>
+            <p className="font-body text-base text-foreground">{t("admin.overview.description")}</p>
           </div>
 
-          <div className="flex flex-wrap items-start gap-x-6 gap-y-4 xl:flex-nowrap xl:justify-end">
+          <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                top: {
-                  icon: "view" as const,
-                  label: t("admin.overview.stats.visitors"),
-                  value: numberFormatter.format(summary.total_visit_count),
-                },
-                bottom: undefined,
+                icon: "view" as const,
+                label: t("admin.overview.stats.visitors"),
+                value: numberFormatter.format(summary.total_visit_count),
+                detail: undefined,
               },
               {
-                top: {
-                  icon: "person" as const,
-                  label: t("admin.overview.stats.signups"),
-                  value: numberFormatter.format(summary.signup_count),
-                },
-                bottom: undefined,
+                icon: "person" as const,
+                label: t("admin.overview.stats.signups"),
+                value: numberFormatter.format(summary.signup_count),
+                detail: undefined,
               },
               {
-                top: {
-                  icon: "send" as const,
-                  label: t("admin.overview.stats.applicants"),
-                  value: numberFormatter.format(summary.applicant_count),
-                },
-                bottom: {
-                  icon: "friend" as const,
-                  label: t("admin.overview.stats.total-referrals"),
-                  value: numberFormatter.format(referralDropOff.total_count),
-                  detail: t("admin.overview.stats.total-referrals-detail", {
-                    count: referralDropOff.verified_count,
-                  }),
-                },
+                icon: "send" as const,
+                label: t("admin.overview.stats.applicants"),
+                value: numberFormatter.format(summary.applicant_count),
+                detail: undefined,
               },
               {
-                top: {
-                  icon: "clock" as const,
-                  label: t("admin.overview.stats.pending-review"),
-                  value: numberFormatter.format(summary.pending_count),
-                },
-                bottom: {
-                  icon: "photo" as const,
-                  label: t("admin.overview.stats.total-posters"),
-                  value: numberFormatter.format(posterStatus.total_count),
-                  detail: t("admin.overview.stats.total-posters-detail", {
-                    count: posterStatus.success_count,
-                  }),
-                },
+                icon: "clock" as const,
+                label: t("admin.overview.stats.pending-review"),
+                value: numberFormatter.format(summary.pending_count),
+                detail: undefined,
               },
-            ].map((column) => (
-              <div
-                key={column.top.label}
-                className="grid shrink-0 grid-cols-[auto_auto_auto] items-baseline gap-x-2.5 whitespace-nowrap"
-              >
-                <Icon glyph={column.top.icon} size={24} className="self-center text-white" />
-                <span className="text-2xl leading-none text-white tabular-nums">
-                  {column.top.value}
-                </span>
-                <span className="font-body text-base leading-none text-white">
-                  {column.top.label}
-                </span>
-                {column.bottom ? (
-                  <>
-                    <Icon
-                      glyph={column.bottom.icon}
-                      size={24}
-                      className="col-start-1 mt-4 self-center text-white"
-                    />
-                    <span className="mt-4 text-2xl leading-none text-white tabular-nums">
-                      {column.bottom.value}
-                    </span>
-                    <span className="mt-4 font-body text-base leading-none text-white">
-                      {column.bottom.label}
-                    </span>
-                    <span className="col-start-3 mt-1 font-body text-xs font-bold leading-none text-white">
-                      {column.bottom.detail}
-                    </span>
-                  </>
+              {
+                icon: "friend" as const,
+                label: t("admin.overview.stats.total-referrals"),
+                value: numberFormatter.format(referralDropOff.total_count),
+                detail: t("admin.overview.stats.total-referrals-detail", {
+                  count: referralDropOff.verified_count,
+                }),
+              },
+              {
+                icon: "photo" as const,
+                label: t("admin.overview.stats.total-posters"),
+                value: numberFormatter.format(posterStatus.total_count),
+                detail: t("admin.overview.stats.total-posters-detail", {
+                  count: posterStatus.success_count,
+                }),
+              },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col gap-1.5">
+                <div className="flex items-baseline gap-2.5 whitespace-nowrap">
+                  <Icon glyph={stat.icon} size={24} className="shrink-0 self-center text-foreground" />
+                  <span className="text-2xl leading-none text-foreground tabular-nums">
+                    {stat.value}
+                  </span>
+                  <span className="font-body text-base text-foreground">{stat.label}</span>
+                </div>
+                {stat.detail !== undefined ? (
+                  <span className="ps-[2.125rem] font-body text-xs text-muted-foreground">
+                    {stat.detail}
+                  </span>
                 ) : null}
               </div>
             ))}

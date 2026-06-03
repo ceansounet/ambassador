@@ -18,8 +18,6 @@ import {
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 
-type CountRow = { total: number };
-
 type UserListRow = {
   id: string;
   email: string | null;
@@ -31,6 +29,11 @@ type UserListRow = {
   latest_application_id: string | null;
   latest_application_status: string | null;
   application_count: number;
+};
+
+type UserListResultRow = {
+  users: UserListRow[];
+  total: number;
 };
 
 const APPLICATION_STATUS_FILTER_OPTIONS = [
@@ -63,11 +66,10 @@ export default async function AdminUsersPage({
   const filterByNone = statusFilter === "none";
   const filterByStatus = !filterByNone && statusFilter !== "" ? statusFilter : null;
 
-  const [users, countResult] = await Promise.all([
-    sql<UserListRow[]>`
+  const userList = (await sql<UserListResultRow[]>`
+    WITH filtered AS (
       SELECT u.id, u.email, u.display_name, u.slack_id, u.slack_name, u.is_admin,
-             u.created_at, latest.id AS latest_application_id, latest.status AS latest_application_status,
-             app_count.application_count
+             u.created_at, latest.id AS latest_application_id, latest.status AS latest_application_status
       FROM users u
       LEFT JOIN LATERAL (
         SELECT id, status
@@ -76,57 +78,47 @@ export default async function AdminUsersPage({
         ORDER BY created_at DESC, id DESC
         LIMIT 1
       ) latest ON true
+      WHERE (${searchFilter}::text IS NULL OR (
+        u.display_name ILIKE ${searchFilter}
+        OR u.email ILIKE ${searchFilter}
+        OR u.slack_id ILIKE ${searchFilter}
+        OR u.slack_name ILIKE ${searchFilter}
+      ))
+      AND (
+        ${filterByNone} = false OR latest.id IS NULL
+      )
+      AND (
+        ${filterByStatus}::text IS NULL OR latest.status = ${filterByStatus}
+      )
+    ),
+    page AS (
+      SELECT *, COUNT(*) OVER()::int AS total
+      FROM filtered
+      ORDER BY created_at DESC
+      LIMIT ${20} OFFSET ${offset}
+    ),
+    page_with_counts AS (
+      SELECT page.*, app_count.application_count
+      FROM page
       LEFT JOIN LATERAL (
         SELECT COUNT(*)::int AS application_count
         FROM applications
-        WHERE user_id = u.id
+        WHERE user_id = page.id
       ) app_count ON true
-      WHERE (${searchFilter}::text IS NULL OR (
-        u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        ${filterByNone} = false OR latest.id IS NULL
-      )
-      AND (
-        ${filterByStatus}::text IS NULL OR latest.status = ${filterByStatus}
-      )
-      ORDER BY u.created_at DESC
-      LIMIT ${20} OFFSET ${offset}
-    `,
-    sql<CountRow[]>`
-      SELECT COUNT(*)::int AS total
-      FROM users u
-      LEFT JOIN LATERAL (
-        SELECT id, status
-        FROM applications
-        WHERE user_id = u.id
-        ORDER BY created_at DESC, id DESC
-        LIMIT 1
-      ) latest ON true
-      WHERE (${searchFilter}::text IS NULL OR (
-        u.display_name ILIKE ${searchFilter}
-        OR u.email ILIKE ${searchFilter}
-        OR u.slack_id ILIKE ${searchFilter}
-        OR u.slack_name ILIKE ${searchFilter}
-      ))
-      AND (
-        ${filterByNone} = false OR latest.id IS NULL
-      )
-      AND (
-        ${filterByStatus}::text IS NULL OR latest.status = ${filterByStatus}
-      )
-    `,
-  ]);
+    )
+    SELECT
+      COALESCE(jsonb_agg(to_jsonb(page_with_counts) - 'total' ORDER BY page_with_counts.created_at DESC), '[]'::jsonb) AS users,
+      COALESCE(MAX(page_with_counts.total), (SELECT COUNT(*)::int FROM filtered)) AS total
+    FROM page_with_counts
+  `).at(0);
 
-  const totalCount = countResult.at(0)?.total ?? 0;
+  const users = userList?.users ?? [];
+  const totalCount = userList?.total ?? 0;
 
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-4xl text-white">{t("admin.users-list.title")}</h1>
+        <h1 className="text-4xl text-foreground">{t("admin.users-list.title")}</h1>
       </header>
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full max-w-sm">
@@ -142,10 +134,10 @@ export default async function AdminUsersPage({
           />
         </div>
       </div>
-      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
+      <div className="ui-table-card">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white">
+            <tr className="border-b border-foreground">
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.name")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.email")}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.latest-app")}</th>
@@ -157,7 +149,7 @@ export default async function AdminUsersPage({
           </thead>
           <tbody>
             {users.map((user) => (
-              <tr key={user.id} className="border-b border-white last:border-b-0">
+              <tr key={user.id} className="border-b border-foreground last:border-b-0">
                 <td className="px-5 py-4">
                   <div className="flex items-center gap-3">
                     <SlackAvatar
@@ -165,28 +157,28 @@ export default async function AdminUsersPage({
                       fallbackName={user.slack_name ?? user.display_name}
                       sizeClassName="h-12 w-12"
                     />
-                    <div className="font-body text-base text-white">{user.display_name}</div>
+                    <div className="font-body text-base text-foreground">{user.display_name}</div>
                   </div>
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">{user.email ?? "-"}</td>
+                <td className="px-5 py-4 font-body text-base text-foreground">{user.email ?? "-"}</td>
                 <td className="px-5 py-4">
                   {user.latest_application_status !== null ? (
                     <StatusBadge status={user.latest_application_status} />
                   ) : (
-                    <span className="font-body text-base text-white">{t("admin.users-list.no-application")}</span>
+                    <span className="font-body text-base text-foreground">{t("admin.users-list.no-application")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {user.application_count}
                 </td>
                 <td className="px-5 py-4 font-body text-base">
                   {user.is_admin === true ? (
                     <span className="text-acceptance">{t("common.yes")}</span>
                   ) : (
-                    <span className="text-white">{t("common.no")}</span>
+                    <span className="text-foreground">{t("common.no")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-white">
+                <td className="px-5 py-4 font-body text-base text-foreground">
                   {new Date(user.created_at).toLocaleDateString(locale)}
                 </td>
                 <td className="px-5 py-4">
@@ -202,7 +194,7 @@ export default async function AdminUsersPage({
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center font-body text-base text-white">
+                <td colSpan={7} className="px-5 py-10 text-center font-body text-base text-foreground">
                   {t("admin.users-list.empty")}
                 </td>
               </tr>

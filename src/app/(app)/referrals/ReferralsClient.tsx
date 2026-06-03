@@ -186,7 +186,7 @@ export function ReferralsClient({
           aria-expanded={codesOpen}
           className="group inline-flex items-center gap-2 bg-transparent p-0 text-left"
         >
-          <h2 className="font-sub text-2xl leading-none text-white md:text-3xl">{t("codes.heading")}</h2>
+          <h2 className="font-sub text-2xl leading-none text-foreground md:text-3xl">{t("codes.heading")}</h2>
           <span className="font-body text-sm leading-none text-muted-foreground">({codes.length})</span>
           <ChevronDown
             size={20}
@@ -203,7 +203,7 @@ export function ReferralsClient({
             <p className="max-w-2xl font-body text-sm text-muted-foreground md:text-base">
               {t("codes.description")}
             </p>
-            <ul className="divide-y divide-white/10 border-t border-white/10">
+            <ul className="divide-y divide-foreground/10 border-t border-foreground/10">
               {codes.map((referralCode) => (
                 <ReferralCodeRow
                   key={referralCode.id}
@@ -235,7 +235,7 @@ export function ReferralsClient({
                   }}
                   placeholder={t("creator.placeholder")}
                   aria-label={t("creator.label")}
-                  className="h-11 flex-1 rounded-md border border-white/10 bg-background px-3 text-base"
+                  className="h-11 flex-1 rounded-md border border-foreground/10 bg-background px-3 text-base"
                 />
                 <button
                   type="button"
@@ -270,7 +270,7 @@ export function ReferralsClient({
             aria-expanded={archiveOpen}
             className="group inline-flex items-center gap-2 bg-transparent p-0 text-left"
           >
-            <h2 className="font-sub text-2xl leading-none text-white md:text-3xl">
+            <h2 className="font-sub text-2xl leading-none text-foreground md:text-3xl">
               {t("archive.heading")}
             </h2>
             <span className="font-body text-sm leading-none text-muted-foreground">
@@ -291,7 +291,7 @@ export function ReferralsClient({
               <p className="max-w-2xl font-body text-sm text-muted-foreground md:text-base">
                 {t("archive.description")}
               </p>
-              <ul className="divide-y divide-white/10 border-t border-white/10">
+              <ul className="divide-y divide-foreground/10 border-t border-foreground/10">
                 {archivedCodes.map((referralCode) => (
                   <ArchivedReferralCodeRow
                     key={referralCode.id}
@@ -305,10 +305,10 @@ export function ReferralsClient({
         </section>
       )}
 
-      <section className="space-y-4 border-t border-white/10 pt-6">
+      <section className="space-y-4 border-t border-foreground/10 pt-6">
         {referrals.length === 0 ? (
           <div className="max-w-2xl">
-            <h2 className="font-sub text-2xl text-white md:text-3xl">{t("empty.title")}</h2>
+            <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("empty.title")}</h2>
             <p className="mt-2 font-body text-sm text-muted-foreground md:text-base">
               {t("empty.body")}
             </p>
@@ -328,7 +328,7 @@ export function ReferralsClient({
                   onChange={(event) => setReferralFilter(event.currentTarget.value)}
                   placeholder={t("table.filter-placeholder")}
                   aria-label={t("table.filter-label")}
-                  className="h-10 w-full rounded-md border border-white/10 bg-background pl-9 pr-3 text-sm"
+                  className="h-10 w-full rounded-md border border-foreground/10 bg-background pl-9 pr-3 text-sm"
                 />
               </div>
               <Select
@@ -341,7 +341,7 @@ export function ReferralsClient({
               >
                 <SelectTrigger
                   aria-label={t("table.status-filter-label")}
-                  className="h-10 w-full rounded-none border border-white/10 bg-muted px-3 text-sm sm:ml-auto sm:w-48"
+                  className="h-10 w-full rounded-none border border-foreground/10 bg-muted px-3 text-sm sm:ml-auto sm:w-48"
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -354,10 +354,10 @@ export function ReferralsClient({
                 </SelectContent>
               </Select>
             </div>
-            <div className="overflow-x-auto border border-white/10 bg-card">
+            <div className="overflow-x-auto border border-foreground/10 bg-card">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-white/10">
+                  <tr className="border-b border-foreground/10">
                     <Th>{t("table.name")}</Th>
                     <Th>{t("table.code")}</Th>
                     <Th>{t("table.type")}</Th>
@@ -378,7 +378,7 @@ export function ReferralsClient({
                     pagedReferrals.map((referral) => (
                       <tr
                         key={referral.id}
-                        className="border-b border-white/5 last:border-b-0"
+                        className="border-b border-foreground/5 last:border-b-0"
                       >
                         <Td>{referral.name}</Td>
                         <Td>
@@ -621,7 +621,7 @@ function ReferralCodeRow({
                   }
                 }}
                 disabled={busy}
-                className="h-10 w-full max-w-sm rounded-md border border-white/10 bg-background px-3 text-base"
+                className="h-10 w-full max-w-sm rounded-md border border-foreground/10 bg-background px-3 text-base"
               />
               <div className="flex gap-2">
                 <Button type="button" size="app-sm" onClick={() => void commitRename()} disabled={busy}>
@@ -644,10 +644,10 @@ function ReferralCodeRow({
             </div>
           ) : (
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-              <span className={cn("font-body text-base text-white", isPrimary && "font-bold")}>
+              <span className={cn("font-body text-base text-foreground", isPrimary && "font-bold")}>
                 {heading}
               </span>
-              <span className="font-body text-base text-white">
+              <span className="font-body text-base text-foreground">
                 <span>{referralCode.code.toLowerCase()}</span>
               </span>
               <span className="font-body text-sm text-muted-foreground">
@@ -758,8 +758,8 @@ function ArchivedReferralCodeRow({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-            <span className="font-body text-base text-white">{referralCode.label}</span>
-            <span className="font-body text-base text-white">
+            <span className="font-body text-base text-foreground">{referralCode.label}</span>
+            <span className="font-body text-base text-foreground">
               <span aria-hidden>a-</span>
               <span>{referralCode.code.toLowerCase()}</span>
             </span>
@@ -839,7 +839,7 @@ function Th({ children }: { children: React.ReactNode }) {
 
 function Td({ children }: { children: React.ReactNode }) {
   return (
-    <td className="px-5 py-4 font-body text-sm text-white">
+    <td className="px-5 py-4 font-body text-sm text-foreground">
       {children}
     </td>
   );

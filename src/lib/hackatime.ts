@@ -12,7 +12,7 @@ type HackatimeTrustRow = {
   fetched_at: Date | string;
 };
 
-export class HackatimeTrustFetchError extends Error {
+class HackatimeTrustFetchError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "HackatimeTrustFetchError";

@@ -395,7 +395,7 @@ export function getHcbAuthorizationUrl(state: string) {
   return `${"https://hcb.hackclub.com"}/api/v4/oauth/authorize?${params}`;
 }
 
-export async function exchangeHcbCodeForTokens(code: string) {
+async function exchangeHcbCodeForTokens(code: string) {
   return exchangeToken(
     new URLSearchParams({
       grant_type: "authorization_code",
@@ -407,7 +407,7 @@ export async function exchangeHcbCodeForTokens(code: string) {
   );
 }
 
-export async function fetchHcbCurrentUser(accessToken: string) {
+async function fetchHcbCurrentUser(accessToken: string) {
   const response = await fetch(`${"https://hcb.hackclub.com"}/api/v4/user`, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -495,14 +495,21 @@ export async function createHcbOrganizationCardGrant(input: {
   amountCents: number;
   purpose: string;
   instructions?: string | null;
+  idempotencyKey?: string | null;
 }) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (typeof input.idempotencyKey === "string" && input.idempotencyKey !== "") {
+    headers["Idempotency-Key"] = input.idempotencyKey;
+  }
+
   const body = await requestHcbJson(
     `/api/v4/organizations/${encodeURIComponent(input.organizationId)}/card_grants`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify({
         email: input.email,
         amount_cents: input.amountCents,

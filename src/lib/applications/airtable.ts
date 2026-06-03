@@ -16,7 +16,7 @@ import {
   type ApplicationStatus,
 } from "@/lib/applications/status";
 
-export type AirtableApplicationFields = Record<string, unknown>;
+type AirtableApplicationFields = Record<string, unknown>;
 export type AirtableApplicationRecord = AirtableRecord<AirtableApplicationFields>;
 
 type ApplicationReviewSyncInput = {
@@ -37,7 +37,7 @@ export function getAirtableApplicationsTableId() {
   return getAirtableTableId("applications");
 }
 
-export function getAirtableApplicationFieldId(fieldKey: ApplicationFieldKey) {
+function getAirtableApplicationFieldId(fieldKey: ApplicationFieldKey) {
   return getAirtableFieldId("applications", fieldKey);
 }
 

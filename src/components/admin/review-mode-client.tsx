@@ -147,7 +147,7 @@ export function ReviewModeClient({
       {/* Lock warning */}
       {lockWarning && (
         <div className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
-          <p className="font-body text-sm text-white">
+          <p className="font-body text-sm text-foreground">
             <span className="font-bold text-[var(--primary)]">Warning:</span>{" "}
             {lockWarning} is also viewing this application.
           </p>

@@ -8,21 +8,13 @@ import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { isSameOriginRequest } from "@/lib/http";
 import { getActorSession } from "@/lib/session";
-import { buildEmptyShirtStockBySize, shirtSku } from "@/lib/shop";
+import { buildEmptyShirtStockBySize, SHIRT_SIZES, shirtSku } from "@/lib/shop";
 import { loadAvailableShirtStockBySize } from "@/lib/shirt/stock";
 import { WarehouseApiClient } from "@/lib/warehouse";
 
 type LinkedOrderRow = {
   warehouse_order_id: string;
 };
-
-const SENT_TO_WAREHOUSE_STATUSES = new Set(["dispatched", "mailed"]);
-const AMBASSADOR_SHIRT_SKUS = [
-  shirtSku("S"),
-  shirtSku("M"),
-  shirtSku("L"),
-  shirtSku("XL"),
-] as const;
 
 export async function GET(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -50,7 +42,7 @@ export async function GET(request: Request) {
       SELECT warehouse_order_id
       FROM orders
       WHERE warehouse_order_id IS NOT NULL
-        AND sku = ANY(${AMBASSADOR_SHIRT_SKUS}::text[])
+        AND sku = ANY(${SHIRT_SIZES.map((size) => shirtSku(size))}::text[])
     `,
     loadAvailableShirtStockBySize().catch(() => buildEmptyShirtStockBySize()),
   ]);
@@ -65,7 +57,10 @@ export async function GET(request: Request) {
   let sentCount = 0;
 
   for (const order of warehouseOrders) {
-    if (SENT_TO_WAREHOUSE_STATUSES.has(order.status) && ambassadorOrderIds.has(order.id)) {
+    if (
+      (order.status === "dispatched" || order.status === "mailed") &&
+      ambassadorOrderIds.has(order.id)
+    ) {
       contentsCost += Number(order.contents_cost ?? 0);
       laborCost += Number(order.labor_cost ?? 0);
       postageCost += Number(order.postage_cost ?? 0);

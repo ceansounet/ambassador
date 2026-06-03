@@ -11,11 +11,10 @@ import {
   type PosterTemplateTextCoordinates,
 } from "@/lib/posters/types";
 
-const DEFAULT_CURRENT_DOMAIN = "http://localhost:7171";
 const projectRoot = /* turbopackIgnore: true */ process.cwd();
 const publicPosterRoot = path.join(projectRoot, "public", "posters");
 
-export const DEFAULT_POSTER_CAMPAIGN = optionalEnv("POSTER_DEFAULT_CAMPAIGN") ?? "default";
+const DEFAULT_POSTER_CAMPAIGN = optionalEnv("POSTER_DEFAULT_CAMPAIGN") ?? "default";
 
 type PosterCampaignConfigFile = {
   displayName?: string;
@@ -96,7 +95,7 @@ export function normalizeCampaignSlug(campaignSlug?: string | null) {
   return normalized.slice(start, end) || DEFAULT_POSTER_CAMPAIGN;
 }
 
-export function readPosterCampaignConfig(campaignSlug: string): PosterCampaignConfigFile {
+function readPosterCampaignConfig(campaignSlug: string): PosterCampaignConfigFile {
   const normalizedCampaignSlug = normalizeCampaignSlug(campaignSlug);
   let configPath: string | null = null;
 
@@ -216,14 +215,14 @@ export function formatPosterReferralCode(referralCode: string) {
 }
 
 export function buildPosterReferralUrl(referralCode: string) {
-  return `${optionalEnv("CURRENT_DOMAIN") ?? DEFAULT_CURRENT_DOMAIN}/p/${encodeURIComponent(formatPosterReferralCode(referralCode))}`;
+  return `${optionalEnv("CURRENT_DOMAIN") ?? "http://localhost:7171"}/p/${encodeURIComponent(formatPosterReferralCode(referralCode))}`;
 }
 
 export function buildPosterScanUrl(referralCode: string) {
   return `https://stardance.space/${normalizePosterReferralCode(referralCode)}`;
 }
 
-export type PosterRegionInfo = {
+type PosterRegionInfo = {
   code: string;
   name: string;
 };

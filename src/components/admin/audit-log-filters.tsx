@@ -61,7 +61,7 @@ export function EventTypeFilter({
       >
         <SelectTrigger
           size="sm"
-          className="ui-input-surface !bg-muted w-full !rounded-none [border-radius:0!important] border-0 px-3 text-sm focus-visible:ring-white/15 aria-[invalid]:!border-transparent aria-[invalid]:!ring-0"
+          className="ui-input-surface !bg-muted w-full !rounded-none border-0 px-3 text-sm focus-visible:ring-foreground/15 aria-[invalid]:!border-transparent aria-[invalid]:!ring-0"
         >
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
@@ -175,7 +175,7 @@ export function UserMultiSelect({
         type="button"
         data-slot="multiselect-trigger"
         onClick={() => setOpen(!open)}
-        className="ui-input-surface !bg-muted inline-flex h-8 w-full !rounded-none [border-radius:0!important] items-center justify-between gap-1.5 border-0 px-3 font-body text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15"
+        className="ui-input-surface !bg-muted inline-flex h-8 w-full !rounded-none items-center justify-between gap-1.5 border-0 px-3 font-body text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/15"
       >
         <span className="truncate">{label}</span>
         <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />

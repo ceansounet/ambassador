@@ -14,10 +14,10 @@ export function DetailSection({
   const hasDescription = description !== undefined && description.trim() !== "";
 
   return (
-    <section className="!rounded-none border border-white/10 bg-card p-5 md:p-6">
-      <h2 className="text-2xl text-white">{title}</h2>
+    <section className="ui-card">
+      <h2 className="text-2xl text-foreground">{title}</h2>
       {hasDescription ? (
-        <p className="mt-2 max-w-3xl font-body text-base text-white">{description}</p>
+        <p className="mt-2 max-w-3xl font-body text-base text-foreground">{description}</p>
       ) : null}
       <div className="mt-5 space-y-5">{children}</div>
     </section>
@@ -43,7 +43,7 @@ export function DetailFieldRow({
     <DetailRow label={label}>
       <div
         className={cn(
-          mono === true ? "font-body text-sm text-white" : "font-body text-base text-white",
+          mono === true ? "font-body text-sm text-foreground" : "font-body text-base text-foreground",
           "break-words [overflow-wrap:anywhere]",
           multiline === true && "whitespace-pre-line",
         )}
@@ -93,16 +93,16 @@ export function DetailPager({
       {page > 1 && (
         <Link
           href={href(page - 1)}
-          className="inline-flex items-center justify-center font-body text-sm text-white transition-opacity hover:opacity-80"
+          className="inline-flex items-center justify-center font-body text-sm text-foreground transition-opacity hover:opacity-80"
         >
           &lt;
         </Link>
       )}
-      <div className="font-body text-sm text-white">{label}</div>
+      <div className="font-body text-sm text-foreground">{label}</div>
       {page < totalPages && (
         <Link
           href={href(page + 1)}
-          className="inline-flex items-center justify-center font-body text-sm text-white transition-opacity hover:opacity-80"
+          className="inline-flex items-center justify-center font-body text-sm text-foreground transition-opacity hover:opacity-80"
         >
           &gt;
         </Link>

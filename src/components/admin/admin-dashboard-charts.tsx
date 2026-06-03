@@ -157,7 +157,7 @@ export function AdminDashboardCharts({
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-1">
               <p className="font-body text-sm text-secondary">{messages.recentActivityEyebrow}</p>
-              <h2 className="text-2xl text-white">{selectedRangeLabel}</h2>
+              <h2 className="text-2xl text-foreground">{selectedRangeLabel}</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {rangeOptions.map((option) => {
@@ -258,7 +258,7 @@ export function AdminDashboardCharts({
         <section className="min-w-0 p-6">
           <div className="mb-6 space-y-1">
             <p className="font-body text-sm text-secondary">{messages.decisionSplitEyebrow}</p>
-            <h2 className="text-2xl text-white">{messages.decisionSplitTitle}</h2>
+            <h2 className="text-2xl text-foreground">{messages.decisionSplitTitle}</h2>
           </div>
           <div className="h-80 min-w-0">
             <DashboardResponsiveChart height={320}>
@@ -295,7 +295,7 @@ export function AdminDashboardCharts({
 
       <div className="p-6">
         <div className="min-w-0">
-          <h2 className="mb-6 text-2xl text-white">{messages.applicationFlowTitle}</h2>
+          <h2 className="mb-6 text-2xl text-foreground">{messages.applicationFlowTitle}</h2>
           <div className="h-[24rem] min-w-0">
             <DashboardResponsiveChart height={384}>
               <BarChart
@@ -335,7 +335,7 @@ export function AdminDashboardCharts({
       <div className="grid xl:grid-cols-2">
         <div className="p-6">
           <div className="min-w-0">
-            <h2 className="mb-6 text-2xl text-white">{messages.referralDropOffTitle}</h2>
+            <h2 className="mb-6 text-2xl text-foreground">{messages.referralDropOffTitle}</h2>
             <div className="h-[20rem] min-w-0">
               <DashboardResponsiveChart height={320}>
                 <BarChart
@@ -372,7 +372,7 @@ export function AdminDashboardCharts({
 
         <div className="p-6">
           <div className="min-w-0">
-            <h2 className="mb-6 text-2xl text-white">{messages.posterStatusTitle}</h2>
+            <h2 className="mb-6 text-2xl text-foreground">{messages.posterStatusTitle}</h2>
             <div className="h-[20rem] min-w-0">
               <DashboardResponsiveChart height={320}>
                 <BarChart
@@ -472,7 +472,7 @@ function TopAmbassadorsChart({
           setCache((prev) => ({ ...prev, [range]: ambassadors }));
         }
       } catch {
-        // Swallow — the chart falls back to the empty state on failure.
+        // Swallow; the chart falls back to the empty state on failure.
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -522,7 +522,7 @@ function TopAmbassadorsChart({
     <div className="p-6">
       <div className="min-w-0">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl text-white">{messages.topAmbassadorsTitle}</h2>
+          <h2 className="text-2xl text-foreground">{messages.topAmbassadorsTitle}</h2>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-2">
               {[
@@ -554,9 +554,9 @@ function TopAmbassadorsChart({
           </div>
         </div>
         {isPending ? (
-          <p className="font-body text-base text-white/50">{t("top-ambassadors-loading")}</p>
+          <p className="font-body text-base text-foreground/50">{t("top-ambassadors-loading")}</p>
         ) : pageData.length === 0 ? (
-          <p className="font-body text-base text-white">{messages.topAmbassadorsEmpty}</p>
+          <p className="font-body text-base text-foreground">{messages.topAmbassadorsEmpty}</p>
         ) : (
           <>
             <div className="min-w-0" style={{ height: `${chartHeight}px` }}>
@@ -607,7 +607,7 @@ function TopAmbassadorsChart({
                 >
                   <ChevronLeftIcon />
                 </Button>
-                <span className="font-body text-sm text-white tabular-nums">
+                <span className="font-body text-sm text-foreground tabular-nums">
                   {t("top-ambassadors-page", { current: safePage, total: pageCount })}
                 </span>
                 <Button
@@ -718,7 +718,7 @@ function MetricMultiSelect({
         type="button"
         data-slot="multiselect-trigger"
         onClick={() => setOpen(!open)}
-        className="ui-input-surface !bg-muted inline-flex h-8 w-full !rounded-none [border-radius:0!important] items-center justify-between gap-1.5 border-0 px-3 font-body text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15"
+        className="ui-input-surface !bg-muted inline-flex h-8 w-full !rounded-none items-center justify-between gap-1.5 border-0 px-3 font-body text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/15"
       >
         <span className="truncate">{label}</span>
         <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
@@ -792,19 +792,19 @@ function ChartTooltip({
   if (active !== true || payload === undefined || payload.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-white bg-black px-4 py-3">
+    <div className="rounded-xl border border-foreground bg-background px-4 py-3">
       {label !== undefined && label !== "" ? <div className="mb-2 font-body text-sm text-secondary">{label}</div> : null}
       <div className="space-y-2">
         {payload.map((item) => (
           <div key={item.name} className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-2 font-body text-sm text-white">
+            <div className="flex items-center gap-2 font-body text-sm text-foreground">
               <span
                 className="size-2 rounded-full"
                 style={{ backgroundColor: item.color ?? item.fill ?? "var(--foreground)" }}
               />
               <span>{item.name}</span>
             </div>
-            <span className="font-body text-sm text-white">
+            <span className="font-body text-sm text-foreground">
               {new Intl.NumberFormat(locale).format(Number(item.value ?? 0))}
             </span>
           </div>

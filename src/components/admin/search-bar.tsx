@@ -42,7 +42,7 @@ export function SearchBar({
             });
           }, 300);
         }}
-        className={`ui-input-surface !bg-muted h-8 w-full !rounded-none [border-radius:0!important] border-0 pl-9 pr-4 font-body text-sm text-foreground ${strongPlaceholder ? "placeholder:text-foreground" : "placeholder:text-foreground/40"} focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/15`}
+        className={`ui-input-surface !bg-muted h-8 w-full !rounded-none border-0 pl-9 pr-4 font-body text-sm text-foreground ${strongPlaceholder ? "placeholder:text-foreground" : "placeholder:text-foreground/40"} focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/15`}
       />
     </div>
   );

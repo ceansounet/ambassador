@@ -9,17 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-[color:#fff] hover:opacity-80",
+        default:
+          "bg-primary text-white hover:border-foreground hover:bg-foreground",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-border bg-background text-foreground hover:border-foreground hover:bg-foreground hover:text-white aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-white",
         secondary:
-          "bg-acceptance text-[color:#fff] hover:opacity-80 aria-expanded:bg-acceptance aria-expanded:text-[color:#fff]",
+          "bg-acceptance text-white hover:border-foreground hover:bg-foreground aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-white",
         success:
-          "bg-acceptance text-[color:#fff] hover:opacity-80 aria-expanded:bg-acceptance aria-expanded:text-[color:#fff]",
+          "bg-acceptance text-white hover:border-foreground hover:bg-foreground aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-white",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "text-foreground hover:bg-foreground hover:text-white aria-expanded:bg-foreground aria-expanded:text-white",
         destructive:
-          "bg-primary !text-white hover:opacity-80 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 data-[selected=true]:border-black data-[selected=true]:bg-black data-[selected=true]:!text-white data-[selected=true]:hover:opacity-100 aria-pressed:border-black aria-pressed:bg-black aria-pressed:!text-white aria-pressed:hover:opacity-100 aria-[current=page]:border-black aria-[current=page]:bg-black aria-[current=page]:!text-white aria-[current=page]:hover:opacity-100",
+          "bg-primary text-white hover:border-foreground hover:bg-foreground focus-visible:border-destructive/40 focus-visible:ring-destructive/20 data-[selected=true]:border-foreground data-[selected=true]:bg-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-[current=page]:border-foreground aria-[current=page]:bg-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

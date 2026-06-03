@@ -7,7 +7,7 @@ import {
   isEncryptedToken,
 } from "@/lib/token-encryption";
 
-export function isEncryptedHcaAccessToken(value: string | null | undefined) {
+function isEncryptedHcaAccessToken(value: string | null | undefined) {
   return isEncryptedToken(value);
 }
 

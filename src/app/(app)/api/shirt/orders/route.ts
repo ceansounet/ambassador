@@ -33,6 +33,12 @@ type ShirtOrderApplicationRow = {
   airtable_payload: unknown | null;
 };
 
+type ShirtOrderUserStateRow = ShirtOrderUserRow & {
+  latest_application_status: string | null;
+  latest_application_airtable_record_id: string | null;
+  latest_application_airtable_payload: unknown | null;
+};
+
 type ShirtOrderRow = {
   id: string;
   status: string;
@@ -78,23 +84,34 @@ export async function POST(request: Request) {
   const size = sizeValue;
   const addressIndexValue = payload.addressIndex;
 
-  const user = (await sql<ShirtOrderUserRow[]>`
-    SELECT id, hca_addresses, hca_access_token, manual_dashboard_state, is_admin
-    FROM users
-    WHERE id = ${session.sub}
+  const user = (await sql<ShirtOrderUserStateRow[]>`
+    SELECT u.id, u.hca_addresses, u.hca_access_token, u.manual_dashboard_state, u.is_admin,
+           latest_application.status AS latest_application_status,
+           latest_application.airtable_record_id AS latest_application_airtable_record_id,
+           latest_application.airtable_payload AS latest_application_airtable_payload
+    FROM users u
+    LEFT JOIN LATERAL (
+      SELECT status, airtable_record_id, airtable_payload
+      FROM applications
+      WHERE user_id = u.id
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    ) latest_application ON TRUE
+    WHERE u.id = ${session.sub}
   `).at(0);
   if (!user) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
-  const latestApp = (await sql<ShirtOrderApplicationRow[]>`
-    SELECT status, airtable_record_id, airtable_payload
-    FROM applications
-    WHERE user_id = ${session.sub}
-    ORDER BY created_at DESC, id DESC
-    LIMIT 1
-  `).at(0) ?? null;
+  const latestApp: ShirtOrderApplicationRow | null =
+    user.latest_application_status === null
+      ? null
+      : {
+          status: user.latest_application_status,
+          airtable_record_id: user.latest_application_airtable_record_id,
+          airtable_payload: user.latest_application_airtable_payload,
+        };
   if (!canAccessShirts({
     latestApplicationStatus: latestApp?.status ?? null,
     manualDashboardState: user.manual_dashboard_state,

@@ -48,7 +48,7 @@ export function Pagination({
         {previousHref !== null ? (
           <Link
             href={previousHref}
-            className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-black hover:text-white"
+            className="inline-flex h-10 items-center justify-center !rounded-none border border-foreground/10 bg-muted px-4 font-body text-sm text-foreground transition-colors hover:bg-foreground hover:text-white"
           >
             {labels.previous}
           </Link>
@@ -56,7 +56,7 @@ export function Pagination({
         {nextHref !== null ? (
           <Link
             href={nextHref}
-            className="inline-flex h-10 items-center justify-center !rounded-none [border-radius:0!important] border border-white/10 bg-muted px-4 font-body text-sm text-white transition-colors hover:bg-black hover:text-white"
+            className="inline-flex h-10 items-center justify-center !rounded-none border border-foreground/10 bg-muted px-4 font-body text-sm text-foreground transition-colors hover:bg-foreground hover:text-white"
           >
             {labels.next}
           </Link>

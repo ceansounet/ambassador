@@ -5,6 +5,10 @@ import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
+import {
+  assertPosterUnlockedForReview,
+  PayoutRequestError,
+} from "@/lib/payouts/service";
 import type { PosterRow } from "@/lib/posters/types";
 import { getActorSession } from "@/lib/session";
 
@@ -35,6 +39,21 @@ export async function POST(
     typeof rawReason === "string" && rawReason.trim().length > 0
       ? rawReason.trim()
       : null;
+
+  // Posters locked in a payout are only reviewable from that payout's screen
+  // (which sends its payoutId along), never from the user page.
+  const viaPayoutId = formData.get("payoutId");
+  try {
+    await assertPosterUnlockedForReview(
+      posterId,
+      typeof viaPayoutId === "string" && viaPayoutId !== "" ? viaPayoutId : null,
+    );
+  } catch (error) {
+    if (error instanceof PayoutRequestError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
+  }
 
   const [poster] = await sql<PosterRow[]>`
     UPDATE posters

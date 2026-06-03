@@ -5,6 +5,10 @@ import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getSafeRedirectUrl, isSameOriginRequest } from "@/lib/http";
+import {
+  assertReferralUnlockedForReview,
+  PayoutRequestError,
+} from "@/lib/payouts/service";
 import { getActorSession } from "@/lib/session";
 
 export const runtime = "nodejs";
@@ -43,8 +47,19 @@ export async function POST(
     return Response.json({ error: "invalid_status" }, { status: 400 });
   }
 
-  if (referralId.startsWith("rsvp:")) {
-    return Response.json({ error: "cannot_modify_rsvp" }, { status: 400 });
+  // Referrals locked in a payout are only reviewable from that payout's
+  // screen (which sends its payoutId along), never from the user page.
+  const viaPayoutId = formData.get("payoutId");
+  try {
+    await assertReferralUnlockedForReview(
+      referralId,
+      typeof viaPayoutId === "string" && viaPayoutId !== "" ? viaPayoutId : null,
+    );
+  } catch (error) {
+    if (error instanceof PayoutRequestError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
   }
 
   const [referral] = await sql<
@@ -52,11 +67,22 @@ export async function POST(
   >`
     UPDATE stardance_referrals
     SET verification_status = ${status}
-    WHERE id = ${referralId} AND user_id = ${id}
+    WHERE id = ${referralId} AND user_id = ${id} AND verification_status <> 'rsvp'
     RETURNING id, user_id, verification_status
   `;
 
   if (!referral) {
+    const [existing] = await sql<{ verification_status: string }[]>`
+      SELECT verification_status
+      FROM stardance_referrals
+      WHERE id = ${referralId} AND user_id = ${id}
+      LIMIT 1
+    `;
+
+    if (existing?.verification_status === "rsvp") {
+      return Response.json({ error: "cannot_modify_rsvp" }, { status: 400 });
+    }
+
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 

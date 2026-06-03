@@ -2,11 +2,11 @@ import "server-only";
 
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getPosterAccessState } from "@/lib/posters/access";
-import { getSafeguards } from "@/lib/safeguards";
+import { getEffectiveSafeguards } from "@/lib/safeguards";
 import { getSession } from "@/lib/session";
 import { canAccessStardanceReferrals } from "@/lib/stardance-referrals";
 
-export class StardanceReferralRequestError extends Error {
+class StardanceReferralRequestError extends Error {
   constructor(
     message: string,
     readonly status: number,
@@ -26,7 +26,7 @@ export async function requireStardanceReferralSession() {
   await ensureSchema();
   const [user, safeguards] = await Promise.all([
     getPosterAccessState(session.sub),
-    getSafeguards(),
+    getEffectiveSafeguards(session.sub),
   ]);
 
   if (

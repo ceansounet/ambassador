@@ -6,7 +6,7 @@ import { getActorSession } from "@/lib/session";
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ slackId: string }> },
+  context: RouteContext<"/api/admin/hackatime/[slackId]/trust">,
 ) {
   if (!isSameOriginRequest(request)) {
     return Response.json({ error: "forbidden" }, { status: 403 });
@@ -22,7 +22,7 @@ export async function POST(
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const { slackId } = await params;
+  const { slackId } = await context.params;
 
   try {
     const trust = await refreshHackatimeTrustLevel(slackId);

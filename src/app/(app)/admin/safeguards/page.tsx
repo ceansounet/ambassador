@@ -24,7 +24,7 @@ export default async function AdminSafeguardsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-4xl text-white">{t("admin.safeguards.title")}</h1>
+      <h1 className="text-4xl text-foreground">{t("admin.safeguards.title")}</h1>
 
       <SafeguardsClient
         errorMessages={{
@@ -100,6 +100,20 @@ export default async function AdminSafeguardsPage() {
             enableAction: t("admin.safeguards.referrals.enable"),
             disableAction: t("admin.safeguards.referrals.disable"),
             overrides: overridesByFlag[SAFEGUARD_KEYS.referralsEnabled].map((o) => ({
+              userId: o.userId,
+              displayName: o.displayName,
+              email: o.email,
+              slackId: o.slackId,
+            })),
+          },
+          {
+            key: SAFEGUARD_KEYS.payoutsEnabled,
+            title: t("admin.safeguards.payouts.title"),
+            description: t("admin.safeguards.payouts.description"),
+            enabled: stateByKey.get(SAFEGUARD_KEYS.payoutsEnabled)?.enabled ?? false,
+            enableAction: t("admin.safeguards.payouts.enable"),
+            disableAction: t("admin.safeguards.payouts.disable"),
+            overrides: overridesByFlag[SAFEGUARD_KEYS.payoutsEnabled].map((o) => ({
               userId: o.userId,
               displayName: o.displayName,
               email: o.email,

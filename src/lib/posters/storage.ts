@@ -177,8 +177,6 @@ export async function savePosterProofFile(posterId: string, file: File): Promise
   };
 }
 
-const PROOF_URL_TTL_SECONDS = 60 * 60;
-
 /**
  * Resolve a directly-loadable URL for a stored proof.
  *
@@ -202,7 +200,7 @@ export async function getPosterProofUrl(
     return getSignedUrl(
       client,
       new GetObjectCommand({ Bucket: env.bucket, Key: `${PROOF_PREFIX}${key}` }),
-      { expiresIn: PROOF_URL_TTL_SECONDS },
+      { expiresIn: 60 * 60 },
     );
   }
 

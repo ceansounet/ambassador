@@ -5,6 +5,7 @@ export const SAFEGUARD_KEYS = {
   shirtOrderingEnabled: "shirt_ordering_enabled",
   postersEnabled: "posters_enabled",
   referralsEnabled: "referrals_enabled",
+  payoutsEnabled: "payouts_enabled",
 } as const;
 
 export type SafeguardKey = (typeof SAFEGUARD_KEYS)[keyof typeof SAFEGUARD_KEYS];
@@ -14,6 +15,7 @@ export type Safeguards = {
   shirtOrderingEnabled: boolean;
   postersEnabled: boolean;
   referralsEnabled: boolean;
+  payoutsEnabled: boolean;
 };
 
 type SafeguardRow = {
@@ -35,56 +37,58 @@ const DEFAULT_SAFEGUARDS: Safeguards = {
   shirtOrderingEnabled: true,
   postersEnabled: true,
   referralsEnabled: true,
+  payoutsEnabled: false,
 };
 
 export function isSafeguardKey(value: unknown): value is SafeguardKey {
-  return (
-    value === SAFEGUARD_KEYS.onboardingEnabled ||
-    value === SAFEGUARD_KEYS.shirtOrderingEnabled ||
-    value === SAFEGUARD_KEYS.postersEnabled ||
-    value === SAFEGUARD_KEYS.referralsEnabled
-  );
+  return Object.values(SAFEGUARD_KEYS).includes(value as SafeguardKey);
 }
 
-export async function getSafeguards(): Promise<Safeguards> {
+async function getSafeguards(): Promise<Safeguards> {
   const rows = await listSafeguardStates();
+  const state = { ...DEFAULT_SAFEGUARDS };
 
-  return rows.reduce<Safeguards>((state, row) => {
+  for (const row of rows) {
     if (row.key === SAFEGUARD_KEYS.onboardingEnabled) {
-      return { ...state, onboardingEnabled: row.enabled };
+      state.onboardingEnabled = row.enabled;
+      continue;
     }
 
     if (row.key === SAFEGUARD_KEYS.shirtOrderingEnabled) {
-      return { ...state, shirtOrderingEnabled: row.enabled };
+      state.shirtOrderingEnabled = row.enabled;
+      continue;
     }
 
     if (row.key === SAFEGUARD_KEYS.postersEnabled) {
-      return { ...state, postersEnabled: row.enabled };
+      state.postersEnabled = row.enabled;
+      continue;
     }
 
     if (row.key === SAFEGUARD_KEYS.referralsEnabled) {
-      return { ...state, referralsEnabled: row.enabled };
+      state.referralsEnabled = row.enabled;
+      continue;
     }
 
-    return state;
-  }, DEFAULT_SAFEGUARDS);
+    if (row.key === SAFEGUARD_KEYS.payoutsEnabled) {
+      state.payoutsEnabled = row.enabled;
+    }
+  }
+
+  return state;
 }
 
 export async function listSafeguardStates(): Promise<SafeguardState[]> {
   const rows = await sql<SafeguardRow[]>`
     SELECT key, enabled, updated_at, updated_by_user_id
     FROM app_safeguards
-    WHERE key = ANY(${SAFEGUARD_KEY_LIST}::text[])
+    WHERE key = ANY(${Object.values(SAFEGUARD_KEYS)}::text[])
     ORDER BY key ASC
   `;
   const rowByKey = new Map(rows.map((row) => [row.key, row]));
 
-  return [
-    toSafeguardState(SAFEGUARD_KEYS.onboardingEnabled, rowByKey.get(SAFEGUARD_KEYS.onboardingEnabled)),
-    toSafeguardState(SAFEGUARD_KEYS.shirtOrderingEnabled, rowByKey.get(SAFEGUARD_KEYS.shirtOrderingEnabled)),
-    toSafeguardState(SAFEGUARD_KEYS.postersEnabled, rowByKey.get(SAFEGUARD_KEYS.postersEnabled)),
-    toSafeguardState(SAFEGUARD_KEYS.referralsEnabled, rowByKey.get(SAFEGUARD_KEYS.referralsEnabled)),
-  ];
+  return Object.values(SAFEGUARD_KEYS).map((key) =>
+    toSafeguardState(key, rowByKey.get(key)),
+  );
 }
 
 export async function setSafeguard(input: {
@@ -105,13 +109,6 @@ export async function setSafeguard(input: {
   return toSafeguardState(input.key, row);
 }
 
-const SAFEGUARD_KEY_LIST = [
-  SAFEGUARD_KEYS.onboardingEnabled,
-  SAFEGUARD_KEYS.shirtOrderingEnabled,
-  SAFEGUARD_KEYS.postersEnabled,
-  SAFEGUARD_KEYS.referralsEnabled,
-];
-
 function getDefaultEnabled(key: SafeguardKey) {
   if (key === SAFEGUARD_KEYS.onboardingEnabled) {
     return DEFAULT_SAFEGUARDS.onboardingEnabled;
@@ -125,7 +122,11 @@ function getDefaultEnabled(key: SafeguardKey) {
     return DEFAULT_SAFEGUARDS.postersEnabled;
   }
 
-  return DEFAULT_SAFEGUARDS.referralsEnabled;
+  if (key === SAFEGUARD_KEYS.referralsEnabled) {
+    return DEFAULT_SAFEGUARDS.referralsEnabled;
+  }
+
+  return DEFAULT_SAFEGUARDS.payoutsEnabled;
 }
 
 function toSafeguardState(
@@ -140,7 +141,7 @@ function toSafeguardState(
   };
 }
 
-export type UserFeatureFlagOverride = {
+type UserFeatureFlagOverride = {
   userId: string;
   flagKey: SafeguardKey;
   createdAt: string;
@@ -182,15 +183,18 @@ export async function getOverrideFlagsForUser(userId: string): Promise<Set<Safeg
 }
 
 export async function getEffectiveSafeguards(userId: string | null): Promise<Safeguards> {
-  const safeguards = await getSafeguards();
-  if (userId === null) return safeguards;
+  if (userId === null) return getSafeguards();
 
-  const overrides = await getOverrideFlagsForUser(userId);
+  const [safeguards, overrides] = await Promise.all([
+    getSafeguards(),
+    getOverrideFlagsForUser(userId),
+  ]);
   return {
     onboardingEnabled: safeguards.onboardingEnabled || overrides.has(SAFEGUARD_KEYS.onboardingEnabled),
     shirtOrderingEnabled: safeguards.shirtOrderingEnabled || overrides.has(SAFEGUARD_KEYS.shirtOrderingEnabled),
     postersEnabled: safeguards.postersEnabled || overrides.has(SAFEGUARD_KEYS.postersEnabled),
     referralsEnabled: safeguards.referralsEnabled || overrides.has(SAFEGUARD_KEYS.referralsEnabled),
+    payoutsEnabled: safeguards.payoutsEnabled || overrides.has(SAFEGUARD_KEYS.payoutsEnabled),
   };
 }
 
@@ -210,6 +214,7 @@ export async function listOverridesGroupedByFlag(): Promise<
     [SAFEGUARD_KEYS.shirtOrderingEnabled]: [],
     [SAFEGUARD_KEYS.postersEnabled]: [],
     [SAFEGUARD_KEYS.referralsEnabled]: [],
+    [SAFEGUARD_KEYS.payoutsEnabled]: [],
   };
 
   for (const row of rows) {

@@ -22,8 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PostersPage() {
   const session = await getSession();
   if (!session) redirect("/");
-  await ensureSchema();
-  const t = await getTranslations();
+  const [, t] = await Promise.all([ensureSchema(), getTranslations()]);
 
   const [user, safeguards] = await Promise.all([
     getPosterAccessState(session.sub),
@@ -67,6 +66,7 @@ export default async function PostersPage() {
         balanceCents={user.balance_cents ?? 0}
         showPostersLink
         showReferralsLink={showReferralsLink}
+        showPayouts
       />
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-6 sm:mb-10">

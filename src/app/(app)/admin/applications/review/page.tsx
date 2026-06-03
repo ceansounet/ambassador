@@ -6,8 +6,6 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getActorSession } from "@/lib/session";
 import sql from "@/lib/database/client";
 
-const LOCK_TTL_SECONDS = 10;
-
 /** Entry point: redirects to the oldest unlocked pending-review application */
 export default async function ReviewModeEntryPage() {
   const session = await getActorSession();
@@ -19,7 +17,7 @@ export default async function ReviewModeEntryPage() {
   // Clear expired locks
   await sql`
     DELETE FROM review_locks
-    WHERE locked_at < NOW() - make_interval(secs => ${LOCK_TTL_SECONDS}::double precision)
+    WHERE locked_at < NOW() - make_interval(secs => ${10}::double precision)
   `;
 
   const nextApplication = (await sql<{ id: string }[]>`
@@ -35,7 +33,7 @@ export default async function ReviewModeEntryPage() {
     ) latest ON true
     LEFT JOIN review_locks rl ON rl.application_id = a.id
       AND rl.locked_by != ${session.sub}
-      AND rl.locked_at >= NOW() - make_interval(secs => ${LOCK_TTL_SECONDS}::double precision)
+      AND rl.locked_at >= NOW() - make_interval(secs => ${10}::double precision)
     WHERE a.status = ${APPLICATION_STATUS_PENDING_REVIEW}
       AND a.review_on_hold IS NOT TRUE
       AND COALESCE(latest.id, a.id) = a.id

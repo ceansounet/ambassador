@@ -306,7 +306,7 @@ export default async function ReviewModePage({
         {/* Priority banner: accepted from same city */}
         {acceptedSameCity.length > 0 && (
           <div className="border border-[var(--acceptance)]/40 bg-[var(--acceptance)]/10 p-4">
-            <p className="font-body text-sm text-white">
+            <p className="font-body text-sm text-foreground">
               <span className="font-bold text-[var(--acceptance)]">{t("admin.application-detail.review.banners.already-accepted-from", { city: resolvedCity ?? "" })}</span>{" "}
               {acceptedSameCity.map((a, i) => (
                 <span key={a.id}>
@@ -327,7 +327,7 @@ export default async function ReviewModePage({
         {/* Warning banner: pending/rejected from same city */}
         {pendingOrRejectedSameCity.length > 0 && (
           <div className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
-            <p className="font-body text-sm text-white">
+            <p className="font-body text-sm text-foreground">
               <span className="font-bold text-[var(--primary)]">{t("admin.application-detail.review.banners.other-applications-from", { city: resolvedCity ?? "" })}</span>{" "}
               {pendingOrRejectedSameCity.map((a, i) => (
                 <span key={a.id}>
@@ -356,7 +356,7 @@ export default async function ReviewModePage({
             />
           </div>
           <div className="min-w-0 flex min-h-12 items-center md:col-start-2 md:row-start-1">
-            <h1 className="truncate text-3xl text-white">
+            <h1 className="truncate text-3xl text-foreground">
               {titleName}
               {" ("}
               {slackHandleLabel !== null && slackProfileUrl !== null ? (
@@ -364,7 +364,7 @@ export default async function ReviewModePage({
                   href={slackProfileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                  className="ui-hover-underline text-secondary hover:text-foreground focus-visible:text-foreground"
                 >
                   {slackHandleLabel}
                 </a>
@@ -393,28 +393,28 @@ export default async function ReviewModePage({
         </header>
 
         {/* Application info grid */}
-        <section className="border border-white/10 bg-card p-5">
+        <section className="ui-card">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.answers.name")}</div>
-              <div className="font-body text-base text-white mt-1">
+              <div className="font-body text-base text-foreground mt-1">
                 {applicationNameLabel}
                 {trimmedSlackId !== "" ? ` (${trimmedSlackId})` : ""}
               </div>
             </div>
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.review.fields.age-dob")}</div>
-              <div className="font-body text-base text-white mt-1">
+              <div className="font-body text-base text-foreground mt-1">
                 {age !== null ? `${age} years old` : ""}{application.date_of_birth ? ` (${formatDate(application.date_of_birth, locale)})` : " -"}
               </div>
             </div>
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.review.fields.city")}</div>
-              <div className="font-body text-base text-white mt-1">{resolvedCity ?? "-"}</div>
+              <div className="font-body text-base text-foreground mt-1">{resolvedCity ?? "-"}</div>
             </div>
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.review.fields.country")}</div>
-              <div className="font-body text-base text-white mt-1">
+              <div className="font-body text-base text-foreground mt-1">
                 {application.country_name ?? resolvedCountry ?? "-"}
               </div>
             </div>
@@ -429,13 +429,13 @@ export default async function ReviewModePage({
             </div>
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.review.fields.github")}</div>
-              <div className="font-body text-base text-white mt-1">
+              <div className="font-body text-base text-foreground mt-1">
                 {application.github_url ? (
                   <a
                     href={application.github_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                    className="ui-hover-underline text-secondary hover:text-foreground focus-visible:text-foreground"
                   >
                     {t("admin.application-detail.review.fields.visit")}
                   </a>
@@ -444,13 +444,13 @@ export default async function ReviewModePage({
             </div>
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.review.fields.portfolio")}</div>
-              <div className="font-body text-base text-white mt-1">
+              <div className="font-body text-base text-foreground mt-1">
                 {application.portfolio_url ? (
                   <a
                     href={application.portfolio_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="ui-hover-underline text-secondary hover:text-white focus-visible:text-white"
+                    className="ui-hover-underline text-secondary hover:text-foreground focus-visible:text-foreground"
                   >
                     {t("admin.application-detail.review.fields.visit")}
                   </a>
@@ -461,18 +461,18 @@ export default async function ReviewModePage({
         </section>
 
         {/* Application questions */}
-        <section className="border border-white/10 bg-card p-5 space-y-5">
-          <h2 className="text-xl text-white">{t("admin.application-detail.review.sections.questions")}</h2>
+        <section className="ui-card space-y-5">
+          <h2 className="text-xl text-foreground">{t("admin.application-detail.review.sections.questions")}</h2>
           <div className="space-y-4">
             <div>
               <div className="text-xs text-secondary mb-1">{t("admin.application-detail.review.questions.first-thing-do")}</div>
-              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-foreground">
                 {application.application_first_thing_do ?? "-"}
               </p>
             </div>
             <div>
               <div className="text-xs text-secondary mb-1">{t("admin.application-detail.review.questions.best-place-poster")}</div>
-              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-foreground">
                 {application.application_best_place_poster ?? "-"}
               </p>
             </div>
@@ -481,13 +481,13 @@ export default async function ReviewModePage({
 
         {/* Previous applications */}
         {history.length > 1 && (
-          <section className="border border-white/10 bg-card p-5 space-y-3">
-            <h2 className="text-xl text-white">{t("admin.application-detail.review.sections.previous-applications")}</h2>
+          <section className="ui-card space-y-3">
+            <h2 className="text-xl text-foreground">{t("admin.application-detail.review.sections.previous-applications")}</h2>
             <div className="space-y-2">
               {history.map((entry) => (
-                <div key={entry.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2 border-b border-white/5 last:border-0">
+                <div key={entry.id} className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-x-3 py-2 border-b border-foreground/5 last:border-0">
                   <StatusBadge status={entry.status} />
-                  <span className="font-body text-sm text-white">
+                  <span className="font-body text-sm text-foreground">
                     {getApplicationNameLabel(entry.name)}
                   </span>
                   <span className="font-body text-xs text-secondary tabular-nums">
@@ -510,12 +510,12 @@ export default async function ReviewModePage({
 
         {/* Internal notes */}
         {application.user_id !== null && (
-          <section className="border border-white/10 bg-card p-5 space-y-4">
-            <h2 className="text-xl text-white">{t("admin.user-detail.sections.notes.title")}</h2>
+          <section className="ui-card space-y-4">
+            <h2 className="text-xl text-foreground">{t("admin.user-detail.sections.notes.title")}</h2>
             {currentUserNote !== null && (
               <div>
                 <div className="text-xs text-secondary mb-1">{t("admin.user-detail.notes.current-note")}</div>
-                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-white">
+                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere] font-body text-base leading-relaxed text-foreground">
                   {currentUserNote}
                 </p>
               </div>
@@ -528,7 +528,7 @@ export default async function ReviewModePage({
                   name="note"
                   rows={4}
                   defaultValue={currentUserNote ?? ""}
-                  className="ui-input-surface mt-2 min-h-20 resize-none border-white bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
+                  className="ui-input-surface mt-2 min-h-20 resize-none border-foreground bg-transparent px-5 py-4 font-body text-base font-normal placeholder:font-normal hover:bg-transparent md:text-base"
                   placeholder={t("admin.user-detail.notes.note-placeholder")}
                 />
               </label>
@@ -537,19 +537,19 @@ export default async function ReviewModePage({
               </button>
             </form>
             {noteHistory.length > 0 && (
-              <div className="space-y-3 border-t border-white/10 pt-4">
+              <div className="space-y-3 border-t border-foreground/10 pt-4">
                 <h3 className="font-body text-sm text-secondary">{t("admin.user-detail.notes.history-title")}</h3>
                 {noteHistory.map((entry) => (
-                  <div key={entry.id} className="border-t border-white/5 pt-3 first:border-t-0 first:pt-0">
+                  <div key={entry.id} className="border-t border-foreground/5 pt-3 first:border-t-0 first:pt-0">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <span className="font-body text-sm text-white">
+                      <span className="font-body text-sm text-foreground">
                         {entry.actor_display_name ?? entry.actor_email ?? entry.created_by ?? t("admin.user-detail.notes.unknown-actor")}
                       </span>
                       <span className="text-xs text-secondary">
                         {formatDateTime(entry.created_at, locale)}
                       </span>
                     </div>
-                    <div className="mt-1 whitespace-pre-line font-body text-sm text-white break-words [overflow-wrap:anywhere]">
+                    <div className="mt-1 whitespace-pre-line font-body text-sm text-foreground break-words [overflow-wrap:anywhere]">
                       {typeof entry.note === "string" && entry.note.trim() !== ""
                         ? entry.note
                         : t("admin.user-detail.notes.cleared")}
@@ -562,8 +562,8 @@ export default async function ReviewModePage({
         )}
 
         {/* Actions menu */}
-        <section className="border border-white/10 bg-card p-5">
-          <h2 className="text-xl text-white mb-4">{t("admin.application-detail.review.sections.decision")}</h2>
+        <section className="ui-card">
+          <h2 className="text-xl text-foreground mb-4">{t("admin.application-detail.review.sections.decision")}</h2>
           <ReviewDecisionActions
             applicationId={application.id}
             canAccept={canAccept}

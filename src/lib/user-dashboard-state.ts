@@ -1,13 +1,6 @@
 type Translate = (key: string, values?: Record<string, number | string>) => string;
 
-export const USER_MANUAL_DASHBOARD_STATES = [
-  "approved",
-  "rejected",
-  "banned",
-] as const;
-
-export type UserManualDashboardState =
-  (typeof USER_MANUAL_DASHBOARD_STATES)[number];
+export type UserManualDashboardState = "approved" | "rejected" | "banned";
 
 export function isUserManualDashboardState(
   value: string | null | undefined,

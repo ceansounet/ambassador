@@ -210,10 +210,10 @@ export function SafeguardsClient({
 
   return (
     <>
-      <div className="overflow-x-auto border border-white/10 bg-card p-3 md:p-4">
+      <div className="ui-table-card">
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-white">
+            <tr className="border-b border-foreground">
               <th className="px-5 py-4 font-body text-base text-secondary">{columns.flag}</th>
               <th className="px-5 py-4 font-body text-base text-secondary">{columns.description}</th>
               <th className="px-5 py-4 font-body text-base text-secondary text-center">{columns.toggle}</th>
@@ -230,8 +230,8 @@ export function SafeguardsClient({
               return (
                 <Fragment key={control.key}>
                   <tr className="align-top">
-                    <td className="px-5 pt-4 pb-2 font-body text-base text-white">{control.title}</td>
-                    <td className="px-5 pt-4 pb-2 font-body text-sm text-white">{control.description}</td>
+                    <td className="px-5 pt-4 pb-2 font-body text-base text-foreground">{control.title}</td>
+                    <td className="px-5 pt-4 pb-2 font-body text-sm text-foreground">{control.description}</td>
                     <td className="px-5 pt-4 pb-2 text-center">
                       <button
                         type="button"
@@ -250,7 +250,7 @@ export function SafeguardsClient({
                   {!enabled ? (
                     <tr>
                         <td className="px-5 pb-2 align-middle">
-                          <div className="text-lg text-white">{overridesStrings.heading}</div>
+                          <div className="text-lg text-foreground">{overridesStrings.heading}</div>
                         </td>
                         <td className="px-5 pb-2" />
                         <td className="px-5 pb-2 text-center align-middle">
@@ -282,7 +282,7 @@ export function SafeguardsClient({
                     <>
                       {overridesList.length === 0 ? (
                         <tr>
-                          <td colSpan={3} className="border-t border-white/10 px-5 py-2 font-body text-sm text-secondary">
+                          <td colSpan={3} className="border-t border-foreground/10 px-5 py-2 font-body text-sm text-secondary">
                             {overridesStrings.empty}
                           </td>
                         </tr>
@@ -294,7 +294,7 @@ export function SafeguardsClient({
                             <tr key={entry.userId} className="group">
                               <td
                                 colSpan={2}
-                                className={`px-5 py-2 ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
+                                className={`px-5 py-2 ${index === 0 ? "border-t border-foreground/10" : "border-t border-foreground/5"}`}
                               >
                                 <div className="flex items-center gap-3">
                                   <SlackAvatar
@@ -305,7 +305,7 @@ export function SafeguardsClient({
                                   />
                                   <a
                                     href={`/admin/users/${entry.userId}`}
-                                    className="flex min-w-0 flex-1 flex-col font-body text-sm text-white transition-opacity hover:opacity-70"
+                                    className="flex min-w-0 flex-1 flex-col font-body text-sm text-foreground transition-opacity hover:opacity-70"
                                   >
                                     <span className="truncate">{entry.displayName}</span>
                                     {entry.email ? (
@@ -315,7 +315,7 @@ export function SafeguardsClient({
                                 </div>
                               </td>
                               <td
-                                className={`px-5 py-2 text-center align-middle ${index === 0 ? "border-t border-white/10" : "border-t border-white/5"}`}
+                                className={`px-5 py-2 text-center align-middle ${index === 0 ? "border-t border-foreground/10" : "border-t border-foreground/5"}`}
                               >
                                 <button
                                   type="button"
@@ -335,8 +335,8 @@ export function SafeguardsClient({
                       )}
 
                       {isSearchOpen ? (
-                        <tr className="border-b border-white last:border-b-0">
-                          <td colSpan={3} className="border-t border-white/10 px-5 pb-5 pt-3">
+                        <tr className="border-b border-foreground last:border-b-0">
+                          <td colSpan={3} className="border-t border-foreground/10 px-5 pb-5 pt-3">
                             <div className="space-y-2">
                               <div className="relative w-full">
                                 <Search
@@ -358,7 +358,7 @@ export function SafeguardsClient({
                                       setCandidates([]);
                                     }
                                   }}
-                                  className="ui-input-surface !bg-muted h-9 w-full !rounded-none [border-radius:0!important] border-0 pl-9 pr-3 font-body text-sm font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-sm"
+                                  className="ui-input-surface !bg-muted h-9 w-full !rounded-none border-0 pl-9 pr-3 font-body text-sm font-normal text-foreground placeholder:text-foreground/40 hover:!bg-muted md:text-sm"
                                 />
                               </div>
                               {searchQuery.trim() === "" ? null : searchLoading ? (
@@ -370,7 +370,7 @@ export function SafeguardsClient({
                                   {overridesStrings.candidatesEmpty}
                                 </div>
                               ) : (
-                                <ul className="max-h-72 w-full divide-y divide-white/10 overflow-y-auto border border-white/10 bg-muted">
+                                <ul className="max-h-72 w-full divide-y divide-foreground/10 overflow-y-auto border border-foreground/10 bg-muted">
                                   {candidates.map((candidate) => {
                                     const addKey = `${control.key}:${candidate.userId}`;
                                     const alreadyAdded = existingIds.has(candidate.userId);
@@ -385,7 +385,7 @@ export function SafeguardsClient({
                                           data-slot="icon-link"
                                           onClick={() => void addOverride(control, candidate)}
                                           disabled={alreadyAdded || adding || addPending !== null}
-                                          className="flex w-full cursor-pointer appearance-none items-center gap-3 border-0 bg-transparent px-3 py-2 text-left font-body text-sm text-white outline-none transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                                          className="flex w-full cursor-pointer appearance-none items-center gap-3 border-0 bg-transparent px-3 py-2 text-left font-body text-sm text-foreground outline-none transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
                                         >
                                           <SlackAvatar
                                             slackId={candidate.slackId}
@@ -417,7 +417,7 @@ export function SafeguardsClient({
                     </>
                   ) : null}
                   <tr aria-hidden="true" className="last:hidden">
-                    <td colSpan={3} className="border-b border-white p-0" />
+                    <td colSpan={3} className="border-b border-foreground p-0" />
                   </tr>
                 </Fragment>
               );

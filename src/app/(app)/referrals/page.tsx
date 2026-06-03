@@ -62,8 +62,8 @@ export default async function ReferralsPage() {
     console.error("[stardance-referrals] unable to sync RSVP referrals", error);
   }
 
-  const referralCodes = await listStardanceReferralCodesForUser(session.sub);
-  const [archivedReferralCodes, referrals] = await Promise.all([
+  const [referralCodes, archivedReferralCodes, referrals] = await Promise.all([
+    listStardanceReferralCodesForUser(session.sub),
     listArchivedStardanceReferralCodesForUser(session.sub),
     listStardanceReferralsForUser(session.sub),
   ]);
@@ -78,7 +78,7 @@ export default async function ReferralsPage() {
       />
       <div className="mx-auto max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
         <header className="mb-6 sm:mb-10">
-          <h1 className="text-4xl text-white">{t("referrals.heading")}</h1>
+          <h1 className="text-4xl text-foreground">{t("referrals.heading")}</h1>
           <p className="mt-2 text-base text-muted-foreground">{t("referrals.subheading")}</p>
         </header>
         <ReferralsClient

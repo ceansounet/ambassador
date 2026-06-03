@@ -12,9 +12,26 @@ export function getSafeRedirectPath(
   value: FormDataEntryValue | string | null | undefined,
   fallbackPath: string,
 ) {
-  const path = typeof value === "string" ? value.trim() : "";
+  const candidate = typeof value === "string" ? value.trim() : "";
 
-  return path.startsWith("/") && !path.startsWith("//") ? path : fallbackPath;
+  if (!candidate.startsWith("/") || candidate.startsWith("//") || candidate.includes("\\")) {
+    return fallbackPath;
+  }
+
+  const origin = toOrigin(optionalEnv("CURRENT_DOMAIN"));
+  if (origin !== null) {
+    try {
+      const resolved = new URL(candidate, origin);
+      if (resolved.origin !== origin) {
+        return fallbackPath;
+      }
+      return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+    } catch {
+      return fallbackPath;
+    }
+  }
+
+  return candidate;
 }
 
 export function getAppUrl(path: string, request: Request) {

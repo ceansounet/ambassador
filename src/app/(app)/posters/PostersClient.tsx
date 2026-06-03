@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/select";
 import type { PosterCampaignSummary } from "@/lib/posters/config";
 import {
+  MAX_POSTERS_PER_GROUP,
+  MAX_POSTERS_PER_USER,
   formatPosterStyle,
   parsePosterStyle,
   type PosterStyle,
@@ -147,7 +149,7 @@ function parseGroupSizeInput(value: string) {
 
 function clampGroupSize(parsed: number | null) {
   if (parsed === null) return 0;
-  return Math.max(0, Math.min(20, parsed));
+  return Math.max(0, Math.min(MAX_POSTERS_PER_GROUP, parsed));
 }
 
 function clampGroupSizeInput(value: string) {
@@ -637,10 +639,10 @@ function GroupCard({
   const scanCount = group.posters.reduce((total, poster) => total + poster.scanCount, 0);
   const hasVerifiedPosters = group.posters.some((poster) => poster.verification_status === "success");
   const canDeleteGroup = !hasVerifiedPosters && scanCount === 0;
-  const remaining = Math.max(0, 20 - group.posters.length);
+  const remaining = Math.max(0, MAX_POSTERS_PER_GROUP - group.posters.length);
   const displayName = group.name !== null && group.name.trim() !== "" ? group.name : t("groups.unnamed");
   const { hover, isDragging, dropHandlers } = useDropTarget(group.id);
-  const groupFull = group.posters.length >= 20;
+  const groupFull = group.posters.length >= MAX_POSTERS_PER_GROUP;
   const trimmedAddCountInput = addCountInput.trim();
   const parsedAddCountInput = parseGroupSizeInput(addCountInput);
   const addCountNeedsCorrection =
@@ -1478,7 +1480,9 @@ function CreateSection({
   const parsedGroupSizeInput = parseGroupSizeInput(groupSizeInput);
   const groupSizeNeedsCorrection =
     trimmedGroupSizeInput !== "" &&
-    (parsedGroupSizeInput === null || parsedGroupSizeInput < 0 || parsedGroupSizeInput > 20);
+    (parsedGroupSizeInput === null ||
+      parsedGroupSizeInput < 0 ||
+      parsedGroupSizeInput > MAX_POSTERS_PER_GROUP);
   const correctedGroupSize = clampGroupSize(parsedGroupSizeInput);
 
   return (
@@ -1609,8 +1613,17 @@ function CreateSection({
                 size="app-sm"
                 className="w-32"
                 onClick={createGroup}
-                disabled={busy || campaignSlug === null || groupName.trim() === "" || groupCount >= 300}
-                title={groupCount >= 300 ? "You can have at most 300 poster groups." : undefined}
+                disabled={
+                  busy ||
+                  campaignSlug === null ||
+                  groupName.trim() === "" ||
+                  groupCount >= MAX_POSTERS_PER_USER / MAX_POSTERS_PER_GROUP
+                }
+                title={
+                  groupCount >= MAX_POSTERS_PER_USER / MAX_POSTERS_PER_GROUP
+                    ? `You can have at most ${MAX_POSTERS_PER_USER / MAX_POSTERS_PER_GROUP} poster groups.`
+                    : undefined
+                }
               >
                 {t("actions.create-group")}
               </Button>
@@ -1905,9 +1918,9 @@ function VerifyModal({
           : "location";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 backdrop-blur-sm sm:items-center sm:p-6">
+    <div className="ui-modal-backdrop items-end sm:items-center sm:p-6">
       <div
-        className="dark-surface relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[#0a0a0a] ring-1 ring-white/10 shadow-2xl sm:rounded-2xl"
+        className="relative flex max-h-[92dvh] w-full max-w-md flex-col overflow-hidden rounded-t-2xl bg-[#0a0a0a] ring-1 ring-white/10 shadow-2xl sm:rounded-2xl"
         style={{ color: "#fff" }}
       >
         {/* Header */}
@@ -2026,10 +2039,13 @@ function CaptureStep({
 }) {
   const t = useTranslations("posters");
   const videoRef = useRef<HTMLVideoElement>(null);
+  const trackRef = useRef<MediaStreamTrack | null>(null);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -2055,6 +2071,10 @@ function CaptureStep({
           await video.play().catch(() => undefined);
           setReady(true);
         }
+        const track = stream.getVideoTracks()[0] ?? null;
+        trackRef.current = track;
+        const capabilities = track?.getCapabilities?.() as { torch?: boolean } | undefined;
+        if (active) setTorchSupported(capabilities?.torch === true);
         if (navigator.mediaDevices.enumerateDevices) {
           const devices = await navigator.mediaDevices.enumerateDevices();
           if (active) {
@@ -2071,11 +2091,24 @@ function CaptureStep({
 
     return () => {
       active = false;
+      trackRef.current = null;
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [t, facingMode]);
+
+  async function toggleTorch() {
+    const track = trackRef.current;
+    if (!track) return;
+    const next = !torchOn;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: next }] } as unknown as MediaTrackConstraints);
+      setTorchOn(next);
+    } catch {
+      setTorchSupported(false);
+    }
+  }
 
   function takePhoto() {
     const video = videoRef.current;
@@ -2116,20 +2149,41 @@ function CaptureStep({
           muted
           className="block aspect-[3/4] w-full bg-black object-cover"
         />
-        {hasMultipleCameras && (
-          <button
-            type="button"
-            data-slot="icon-link"
-            onClick={() =>
-              setFacingMode((current) => (current === "environment" ? "user" : "environment"))
-            }
-            aria-label={t("capture.flip-camera")}
-            title={t("capture.flip-camera")}
-            className="absolute right-3 top-3 inline-flex size-10 cursor-pointer items-center justify-center text-white transition-opacity hover:opacity-90"
-          >
-            <SwitchCamera size={20} />
-          </button>
-        )}
+        <div className="absolute right-3 top-3 flex flex-col gap-2">
+          {torchSupported && (
+            <button
+              type="button"
+              data-slot="icon-link"
+              onClick={toggleTorch}
+              aria-label={t("capture.torch")}
+              aria-pressed={torchOn}
+              title={t("capture.torch")}
+              className={cn(
+                "inline-flex size-11 cursor-pointer items-center justify-center rounded-full backdrop-blur-sm transition-colors",
+                torchOn ? "bg-white/90 text-black" : "bg-black/40 text-white hover:bg-black/60",
+              )}
+            >
+              <Icon glyph={torchOn ? "lightbulb-fill" : "lightbulb"} size={20} />
+            </button>
+          )}
+          {hasMultipleCameras && (
+            <button
+              type="button"
+              data-slot="icon-link"
+              onClick={() => {
+                setReady(false);
+                setTorchSupported(false);
+                setTorchOn(false);
+                setFacingMode((current) => (current === "environment" ? "user" : "environment"));
+              }}
+              aria-label={t("capture.flip-camera")}
+              title={t("capture.flip-camera")}
+              className="inline-flex size-11 cursor-pointer items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+            >
+              <SwitchCamera size={20} />
+            </button>
+          )}
+        </div>
       </div>
 
       {streamError !== null ? (

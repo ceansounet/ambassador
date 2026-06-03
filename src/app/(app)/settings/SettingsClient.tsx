@@ -47,14 +47,14 @@ export default function SettingsClient({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const surfaceClass = cn(
-    "ui-input-surface h-14 w-full !rounded-none [border-radius:0!important] border-0 px-4 text-base focus-visible:ring-1 focus-visible:ring-white/15",
-    "disabled:cursor-not-allowed disabled:text-white/50",
+    "ui-input-surface h-14 w-full !rounded-none border-0 px-4 text-base focus-visible:ring-1 focus-visible:ring-foreground/15",
+    "disabled:cursor-not-allowed disabled:text-foreground/50",
   );
   const readOnlySurfaceClass = cn(
     surfaceClass,
     "text-foreground disabled:opacity-100 disabled:text-foreground disabled:[-webkit-text-fill-color:var(--foreground)]",
   );
-  const selectContentClass = "!rounded-none [border-radius:0!important] border-white/10 bg-black text-white !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
+  const selectContentClass = "!rounded-none border-foreground/10 bg-background text-foreground !duration-0 !data-open:animate-none !data-closed:animate-none !data-[side=bottom]:translate-y-0 !data-[side=top]:translate-y-0 !data-[side=left]:translate-x-0 !data-[side=right]:translate-x-0";
 
   const handleSave = async () => {
     setSaving(true);
@@ -162,10 +162,10 @@ export default function SettingsClient({
         </div>
       )}
 
-      <hr className="border-white/10" />
+      <hr className="border-foreground/10" />
 
       <div>
-        <label className="mb-2 block font-body text-base tracking-wide text-white">
+        <label className="mb-2 block font-body text-base tracking-wide text-foreground">
           {t("labels.region")}
         </label>
         <Select value={region} onValueChange={(value) => setRegion(resolveAmbassadorRegion(value))}>
@@ -188,7 +188,7 @@ export default function SettingsClient({
               <SelectItem
                 key={regionName}
                 value={regionName}
-                className="focus:bg-card focus:text-white"
+                className="focus:bg-card focus:text-foreground"
               >
                 {regionName}
               </SelectItem>
@@ -201,7 +201,7 @@ export default function SettingsClient({
         <p className="font-body text-base text-primary">{error}</p>
       )}
 
-      <div className="border-t border-white/10 pt-5">
+      <div className="border-t border-foreground/10 pt-5">
         <button
           type="button"
           onClick={handleSave}
@@ -218,7 +218,7 @@ export default function SettingsClient({
 function LockedLabel({ text, hint }: { text: string; hint: string }) {
   const [show, setShow] = useState(false);
   return (
-    <label className="mb-2 flex items-center gap-1.5 font-body text-base tracking-wide text-white">
+    <label className="mb-2 flex items-center gap-1.5 font-body text-base tracking-wide text-foreground">
       {text}
       <span
         className="relative inline-flex cursor-help"

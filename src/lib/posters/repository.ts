@@ -10,7 +10,6 @@ import type {
 } from "@/lib/posters/types";
 
 let ensurePosterNameColumnPromise: Promise<void> | null = null;
-const POSTER_REFERRAL_CODE_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
 
 export function ensurePosterNameColumn() {
   ensurePosterNameColumnPromise ??= (async () => {
@@ -73,7 +72,7 @@ function randomFromCharset(charset: string, length: number) {
 
 async function generateUniqueReferralCode() {
   for (let attempt = 0; attempt < 50; attempt += 1) {
-    const candidate = `a-${randomFromCharset(POSTER_REFERRAL_CODE_ALPHABET, 5)}`;
+    const candidate = `a-${randomFromCharset("abcdefghijklmnopqrstuvwxyz0123456789", 5)}`;
     if (!(await referralCodeExists(candidate))) {
       return candidate;
     }
@@ -98,8 +97,10 @@ export async function createPoster(input: CreatePosterInput) {
 
   const posterType = input.posterType ?? "color";
   const id = crypto.randomUUID();
-  const referralCode = await generateUniqueReferralCode();
-  const qrCodeToken = await generateUniqueQrToken();
+  const [referralCode, qrCodeToken] = await Promise.all([
+    generateUniqueReferralCode(),
+    generateUniqueQrToken(),
+  ]);
 
   const [poster] = await sql<PosterRow[]>`
     INSERT INTO posters (
@@ -161,8 +162,10 @@ export async function createPosterGroup(input: CreatePosterGroupInput) {
     const posters: PosterRow[] = [];
     for (let index = 0; index < input.count; index += 1) {
       const posterId = crypto.randomUUID();
-      const referralCode = await generateUniqueReferralCode();
-      const qrCodeToken = await generateUniqueQrToken();
+      const [referralCode, qrCodeToken] = await Promise.all([
+        generateUniqueReferralCode(),
+        generateUniqueQrToken(),
+      ]);
       const [poster] = await tx<PosterRow[]>`
         INSERT INTO posters (
           id,
@@ -209,6 +212,10 @@ export async function createPostersForGroup(input: {
   return sql.begin(async (tx) => {
     const posters: PosterRow[] = [];
     for (let index = 0; index < input.count; index += 1) {
+      const [qrCodeToken, referralCode] = await Promise.all([
+        generateUniqueQrToken(),
+        generateUniqueReferralCode(),
+      ]);
       const [poster] = await tx<PosterRow[]>`
         INSERT INTO posters (
           id,
@@ -225,8 +232,8 @@ export async function createPostersForGroup(input: {
           ${input.userId},
           ${input.group.id},
           ${input.group.campaign_slug},
-          ${await generateUniqueQrToken()},
-          ${await generateUniqueReferralCode()},
+          ${qrCodeToken},
+          ${referralCode},
           ${input.posterType},
           'pending'
         )
@@ -287,16 +294,37 @@ export async function listUserPosterGroups(userId: string) {
   `;
 }
 
-export async function listUserPosters(userId: string) {
-  return sql<PosterRow[]>`
-    SELECT *
-    FROM posters
-    WHERE user_id = ${userId}
-    ORDER BY created_at DESC, id DESC
+export async function listUserPostersWithReferralCounts(userId: string) {
+  const rows = await sql<(PosterRow & { stardance_referral_count: string })[]>`
+    SELECT p.*, COUNT(r.id)::text AS stardance_referral_count
+    FROM posters p
+    LEFT JOIN stardance_referral_codes c
+      ON c.user_id = p.user_id
+      AND (
+        LOWER(c.code) = LOWER(p.referral_code)
+        OR (
+          c.code ~ '^[a-z0-9]{5}$'
+          AND p.referral_code ~ '^a-[a-z0-9]{5}$'
+          AND 'a-' || LOWER(c.code) = LOWER(p.referral_code)
+        )
+      )
+    LEFT JOIN stardance_referrals r ON r.referral_code_id = c.id
+    WHERE p.user_id = ${userId}
+    GROUP BY p.id
+    ORDER BY p.created_at DESC, p.id DESC
   `;
+
+  return rows.map(({ stardance_referral_count: stardanceReferralCount, ...poster }) => ({
+    poster,
+    referralCount: Number.parseInt(stardanceReferralCount, 10),
+  }));
 }
 
-export async function countStardanceReferralsByPosterId(userId: string) {
+export async function countStardanceReferralsForPosterIds(userId: string, posterIds: string[]) {
+  if (posterIds.length === 0) {
+    return new Map<string, number>();
+  }
+
   const rows = await sql<{ poster_id: string; count: string }[]>`
     SELECT p.id AS poster_id, COUNT(r.id)::text AS count
     FROM posters p
@@ -312,6 +340,7 @@ export async function countStardanceReferralsByPosterId(userId: string) {
       )
     LEFT JOIN stardance_referrals r ON r.referral_code_id = c.id
     WHERE p.user_id = ${userId}
+      AND p.id = ANY(${posterIds})
     GROUP BY p.id
   `;
 
@@ -351,14 +380,17 @@ export async function countUserPosters(userId: string) {
   return Number.parseInt(row?.count ?? "0", 10);
 }
 
-export async function countUserPosterGroups(userId: string) {
-  const row = (await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
-    FROM poster_groups
-    WHERE user_id = ${userId}
+export async function countUserPosterUsage(userId: string) {
+  const row = (await sql<{ poster_count: string; group_count: string }[]>`
+    SELECT
+      (SELECT COUNT(*)::text FROM posters WHERE user_id = ${userId}) AS poster_count,
+      (SELECT COUNT(*)::text FROM poster_groups WHERE user_id = ${userId}) AS group_count
   `).at(0);
 
-  return Number.parseInt(row?.count ?? "0", 10);
+  return {
+    posterCount: Number.parseInt(row?.poster_count ?? "0", 10),
+    groupCount: Number.parseInt(row?.group_count ?? "0", 10),
+  };
 }
 
 export async function findPosterForUser(userId: string, posterId: string) {
@@ -394,7 +426,7 @@ export async function findPosterGroupById(groupId: string) {
   return group ?? null;
 }
 
-export async function findPosterByReferralCode(referralCode: string) {
+async function findPosterByReferralCode(referralCode: string) {
   const normalizedCode = normalizePosterReferralCode(referralCode);
   const poster = (await sql<PosterRow[]>`
     SELECT *

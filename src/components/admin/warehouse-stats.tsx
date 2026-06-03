@@ -97,7 +97,7 @@ export function WarehouseStats({ locale }: { locale: string }) {
   });
 
   if (!hasLoaded) {
-    return <p className="font-body text-sm text-white/50">{t("crunching")}</p>;
+    return <p className="font-body text-sm text-foreground/50">{t("crunching")}</p>;
   }
 
   if (data === null) {
@@ -121,9 +121,9 @@ export function WarehouseStats({ locale }: { locale: string }) {
         <div className="min-w-0 flex flex-col gap-3">
           <div>
             <p className="font-body text-sm text-secondary">{t("expenditure-label")}</p>
-            <p className="text-2xl text-white">{currencyFmt.format(data.expenditure.total)}</p>
+            <p className="text-2xl text-foreground">{currencyFmt.format(data.expenditure.total)}</p>
           </div>
-          <div className="grid grid-cols-[max-content_max-content] gap-x-3 gap-y-2 font-body text-sm text-white tabular-nums">
+          <div className="grid grid-cols-[max-content_max-content] gap-x-3 gap-y-2 font-body text-sm text-foreground tabular-nums">
             {legendItems.map((item) => (
               <Fragment key={item.name}>
                 <div className="flex items-center gap-2">
@@ -136,7 +136,7 @@ export function WarehouseStats({ locale }: { locale: string }) {
               </Fragment>
             ))}
           </div>
-          <p className="font-body text-xs text-white/50">
+          <p className="font-body text-xs text-foreground/50">
             {t("sent-orders", { count: data.sentOrders })}
           </p>
         </div>
@@ -202,7 +202,7 @@ function ExpenditurePie({
             y="50%"
             textAnchor="middle"
             dominantBaseline="middle"
-            className="font-body text-sm fill-current text-white/50"
+            className="font-body text-sm fill-current text-foreground/50"
           >
             0
           </text>
@@ -233,18 +233,18 @@ function PieTooltip({
   });
 
   return (
-    <div className="border border-white/10 bg-card px-4 py-3">
+    <div className="border border-foreground/10 bg-card px-4 py-3">
       <div className="space-y-2">
         {payload.map((item) => (
           <div key={item.name} className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-2 font-body text-sm text-white">
+            <div className="flex items-center gap-2 font-body text-sm text-foreground">
               <span
                 className="size-2 rounded-full"
                 style={{ backgroundColor: item.payload?.fill ?? "var(--foreground)" }}
               />
               <span>{item.name}</span>
             </div>
-            <span className="font-body text-sm text-white">
+            <span className="font-body text-sm text-foreground">
               {currencyFmt.format(Number(item.value ?? 0))}
             </span>
           </div>

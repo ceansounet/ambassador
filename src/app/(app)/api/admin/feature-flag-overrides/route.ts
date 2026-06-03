@@ -12,7 +12,7 @@ import {
 } from "@/lib/safeguards";
 import { getActorSession } from "@/lib/session";
 
-type UserLookupRow = { id: string };
+type UserLookupRow = { id: string; display_name: string; email: string | null };
 type UserSearchRow = {
   id: string;
   display_name: string;
@@ -20,19 +20,19 @@ type UserSearchRow = {
   slack_id: string | null;
 };
 
-async function resolveUserId(identifier: string): Promise<string | null> {
+async function resolveUser(identifier: string): Promise<UserLookupRow | null> {
   const trimmed = identifier.trim();
   if (trimmed === "") return null;
 
   const lowered = trimmed.toLowerCase();
   const row = (await sql<UserLookupRow[]>`
-    SELECT id
+    SELECT id, display_name, email
     FROM users
     WHERE id = ${trimmed} OR LOWER(email) = ${lowered}
     LIMIT 1
   `).at(0);
 
-  return row?.id ?? null;
+  return row ?? null;
 }
 
 export async function GET(request: Request) {
@@ -103,24 +103,24 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const userId = await resolveUserId(payload.identifier);
-  if (userId === null) {
+  const user = await resolveUser(payload.identifier);
+  if (user === null) {
     return Response.json({ error: "not_found" }, { status: 404 });
   }
 
   const created = await addUserFeatureFlagOverride({
-    userId,
+    userId: user.id,
     flagKey: payload.flagKey,
     createdByUserId: session.sub,
   });
 
   if (!created) {
-    return Response.json({ error: "already_exists", userId }, { status: 409 });
+    return Response.json({ error: "already_exists", userId: user.id }, { status: 409 });
   }
 
   await logAdminActionEvent({
     actorUserId: session.sub,
-    targetUserId: userId,
+    targetUserId: user.id,
     action: "user_feature_flag_override_updated",
     metadata: {
       flagKey: payload.flagKey,
@@ -128,21 +128,17 @@ export async function POST(request: Request) {
     },
   });
 
-  const userRow = (await sql<{ id: string; display_name: string; email: string | null }[]>`
-    SELECT id, display_name, email FROM users WHERE id = ${userId} LIMIT 1
-  `).at(0);
-
   revalidatePath("/admin/safeguards");
-  revalidatePath(`/admin/users/${userId}`);
+  revalidatePath(`/admin/users/${user.id}`);
   revalidatePath("/posters");
   revalidatePath("/referrals");
   revalidatePath("/dashboard");
 
   return Response.json({
     override: {
-      userId,
-      displayName: userRow?.display_name ?? userId,
-      email: userRow?.email ?? null,
+      userId: user.id,
+      displayName: user.display_name,
+      email: user.email,
     },
   });
 }

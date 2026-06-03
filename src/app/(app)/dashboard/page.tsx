@@ -77,12 +77,10 @@ type ShirtOrderRow = {
 };
 
 type ApplicationRow = {
-  id: string;
   status: string;
-  name: string;
   created_at: string;
   airtable_record_id: string | null;
-  airtable_payload: unknown;
+  airtable_payload: unknown | null;
 };
 
 type UserRow = {
@@ -95,6 +93,20 @@ type UserRow = {
   hca_addresses: unknown;
   hca_access_token: string | null;
   manual_dashboard_state: string | null;
+};
+
+type DashboardRow = UserRow & {
+  application_status: string | null;
+  application_created_at: string | null;
+  application_airtable_record_id: string | null;
+  application_airtable_payload: unknown | null;
+  shirt_order_id: string | null;
+  shirt_order_status: string | null;
+  shirt_order_variant: string | null;
+  shirt_order_warehouse_order_id: string | null;
+  shirt_order_warehouse_payload: unknown | null;
+  shirt_order_note: string | null;
+  shirt_order_dispatch_at: string | null;
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -116,29 +128,76 @@ export default async function DashboardPage({
     getEffectiveSafeguards(session.sub),
   ]);
 
-  const [application, user, existingOrderRow] = await Promise.all([
-    sql<ApplicationRow[]>`
-      SELECT id, status, name, created_at, airtable_record_id, airtable_payload
-      FROM applications WHERE user_id = ${session.sub}
-      ORDER BY created_at DESC LIMIT 1
-    `.then((rows) => rows.at(0) ?? null),
-    sql<UserRow[]>`
-      SELECT balance_cents, is_admin, ambassador_region, hca_country, country_name, country_code,
-             hca_addresses, hca_access_token, manual_dashboard_state
-      FROM users WHERE id = ${session.sub}
-    `.then((rows) => rows.at(0) ?? null),
-    sql<ShirtOrderRow[]>`
-      SELECT id, status, variant, warehouse_order_id, warehouse_payload, note, dispatch_at
-      FROM orders
-      WHERE user_id = ${session.sub} AND sku LIKE ${`${SHIRT_SKU_PREFIX}%`}
+  const dashboardRow = (await sql<DashboardRow[]>`
+    SELECT u.balance_cents, u.is_admin, u.ambassador_region, u.hca_country,
+           u.country_name, u.country_code, u.hca_addresses, u.hca_access_token,
+           u.manual_dashboard_state,
+           latest_application.status AS application_status,
+           latest_application.created_at AS application_created_at,
+           latest_application.airtable_record_id AS application_airtable_record_id,
+           latest_application.airtable_payload AS application_airtable_payload,
+           latest_order.id AS shirt_order_id,
+           latest_order.status AS shirt_order_status,
+           latest_order.variant AS shirt_order_variant,
+           latest_order.warehouse_order_id AS shirt_order_warehouse_order_id,
+           latest_order.warehouse_payload AS shirt_order_warehouse_payload,
+           latest_order.note AS shirt_order_note,
+           latest_order.dispatch_at AS shirt_order_dispatch_at
+    FROM users u
+    LEFT JOIN LATERAL (
+      SELECT status, created_at, airtable_record_id, airtable_payload
+      FROM applications
+      WHERE user_id = u.id
       ORDER BY created_at DESC, id DESC
       LIMIT 1
-    `.then((rows) => rows.at(0) ?? null),
-  ]);
+    ) latest_application ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT id, status, variant, warehouse_order_id, warehouse_payload, note, dispatch_at
+      FROM orders
+      WHERE user_id = u.id AND sku LIKE ${`${SHIRT_SKU_PREFIX}%`}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    ) latest_order ON TRUE
+    WHERE u.id = ${session.sub}
+    LIMIT 1
+  `).at(0) ?? null;
 
-  if (!user) {
+  if (!dashboardRow) {
     redirect("/");
   }
+
+  const user: UserRow = {
+    balance_cents: dashboardRow.balance_cents,
+    is_admin: dashboardRow.is_admin,
+    ambassador_region: dashboardRow.ambassador_region,
+    hca_country: dashboardRow.hca_country,
+    country_name: dashboardRow.country_name,
+    country_code: dashboardRow.country_code,
+    hca_addresses: dashboardRow.hca_addresses,
+    hca_access_token: dashboardRow.hca_access_token,
+    manual_dashboard_state: dashboardRow.manual_dashboard_state,
+  };
+  const application: ApplicationRow | null =
+    dashboardRow.application_status === null || dashboardRow.application_created_at === null
+      ? null
+      : {
+          status: dashboardRow.application_status,
+          created_at: dashboardRow.application_created_at,
+          airtable_record_id: dashboardRow.application_airtable_record_id,
+          airtable_payload: dashboardRow.application_airtable_payload,
+        };
+  const existingOrderRow: ShirtOrderRow | null =
+    dashboardRow.shirt_order_id === null || dashboardRow.shirt_order_status === null
+      ? null
+      : {
+          id: dashboardRow.shirt_order_id,
+          status: dashboardRow.shirt_order_status,
+          variant: dashboardRow.shirt_order_variant,
+          warehouse_order_id: dashboardRow.shirt_order_warehouse_order_id,
+          warehouse_payload: dashboardRow.shirt_order_warehouse_payload,
+          note: dashboardRow.shirt_order_note,
+          dispatch_at: dashboardRow.shirt_order_dispatch_at,
+        };
 
   const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
   const canAccessShirtOrdering = canAccessShirts({
@@ -169,8 +228,10 @@ export default async function DashboardPage({
   let shirtStockBySize = buildEmptyShirtStockBySize();
   const hcaAccessToken = readHcaAccessToken(user.hca_access_token);
 
+  let officeGrant: Awaited<ReturnType<typeof refreshOfficeGrantBalanceForUser>>;
+
   if (shouldLoadShirtAddresses) {
-    const [addressState, stockBySize] = await Promise.all([
+    const [addressState, stockBySize, grant] = await Promise.all([
       loadUserHackClubAddresses({
         userId: session.sub,
         storedAddresses: user.hca_addresses,
@@ -180,11 +241,15 @@ export default async function DashboardPage({
         console.error("[shirts] unable to load live shirt stock", error);
         return buildEmptyShirtStockBySize();
       }),
+      refreshOfficeGrantBalanceForUser(session.sub),
     ]);
 
     shirtAddresses = addressState.addresses;
     shirtNeedsAddressRefresh = addressState.needsAddressRefresh;
     shirtStockBySize = stockBySize;
+    officeGrant = grant;
+  } else {
+    officeGrant = await refreshOfficeGrantBalanceForUser(session.sub);
   }
   const warehouseOrder = existingOrderRow
     ? parseWarehouseOrderResponse(existingOrderRow.warehouse_payload)
@@ -212,7 +277,6 @@ export default async function DashboardPage({
     stockBySize: shirtStockBySize,
   };
 
-  const officeGrant = await refreshOfficeGrantBalanceForUser(session.sub);
   const stateInput = {
     application,
     user,
@@ -260,10 +324,11 @@ export default async function DashboardPage({
           isOnboardingComplete: shirtOnboardingStatus.isOnboardingComplete,
           isAdmin: canAccessAdmin,
         })}
+        showPayouts
       />
       <div className="mx-auto max-w-3xl px-6 py-12">
         <header className="flex items-center gap-2 md:gap-3">
-          <h1 className="font-sub text-4xl leading-none text-white md:text-5xl">
+          <h1 className="font-sub text-4xl leading-none text-foreground md:text-5xl">
             {t("dashboard.heading", { name: session.displayName })}
           </h1>
           {resolved.decision === "approved" ? (
@@ -659,7 +724,7 @@ function OnboardingPromptBanner({
 
     return (
       <section className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
-        <p className="font-body text-sm leading-relaxed text-white">
+        <p className="font-body text-sm leading-relaxed text-foreground">
           <span className="font-bold text-[var(--primary)]">
             {t(`dashboard.onboarding.status.${statusKey}.title`)}
           </span>{" "}
@@ -672,7 +737,7 @@ function OnboardingPromptBanner({
   if (!enabled) {
     return (
       <section className="border border-[var(--primary)]/40 bg-[var(--primary)]/10 p-4">
-        <p className="font-body text-sm leading-relaxed text-white">
+        <p className="font-body text-sm leading-relaxed text-foreground">
           <span className="font-bold text-[var(--primary)]">
             {t("dashboard.onboarding.disabled-title")}
           </span>{" "}
@@ -725,7 +790,7 @@ function OfficeGrantSection({
   return (
     <section>
       <div className="min-w-0">
-        <h2 className="font-sub text-2xl text-white md:text-3xl">{t("office-grant.title")}</h2>
+        <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("office-grant.title")}</h2>
 
         <p className="mt-2 text-base leading-relaxed text-muted-foreground md:text-lg">
           {message.messageKey === "linked" && message.href !== null ? (
@@ -855,7 +920,7 @@ function StatusCard({
     <section>
       <div className="min-w-0">
         <div className="flex items-center gap-3">
-          <h2 className="font-sub text-2xl text-white md:text-3xl">{title}</h2>
+          <h2 className="font-sub text-2xl text-foreground md:text-3xl">{title}</h2>
           <span
             className={cn(
               "flex h-10 w-10 shrink-0 items-center justify-center",

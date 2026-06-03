@@ -23,6 +23,7 @@ app:
     admin-link: Admin
     posters-link: Posters
     referrals-link: Referrals
+    balance-label: View balance and payouts
     settings-label: Settings
     sign-out-label: Sign out
   impersonation:
@@ -161,6 +162,7 @@ posters:
     body: Point your camera at the poster and make sure the entire poster and especially the QR code are clearly visible, then capture.
     capture-button: Capture
     flip-camera: Flip camera
+    torch: Toggle flashlight
     camera-unavailable: Camera is not available in this browser.
     camera-denied: Could not access the camera. Allow camera access and try again.
   campaign:
@@ -206,8 +208,8 @@ posters:
     unnamed: Untitled group
     name-placeholder: Group name (optional)
     size-label: How many posters?
-    size-help: Enter a whole number from 0 to 20.
-    size-invalid: Use a whole number from 0 to 20. The value will be adjusted to {count}.
+    size-help: Enter a whole number from 0 to 50.
+    size-invalid: Use a whole number from 0 to 50. The value will be adjusted to {count}.
   singles:
     title: Standalone posters
     empty: No standalone posters yet.
@@ -348,7 +350,7 @@ shirt:
     cancel-cta: Cancel this order
     cancel-pending: Cancelling...
     cancel-confirm: "Cancel this shirt order? You can place a new one right after."
-    cancel-too-late: Too late — this order already left for the warehouse and can no longer be cancelled.
+    cancel-too-late: Too late. This order already left for the warehouse and can no longer be cancelled.
     cancel-not-cancellable: This order is no longer cancellable.
     approved-title: Order approved
     approved-body: "Your size {size} shirt has been sent to the warehouse. Track shipping below."
@@ -481,6 +483,7 @@ admin:
     orders: Orders
     audit-log: Audit
     flags: Flags
+    payouts: Payouts
   safeguards:
     metadata:
       title: Flags
@@ -522,6 +525,11 @@ admin:
     referrals:
       title: Referrals
       description: Allow approved ambassadors to view their referral code and stats.
+      enable: Turn on
+      disable: Turn off
+    payouts:
+      title: Payouts
+      description: Allow ambassadors to request payouts. Balances, history, and admin review stay available either way; per-user overrides open requests early.
       enable: Turn on
       disable: Turn off
   audit-log:
@@ -703,7 +711,7 @@ admin:
       embargo-active: "Auto-ships to the warehouse at {dispatchAt}. The ambassador can self-cancel until then."
       embargo-expired-auto: "The 24h hold has lapsed. The next scheduler tick will auto-ship this order."
       embargo-bypass-explainer: Only bypass the hold if there's a genuine reason to skip the cancellation window.
-      non-pending: This order is no longer pending — no admin action available.
+      non-pending: This order is no longer pending, so no admin action is available.
       reject: Reject with note
       reject-note-label: Reject note (Optional)
       reject-note-placeholder: Why this order is being rejected

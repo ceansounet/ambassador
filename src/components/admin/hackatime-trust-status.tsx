@@ -53,7 +53,7 @@ export function HackatimeTrustStatus({
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="font-body text-base text-white break-words [overflow-wrap:anywhere]">
+      <span className="font-body text-base text-foreground break-words [overflow-wrap:anywhere]">
         {trustLevel?.trim() || "-"}
       </span>
       <span className="relative inline-flex">
