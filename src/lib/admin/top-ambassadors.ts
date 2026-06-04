@@ -1,10 +1,12 @@
 import sql from "@/lib/database/client";
 
 export type TopAmbassadorRange = "7d" | "month" | "all";
+export type TopAmbassadorRegion = "all" | "us";
 
 export type TopAmbassadorEntry = {
   userId: string;
   name: string;
+  region: string | null;
   posters: number;
   verifiedPosters: number;
   referrals: number;
@@ -15,6 +17,7 @@ export type TopAmbassadorEntry = {
 type TopAmbassadorRow = {
   user_id: string;
   display_name: string | null;
+  ambassador_region: string | null;
   poster_count: number;
   verified_poster_count: number;
   referral_count: number;
@@ -28,15 +31,20 @@ type TopAmbassadorRow = {
  * re-sort by the active metric filter and paginate without another round-trip.
  * "Completed" counts (verified posters/referrals) are scoped to the same window
  * as the totals, so a row's verified count is always a subset of its total.
+ * The region filter narrows to a single ambassador region ('us' = United
+ * States); 'all' leaves every region in.
  */
 export async function loadTopAmbassadors(
   range: TopAmbassadorRange,
+  region: TopAmbassadorRegion = "all",
 ): Promise<TopAmbassadorEntry[]> {
   const days = range === "7d" ? 7 : range === "month" ? 30 : null;
   const posterDateFilter =
     days === null ? sql`` : sql`AND created_at >= NOW() - ${days} * INTERVAL '1 day'`;
   const referralDateFilter =
     days === null ? sql`` : sql`AND referred_at >= NOW() - ${days} * INTERVAL '1 day'`;
+  const regionFilter =
+    region === "us" ? sql`WHERE u.ambassador_region = 'United States'` : sql``;
 
   const rows = await sql<TopAmbassadorRow[]>`
     WITH poster_counts AS (
@@ -67,6 +75,7 @@ export async function loadTopAmbassadors(
       SELECT
         u.id AS user_id,
         u.display_name,
+        u.ambassador_region,
         COALESCE(pc.poster_count, 0)::int AS poster_count,
         COALESCE(pc.verified_poster_count, 0)::int AS verified_poster_count,
         COALESCE(rc.referral_count, 0)::int AS referral_count,
@@ -76,10 +85,12 @@ export async function loadTopAmbassadors(
       JOIN users u ON u.id = c.user_id
       LEFT JOIN poster_counts pc ON pc.user_id = c.user_id
       LEFT JOIN referral_counts rc ON rc.user_id = c.user_id
+      ${regionFilter}
     )
     SELECT
       user_id,
       display_name,
+      ambassador_region,
       poster_count,
       verified_poster_count,
       referral_count,
@@ -92,6 +103,7 @@ export async function loadTopAmbassadors(
   return rows.map((row) => ({
     userId: row.user_id,
     name: row.display_name ?? row.user_id,
+    region: row.ambassador_region,
     posters: row.poster_count,
     verifiedPosters: row.verified_poster_count,
     referrals: row.referral_count,

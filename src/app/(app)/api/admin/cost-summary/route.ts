@@ -1,8 +1,15 @@
 import { isUserAdmin } from "@/lib/applications/review";
+import {
+  getCachedCostSummary,
+  setCachedCostSummary,
+} from "@/lib/admin/cost-summary-cache";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { isSameOriginRequest } from "@/lib/http";
 import { getActorSession } from "@/lib/session";
-import { loadTopAmbassadors } from "@/lib/admin/top-ambassadors";
+import { computeCostSummary } from "@/lib/stats/cost-summary";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   if (!isSameOriginRequest(request)) {
@@ -19,12 +26,16 @@ export async function GET(request: Request) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const searchParams = new URL(request.url).searchParams;
-  const rangeParam = searchParams.get("range");
-  const range = rangeParam === "7d" || rangeParam === "month" ? rangeParam : "all";
-  const region = searchParams.get("region") === "us" ? "us" : "all";
+  const summary = getCachedCostSummary() ?? (await computeCostSummary());
+  if (getCachedCostSummary() === null) {
+    setCachedCostSummary(summary);
+  }
 
-  const ambassadors = await loadTopAmbassadors(range, region);
-
-  return Response.json({ range, region, ambassadors });
+  return Response.json({
+    totalCents: summary.totalCents,
+    totalCentsUS: summary.totalCentsUS,
+    averageCostCents: summary.averageCostCents,
+    averageCostCentsUS: summary.averageCostCentsUS,
+    complete: summary.complete,
+  });
 }

@@ -207,7 +207,7 @@ export default async function AdminDashboard({
     `,
     sql<ReferralDropOffRow[]>`
       SELECT
-        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (WHERE verification_status <> 'rejected')::int AS total_count,
         COUNT(*) FILTER (WHERE verification_status = 'rsvp')::int AS rsvp_count,
         COUNT(*) FILTER (WHERE verification_status = 'unverified')::int AS unverified_count,
         COUNT(*) FILTER (WHERE verification_status = 'pending')::int AS pending_count,

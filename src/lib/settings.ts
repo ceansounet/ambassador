@@ -23,6 +23,25 @@ export const SUPPORTED_AMBASSADOR_REGIONS = [
 export type AmbassadorRegion = (typeof SUPPORTED_AMBASSADOR_REGIONS)[number];
 type AmbassadorRegionInput = string | null | undefined;
 
+const AMBASSADOR_REGION_FLAGS: Record<AmbassadorRegion, string> = {
+  Australia: "🇦🇺",
+  Canada: "🇨🇦",
+  EU: "🇪🇺",
+  "New Zealand": "🇳🇿",
+  "United Kingdom": "🇬🇧",
+  "United States": "🇺🇸",
+  Other: "🌐",
+};
+
+/** Flag emoji for an ambassador region; a globe for unknown or unset regions. */
+export function ambassadorRegionFlag(region: string | null | undefined): string {
+  if (region !== null && region !== undefined && region in AMBASSADOR_REGION_FLAGS) {
+    return AMBASSADOR_REGION_FLAGS[region as AmbassadorRegion];
+  }
+
+  return "🌐";
+}
+
 const REGION_CODES: Array<readonly [string, AmbassadorRegion]> = [
   ["au", "Australia"],
   ["ca", "Canada"],
