@@ -617,25 +617,30 @@ type StardanceReferralRow = {
   poster_referral_code: string | null;
 };
 
-type StardanceSignupPayload = {
-  displayName: string | null;
-  slackId: string | null;
+// One entry from the `referrals` array of GET /ambassador_referrals?rsvp=true.
+// `isRsvp` splits the two shapes folded into that single array: pre-signup
+// RSVPs (rsvp-anchored, no verification/hours) and real signups (user-anchored,
+// carrying verification status, hours, and onboarding).
+type StardanceFeedReferral = {
+  id: string;
+  isRsvp: boolean;
+  email: string;
+  ref: string;
+  userRef: string | null;
+  createdAt: string;
+  onboardedAt: string | null;
   verificationStatus: string | null;
   banned: boolean;
   hoursLogged: number;
   hoursApproved: number;
+  displayName: string | null;
+  slackId: string | null;
+  clickConfirmedAt: string | null;
+  replyConfirmedAt: string | null;
+  signupConfirmationSentAt: string | null;
 };
 
-type StardanceRsvpReferralPayload = {
-  id: string;
-  anchor: "rsvp" | "user";
-  email: string;
-  ref: string;
-  createdAt: string;
-  signup: StardanceSignupPayload | null;
-};
-
-type StardanceRsvpReferralRow = {
+type StardanceReferralUpsertRow = {
   id: string;
   user_id: string;
   referral_code_id: string;
@@ -646,6 +651,11 @@ type StardanceRsvpReferralRow = {
   hours_approved: number;
   verification_status: StardanceReferralVerificationStatus;
   referred_at: string;
+  user_ref: string | null;
+  onboarded_at: string | null;
+  click_confirmed_at: string | null;
+  reply_confirmed_at: string | null;
+  signup_confirmation_sent_at: string | null;
 };
 
 type PosterReferralCodeRow = {
@@ -662,21 +672,11 @@ function parseFiniteHours(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
 }
 
-function parseStardanceSignup(value: unknown): StardanceSignupPayload | null {
-  if (!isRecord(value)) return null;
-
-  return {
-    displayName: typeof value.display_name === "string" ? value.display_name : null,
-    slackId: typeof value.slack_id === "string" ? value.slack_id : null,
-    verificationStatus:
-      typeof value.verification_status === "string" ? value.verification_status : null,
-    banned: value.banned === true,
-    hoursLogged: parseFiniteHours(value.hours_logged),
-    hoursApproved: parseFiniteHours(value.hours_approved),
-  };
+function parseTimestamp(value: unknown): string | null {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value)) ? value : null;
 }
 
-function parseStardanceRsvpReferral(value: unknown, anchor: "rsvp" | "user") {
+function parseStardanceFeedReferral(value: unknown): StardanceFeedReferral | null {
   if (!isRecord(value)) return null;
 
   const id = value.id;
@@ -694,23 +694,38 @@ function parseStardanceRsvpReferral(value: unknown, anchor: "rsvp" | "user") {
     return null;
   }
 
+  const userRef = typeof value.user_ref === "string" ? value.user_ref.trim() : "";
+
   return {
     id: String(id),
-    anchor,
-    email,
+    isRsvp: value.rsvp === true,
+    email: email.trim().toLowerCase(),
     ref: ref.trim().toLowerCase(),
+    userRef: userRef === "" ? null : userRef,
     createdAt,
-    signup: value.type === "signup" ? parseStardanceSignup(value.signup) : null,
-  } satisfies StardanceRsvpReferralPayload;
+    onboardedAt: parseTimestamp(value.onboarded_at),
+    verificationStatus:
+      typeof value.verification_status === "string" ? value.verification_status : null,
+    banned: value.banned === true,
+    hoursLogged: parseFiniteHours(value.hours_logged),
+    hoursApproved: parseFiniteHours(value.hours_approved),
+    // display_name and slack_id are not part of the merged feed yet; read them
+    // defensively so they flow through unchanged once stardance sends them.
+    displayName: typeof value.display_name === "string" ? value.display_name : null,
+    slackId: typeof value.slack_id === "string" ? value.slack_id : null,
+    clickConfirmedAt: parseTimestamp(value.click_confirmed_at),
+    replyConfirmedAt: parseTimestamp(value.reply_confirmed_at),
+    signupConfirmationSentAt: parseTimestamp(value.signup_confirmation_sent_at),
+  };
 }
 
 function deriveVerificationStatus(
-  entry: StardanceRsvpReferralPayload,
+  referral: StardanceFeedReferral,
 ): StardanceReferralVerificationStatus {
-  if (entry.signup === null) return "rsvp";
-  if (entry.signup.banned) return "rejected";
+  if (referral.isRsvp) return "rsvp";
+  if (referral.banned) return "rejected";
 
-  switch (entry.signup.verificationStatus) {
+  switch (referral.verificationStatus) {
     case "verified":
       return "verified";
     case "pending":
@@ -725,6 +740,9 @@ function deriveVerificationStatus(
 async function fetchAllStardanceRsvpReferrals(apiKey: string) {
   const baseUrl = optionalEnv("STARDANCE_API_BASE_URL") ?? STARDANCE_BASE_URL;
   const url = new URL("/api/v1/ambassador_referrals", baseUrl);
+  // ?rsvp=true folds pre-signup RSVPs into the same `referrals` array as real
+  // signups, each tagged with an `rsvp` boolean, so one call covers both.
+  url.searchParams.set("rsvp", "true");
 
   const response = await fetch(url, {
     headers: {
@@ -738,144 +756,99 @@ async function fetchAllStardanceRsvpReferrals(apiKey: string) {
   }
 
   const body: unknown = await response.json();
-  const referrals = isRecord(body) && Array.isArray(body.referrals)
-    ? body.referrals
-    : [];
-  const signups = isRecord(body) && Array.isArray(body.signups)
-    ? body.signups
-    : [];
+  const referrals = isRecord(body) && Array.isArray(body.referrals) ? body.referrals : [];
 
-  return [
-    ...referrals.map((value) => parseStardanceRsvpReferral(value, "rsvp")),
-    ...signups.map((value) => parseStardanceRsvpReferral(value, "user")),
-  ].filter((referral): referral is StardanceRsvpReferralPayload => referral !== null);
+  return referrals
+    .map((value) => parseStardanceFeedReferral(value))
+    .filter((referral): referral is StardanceFeedReferral => referral !== null);
 }
 
 function buildStardanceReferralRows(
-  referrals: StardanceRsvpReferralPayload[],
+  referrals: StardanceFeedReferral[],
   codeByRef: Map<string, StardanceReferralCodeRow>,
 ) {
-  const rows: StardanceRsvpReferralRow[] = [];
+  const rows: StardanceReferralUpsertRow[] = [];
 
   for (const referral of referrals) {
     const code = codeByRef.get(referral.ref);
     if (code === undefined) continue;
-
-    const email = referral.email.trim().toLowerCase();
-    if (email === "") continue;
+    if (referral.email === "") continue;
 
     rows.push({
-      id: `${referral.anchor}:${referral.id}`,
+      id: `${referral.isRsvp ? "rsvp" : "user"}:${referral.id}`,
       user_id: code.user_id,
       referral_code_id: code.id,
-      name: referral.signup?.displayName?.trim() || email,
-      slack_id: referral.signup?.slackId ?? "",
-      email,
-      hours_logged: referral.signup?.hoursLogged ?? 0,
-      hours_approved: referral.signup?.hoursApproved ?? 0,
+      name: referral.displayName?.trim() || referral.email,
+      slack_id: referral.slackId ?? "",
+      email: referral.email,
+      hours_logged: referral.hoursLogged,
+      hours_approved: referral.hoursApproved,
       verification_status: deriveVerificationStatus(referral),
       referred_at: new Date(referral.createdAt).toISOString(),
+      user_ref: referral.userRef,
+      onboarded_at: referral.onboardedAt,
+      click_confirmed_at: referral.clickConfirmedAt,
+      reply_confirmed_at: referral.replyConfirmedAt,
+      signup_confirmation_sent_at: referral.signupConfirmationSentAt,
     });
   }
 
   return rows;
 }
 
-async function ingestStardanceRsvpReferralRows(rows: StardanceRsvpReferralRow[]) {
+async function ingestStardanceRsvpReferralRows(rows: StardanceReferralUpsertRow[]) {
   if (rows.length === 0) return;
 
-  // A signup-only referral that has already been paid out keeps its `user:`
-  // row as the canonical identity: skip late-arriving RSVP twins instead of
-  // creating a second (double-payable) row for the same person.
-  const paidSignupRows = await sql<{ email: string }[]>`
-    SELECT DISTINCT LOWER(stale.email) AS email
-    FROM stardance_referrals stale
-    WHERE stale.id LIKE 'user:%'
-      AND EXISTS (
-        SELECT 1 FROM payout_referrals pr WHERE pr.referral_id = stale.id
-      )
+  // Facts (name, contact details, hours, funnel timestamps) always refresh from
+  // the feed; only the status is special. It ratchets forward (rsvp ->
+  // unverified -> pending -> verified) and 'rejected' is terminal in both
+  // directions, so an admin rejection sticks and a stardance ineligibility
+  // always lands.
+  await sql`
+    INSERT INTO stardance_referrals ${sql(rows)}
+    ON CONFLICT (id) DO UPDATE
+    SET
+      user_id = EXCLUDED.user_id,
+      referral_code_id = EXCLUDED.referral_code_id,
+      name = EXCLUDED.name,
+      slack_id = EXCLUDED.slack_id,
+      email = EXCLUDED.email,
+      hours_logged = EXCLUDED.hours_logged,
+      hours_approved = EXCLUDED.hours_approved,
+      referred_at = EXCLUDED.referred_at,
+      user_ref = EXCLUDED.user_ref,
+      onboarded_at = EXCLUDED.onboarded_at,
+      click_confirmed_at = EXCLUDED.click_confirmed_at,
+      reply_confirmed_at = EXCLUDED.reply_confirmed_at,
+      signup_confirmation_sent_at = EXCLUDED.signup_confirmation_sent_at,
+      verification_status = CASE
+        WHEN stardance_referrals.verification_status = 'rejected'
+          THEN stardance_referrals.verification_status
+        WHEN EXCLUDED.verification_status = 'rejected'
+          THEN EXCLUDED.verification_status
+        WHEN ARRAY_POSITION(
+            ARRAY['rsvp', 'unverified', 'pending', 'verified'],
+            EXCLUDED.verification_status
+          ) > ARRAY_POSITION(
+            ARRAY['rsvp', 'unverified', 'pending', 'verified'],
+            stardance_referrals.verification_status
+          )
+          THEN EXCLUDED.verification_status
+        ELSE stardance_referrals.verification_status
+      END
   `;
-  const paidSignupEmails = new Set(paidSignupRows.map((row) => row.email));
-  const insertable = rows.filter(
-    (row) => !row.id.startsWith("rsvp:") || !paidSignupEmails.has(row.email),
-  );
 
-  if (insertable.length > 0) {
-    // Facts (name, contact details, hours) refresh whenever the incoming row
-    // carries signup data, or while the stored row is still RSVP-stage. The
-    // status itself only ratchets forward (rsvp -> unverified -> pending ->
-    // verified); 'rejected' is terminal in both directions so an admin
-    // rejection sticks and a stardance ban/ineligibility always lands.
-    await sql`
-      INSERT INTO stardance_referrals ${sql(insertable)}
-      ON CONFLICT (id) DO UPDATE
-      SET
-        user_id = EXCLUDED.user_id,
-        referral_code_id = EXCLUDED.referral_code_id,
-        name = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.name
-          ELSE stardance_referrals.name
-        END,
-        slack_id = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.slack_id
-          ELSE stardance_referrals.slack_id
-        END,
-        email = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.email
-          ELSE stardance_referrals.email
-        END,
-        hours_logged = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.hours_logged
-          ELSE stardance_referrals.hours_logged
-        END,
-        hours_approved = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.hours_approved
-          ELSE stardance_referrals.hours_approved
-        END,
-        referred_at = CASE
-          WHEN EXCLUDED.verification_status <> 'rsvp'
-            OR stardance_referrals.verification_status = 'rsvp'
-            THEN EXCLUDED.referred_at
-          ELSE stardance_referrals.referred_at
-        END,
-        verification_status = CASE
-          WHEN stardance_referrals.verification_status = 'rejected'
-            THEN stardance_referrals.verification_status
-          WHEN EXCLUDED.verification_status = 'rejected'
-            THEN EXCLUDED.verification_status
-          WHEN ARRAY_POSITION(
-              ARRAY['rsvp', 'unverified', 'pending', 'verified'],
-              EXCLUDED.verification_status
-            ) > ARRAY_POSITION(
-              ARRAY['rsvp', 'unverified', 'pending', 'verified'],
-              stardance_referrals.verification_status
-            )
-            THEN EXCLUDED.verification_status
-          ELSE stardance_referrals.verification_status
-        END
-    `;
-  }
-
-  // When a person who first appeared as a signup later shows up with an RSVP,
-  // the feed re-anchors them on the RSVP id; drop the superseded (and unpaid)
-  // signup-anchored duplicate.
+  // Once a pre-signup RSVP person signs up the feed drops their RSVP and emits
+  // a `user:` row instead, so the old `rsvp:` row is superseded; drop it. Never
+  // touch a row a payout already references (payout_referrals.referral_id is
+  // ON DELETE CASCADE, so deleting it would erase the payout line).
   await sql`
     DELETE FROM stardance_referrals AS stale
-    WHERE stale.id LIKE 'user:%'
+    WHERE stale.id LIKE 'rsvp:%'
       AND EXISTS (
         SELECT 1
         FROM stardance_referrals AS keep
-        WHERE keep.id LIKE 'rsvp:%'
+        WHERE keep.id LIKE 'user:%'
           AND LOWER(keep.email) = LOWER(stale.email)
       )
       AND NOT EXISTS (

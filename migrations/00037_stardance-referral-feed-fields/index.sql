@@ -1,0 +1,6 @@
+ALTER TABLE stardance_referrals
+  ADD COLUMN IF NOT EXISTS user_ref TEXT,
+  ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS click_confirmed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS reply_confirmed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS signup_confirmation_sent_at TIMESTAMPTZ;
