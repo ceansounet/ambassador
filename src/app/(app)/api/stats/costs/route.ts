@@ -39,6 +39,8 @@ type CostRow = {
   poster_count_us: number;
   referral_count: number;
   referral_count_us: number;
+  referral_total_count: number;
+  referral_total_count_us: number;
   admin_payout_cents: number;
   admin_payout_cents_us: number;
   positive_adjustment_cents: number;
@@ -82,6 +84,10 @@ export async function GET(request: Request) {
           JOIN users ON users.id = stardance_referrals.user_id
           WHERE stardance_referrals.verification_status = 'verified'
             AND users.ambassador_region = 'United States')::int AS referral_count_us,
+        (SELECT COUNT(*) FROM stardance_referrals)::int AS referral_total_count,
+        (SELECT COUNT(*) FROM stardance_referrals
+          JOIN users ON users.id = stardance_referrals.user_id
+          WHERE users.ambassador_region = 'United States')::int AS referral_total_count_us,
         (SELECT COALESCE(SUM(amount_cents), 0) FROM payouts
           WHERE created_by_admin_id IS NOT NULL
             AND status = 'approved')::int AS admin_payout_cents,
@@ -137,6 +143,8 @@ export async function GET(request: Request) {
     poster_count_us: 0,
     referral_count: 0,
     referral_count_us: 0,
+    referral_total_count: 0,
+    referral_total_count_us: 0,
     admin_payout_cents: 0,
     admin_payout_cents_us: 0,
     positive_adjustment_cents: 0,
@@ -256,6 +264,10 @@ export async function GET(request: Request) {
     officeGrantCostUS: usd(grantCentsUS),
     totalCostUS: usd(totalCentsUS),
     averageCostUS: usd(averageCostCentsUS),
+    totalCompletedReferrals: String(costs.referral_count),
+    totalCompletedReferralsUS: String(costs.referral_count_us),
+    totalReferrals: String(costs.referral_total_count),
+    totalReferralsUS: String(costs.referral_total_count_us),
     totalApprovedAmbassadors: String(totalApprovedAmbassadors),
     averageCostPerAmbassador: usd(averageCostCents),
     ambassadorRegionBreakdown,
