@@ -166,17 +166,21 @@ export async function GET(request: Request) {
 
   // Region breakdown, seeded so every supported region (plus 'Unknown' for
   // ambassadors without one) is always present even at zero.
-  const ambassadorRegionBreakdown: Record<string, number> = Object.fromEntries(
+  const regionCounts: Record<string, number> = Object.fromEntries(
     [...SUPPORTED_AMBASSADOR_REGIONS, "Unknown"].map((region) => [region, 0]),
   );
   let totalApprovedAmbassadors = 0;
   for (const row of ambassadorRows) {
-    ambassadorRegionBreakdown[row.region] =
-      (ambassadorRegionBreakdown[row.region] ?? 0) + row.count;
+    regionCounts[row.region] = (regionCounts[row.region] ?? 0) + row.count;
     totalApprovedAmbassadors += row.count;
   }
   const averageCostCents =
     totalApprovedAmbassadors > 0 ? totalCents / totalApprovedAmbassadors : 0;
+
+  // Counts ship as strings, matching the dollar fields above.
+  const ambassadorRegionBreakdown = Object.fromEntries(
+    Object.entries(regionCounts).map(([region, count]) => [region, String(count)]),
+  );
 
   return Response.json({
     currency: "USD",
@@ -186,7 +190,7 @@ export async function GET(request: Request) {
     adminCost: usd(adminCents),
     officeGrantCost: usd(grantCents),
     total: usd(totalCents),
-    totalApprovedAmbassadors,
+    totalApprovedAmbassadors: String(totalApprovedAmbassadors),
     averageCostPerAmbassador: usd(averageCostCents),
     ambassadorRegionBreakdown,
     warnings,
