@@ -147,8 +147,8 @@ export async function GET(request: Request) {
   const adminCents = costs.admin_payout_cents + costs.positive_adjustment_cents;
 
   // 5. Office grants and 6. reimbursements, both out of the campaign's HCB org.
-  // Office-grant cost is the money trapped in active grants (the full committed
-  // amount, not just what's been spent); reimbursements are expense payouts.
+  // Office-grant cost is the actual spend drawn down from active grants (not the
+  // full amount granted); reimbursements are expense payouts.
   let grantCents = 0;
   let reimbursementCents = 0;
   if (grantResult.ok) {

@@ -6,7 +6,7 @@ import {
 } from "@/lib/hcb/service";
 
 export type OfficeGrantCost = {
-  /** Money trapped in active office grants: the full amount committed to each. */
+  /** Actual spend out of active office grants (amount granted minus what's left). */
   grantCents: number;
   /** Reimbursement (expense) payouts that left the org. */
   reimbursementCents: number;
@@ -25,20 +25,26 @@ let cached: { data: OfficeGrantCost; expiresAt: number } | null = null;
 
 async function fetchOfficeGrantCost(): Promise<OfficeGrantCost> {
   const [grants, transactions] = await Promise.all([
-    listHcbOrganizationCardGrants(HCB_CAMPAIGN_ORGANIZATION_ID),
+    listHcbOrganizationCardGrants(HCB_CAMPAIGN_ORGANIZATION_ID, { expandBalance: true }),
     listHcbOrganizationTransactions(HCB_CAMPAIGN_ORGANIZATION_ID),
   ]);
 
-  // Money trapped in office grants: the full amount committed to every active
-  // grant, whether the holder has spent it yet or not. A canceled grant is
-  // refunded to the org, so its money is no longer trapped.
+  // Actual spend out of office grants: how much each active grant has drawn
+  // down (granted amount minus the balance still on the card). Canceled grants
+  // are refunded to a zero balance, so amount-minus-balance would read as fully
+  // spent; skip them rather than count the refund as spend.
   let grantCents = 0;
   let grantCount = 0;
   for (const grant of grants) {
-    if (grant.status === "active") {
-      grantCents += grant.amountCents;
-      grantCount += 1;
+    if (grant.status !== "active" || grant.balanceCents === null) {
+      continue;
     }
+    const spentCents = grant.amountCents - grant.balanceCents;
+    if (spentCents <= 0) {
+      continue;
+    }
+    grantCents += spentCents;
+    grantCount += 1;
   }
 
   // Reimbursements: expense payouts out of the org. Outgoing (negative) amounts
@@ -65,8 +71,8 @@ async function fetchOfficeGrantCost(): Promise<OfficeGrantCost> {
 
 /**
  * Office-grant cost in cents from the campaign's HCB org via the authenticated
- * v4 API, cached for an hour. The total is the money trapped in active grants
- * plus reimbursement payouts. Pass forceRefresh to bypass the cache. If HCB is
+ * v4 API, cached for an hour. The total is the actual spend out of active
+ * grants plus reimbursement payouts. Pass forceRefresh to bypass the cache. If HCB is
  * unreachable a previously cached value is returned with stale=true; with no
  * cache at all the error propagates to the caller.
  */

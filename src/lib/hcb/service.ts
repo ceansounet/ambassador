@@ -513,9 +513,13 @@ export async function fetchHcbCardGrant(grantId: string) {
   return normalizeCardGrant(body);
 }
 
-export async function listHcbOrganizationCardGrants(organizationId: string) {
+export async function listHcbOrganizationCardGrants(
+  organizationId: string,
+  options: { expandBalance?: boolean } = {},
+) {
+  const query = options.expandBalance ? "?expand=balance_cents" : "";
   const body = await requestHcbJson(
-    `/api/v4/organizations/${encodeURIComponent(organizationId)}/card_grants`,
+    `/api/v4/organizations/${encodeURIComponent(organizationId)}/card_grants${query}`,
   );
 
   if (!Array.isArray(body)) {
