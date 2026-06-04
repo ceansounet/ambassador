@@ -855,6 +855,23 @@ async function ingestStardanceRsvpReferralRows(rows: StardanceReferralUpsertRow[
         SELECT 1 FROM payout_referrals pr WHERE pr.referral_id = stale.id
       )
   `;
+
+  // Self-referrals (the referred contact is the ambassador themselves) are not
+  // payable; reject them. Match on the ambassador's own email or Slack id. The
+  // balance trigger claws back any credit a now-rejected referral had earned.
+  const userIds = [...new Set(rows.map((row) => row.user_id))];
+  await sql`
+    UPDATE stardance_referrals AS referral
+    SET verification_status = 'rejected'
+    FROM users AS owner
+    WHERE owner.id = referral.user_id
+      AND referral.user_id = ANY(${userIds}::text[])
+      AND referral.verification_status <> 'rejected'
+      AND (
+        (owner.email IS NOT NULL AND referral.email <> '' AND LOWER(referral.email) = LOWER(owner.email))
+        OR (owner.slack_id IS NOT NULL AND owner.slack_id <> '' AND referral.slack_id = owner.slack_id)
+      )
+  `;
 }
 
 async function ensurePosterReferralCodeRows(userId?: string) {

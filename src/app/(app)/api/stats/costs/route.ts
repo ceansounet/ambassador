@@ -158,8 +158,10 @@ export async function GET(request: Request) {
   const referralCents = costs.referral_count * REFERRAL_PAYOUT_CENTS;
   const referralCentsUS = costs.referral_count_us * REFERRAL_PAYOUT_CENTS;
 
-  // 3. Shirts: what we paid the warehouse to fulfil ambassador shirt orders
-  // that actually shipped. Warehouse costs are in dollars, so round to cents.
+  // 3. Shirts: what we paid to fulfil ambassador shirt orders that actually
+  // shipped. The warehouse doesn't report a contents cost, so use our known
+  // per-shirt spend of $11.31 (each order is a single shirt); labor and postage
+  // come from the warehouse. Costs are in dollars, so round to cents.
   let shirtCents = 0;
   let shirtCentsUS = 0;
   if (warehouseOrders === null) {
@@ -179,7 +181,7 @@ export async function GET(request: Request) {
         ambassadorOrderIds.has(order.id)
       ) {
         const orderDollars =
-          Number(order.contents_cost ?? 0) +
+          11.31 +
           Number(order.labor_cost ?? 0) +
           Number(order.postage_cost ?? 0);
         shirtDollars += orderDollars;
