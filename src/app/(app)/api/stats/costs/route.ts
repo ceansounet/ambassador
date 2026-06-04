@@ -84,10 +84,12 @@ export async function GET(request: Request) {
           JOIN users ON users.id = stardance_referrals.user_id
           WHERE stardance_referrals.verification_status = 'verified'
             AND users.ambassador_region = 'United States')::int AS referral_count_us,
-        (SELECT COUNT(*) FROM stardance_referrals)::int AS referral_total_count,
+        (SELECT COUNT(*) FROM stardance_referrals
+          WHERE verification_status <> 'rejected')::int AS referral_total_count,
         (SELECT COUNT(*) FROM stardance_referrals
           JOIN users ON users.id = stardance_referrals.user_id
-          WHERE users.ambassador_region = 'United States')::int AS referral_total_count_us,
+          WHERE stardance_referrals.verification_status <> 'rejected'
+            AND users.ambassador_region = 'United States')::int AS referral_total_count_us,
         (SELECT COALESCE(SUM(amount_cents), 0) FROM payouts
           WHERE created_by_admin_id IS NOT NULL
             AND status = 'approved')::int AS admin_payout_cents,
