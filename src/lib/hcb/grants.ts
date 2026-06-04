@@ -8,6 +8,7 @@ import { APPLICATION_STATUS_ACCEPTED } from "@/lib/applications/status";
 import { getAmbassadorOnboardingGrantContact } from "@/lib/ambassadors/airtable";
 import { logAdminActionEvent } from "@/lib/admin-action-events";
 import sql from "@/lib/database/client";
+import { clearOfficeGrantCostCache } from "@/lib/hcb/office-grant-cost";
 import {
   createHcbOrganizationCardGrant,
   fetchHcbCardGrant,
@@ -313,6 +314,10 @@ async function linkGrantRecord(
       source: input.source,
     },
   });
+
+  // A freshly provisioned grant changes the campaign's grant spend; drop the
+  // cached total so the stats endpoint re-reads it on the next call.
+  clearOfficeGrantCostCache();
 }
 
 async function loadLatestApplication(userId: string) {
