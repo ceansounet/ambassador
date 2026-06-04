@@ -11,8 +11,6 @@ import { WarehouseApiClient } from "@/lib/warehouse";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ACCESS_KEY_ENV = "STARDANCE_DATA_ACCESS_KEY";
-
 /** The presented key, from a header (preferred) or a `?key=` query param. */
 function presentedKey(request: Request): string | null {
   const direct = request.headers.get("x-stardance-data-access-key")?.trim();
@@ -48,12 +46,9 @@ function usd(cents: number) {
 }
 
 export async function GET(request: Request) {
-  const expectedKey = optionalEnv(ACCESS_KEY_ENV);
+  const expectedKey = optionalEnv("STARDANCE_DATA_ACCESS_KEY");
   if (!expectedKey) {
-    return Response.json(
-      { error: "not_configured", detail: `${ACCESS_KEY_ENV} is not set` },
-      { status: 503 },
-    );
+    return Response.json({ error: "This endpoint is not enabled" }, { status: 503 });
   }
 
   const provided = presentedKey(request);
