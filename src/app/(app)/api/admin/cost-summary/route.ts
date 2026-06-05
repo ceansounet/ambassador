@@ -36,6 +36,17 @@ export async function GET(request: Request) {
     totalCentsUS: summary.totalCentsUS,
     averageCostCents: summary.averageCostCents,
     averageCostCentsUS: summary.averageCostCentsUS,
+    posterCents: summary.posterCents,
+    posterCentsUS: summary.posterCentsUS,
+    referralCents: summary.referralCents,
+    referralCentsUS: summary.referralCentsUS,
+    shirtCents: summary.shirtCents,
+    shirtCentsUS: summary.shirtCentsUS,
+    adminCents: summary.adminCents,
+    adminCentsUS: summary.adminCentsUS,
+    grantCents: summary.grantCents,
+    grantCentsUS: summary.grantCentsUS,
+    reimbursementCents: summary.reimbursementCents,
     complete: summary.complete,
   });
 }
