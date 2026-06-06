@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   validate-translations:
@@ -15,13 +16,37 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Collect poster files changed in this PR
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          # Files this PR actually touches under public/posters. Problems on
+          # these fail the check; problems on any other regional poster only
+          # warn, so an unrelated broken region cannot block the PR.
+          if git diff --name-only "$BASE_SHA" HEAD -- 'public/posters/**' > changed-posters.txt; then
+            echo "Changed poster files in this PR:"
+            cat changed-posters.txt
+          else
+            echo "::warning::Could not diff against the base; treating all poster problems as warnings."
+            : > changed-posters.txt
+          fi
 
       - name: Validate regional poster files
         shell: bash
         run: |
           set -euo pipefail
-          fail=0
-          problems=()
+          pr_problems=()
+          other_problems=()
+
+          is_changed() { grep -qxF "$1" changed-posters.txt; }
+          region_touched() {
+            grep -qE "^${1}/stardance-(letter|a4)-(color|bw)-${2}\.(pdf|webp)$" changed-posters.txt
+          }
 
           shopt -s nullglob
           campaign_dirs=(public/posters/*/regionals)
@@ -56,9 +81,13 @@ jobs:
                   for ext in pdf webp; do
                     file="$regionals_dir/stardance-${paper}-${color}-${region}.${ext}"
                     if [ ! -f "$file" ]; then
-                      echo "::error file=$file::Missing $file"
-                      problems+=("missing: $file")
-                      fail=1
+                      if region_touched "$regionals_dir" "$region"; then
+                        echo "::error file=$file::Missing $file"
+                        pr_problems+=("missing: $file")
+                      else
+                        echo "::warning file=$file::Missing $file (region not part of this PR)"
+                        other_problems+=("missing: $file")
+                      fi
                     fi
                   done
                 done
@@ -74,17 +103,111 @@ jobs:
               | sort
             )
             for file in "${stray[@]}"; do
-              echo "::error file=$file::$file does not follow the stardance-(letter|a4)-(color|bw)-<region>.(pdf|webp) naming scheme (region code must be lowercase a-z, 2-8 chars)"
-              problems+=("bad name: $file")
-              fail=1
+              msg="$file does not follow the stardance-(letter|a4)-(color|bw)-<region>.(pdf|webp) naming scheme (region code must be lowercase a-z, 2-8 chars)"
+              if is_changed "$file"; then
+                echo "::error file=$file::$msg"
+                pr_problems+=("bad name: $file")
+              else
+                echo "::warning file=$file::$msg (not part of this PR)"
+                other_problems+=("bad name: $file")
+              fi
             done
           done
 
-          if [ "$fail" -ne 0 ]; then
-            echo "::error::Poster translation validation failed (${#problems[@]} problem(s)). Each region needs the 4 PDFs and 4 .webp previews, all lowercase-named:"
-            for problem in "${problems[@]}"; do
+          if [ ${#other_problems[@]} -ne 0 ]; then
+            echo "::warning::${#other_problems[@]} pre-existing poster problem(s) outside this PR (not blocking):"
+            for problem in "${other_problems[@]}"; do
+              echo "  - $problem"
+            done
+          fi
+
+          if [ ${#pr_problems[@]} -ne 0 ]; then
+            echo "::error::Poster translation validation failed (${#pr_problems[@]} problem(s) in this PR's posters). Each region needs the 4 PDFs and 4 .webp previews, all lowercase-named:"
+            for problem in "${pr_problems[@]}"; do
               echo "  - $problem"
             done
             exit 1
           fi
           echo "Poster translation validation passed."
+
+      - name: Scan changed posters with VirusTotal
+        shell: bash
+        env:
+          VT_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VT_API_KEY:-}" ]; then
+            echo "::warning::VIRUSTOTAL_API_KEY is not set; skipping scan."
+            exit 0
+          fi
+
+          mapfile -t posters < <(grep -E '^public/posters/.*\.(pdf|webp)$' changed-posters.txt || true)
+          if [ ${#posters[@]} -eq 0 ]; then
+            echo "No poster files changed in this PR; skipping VirusTotal scan."
+            exit 0
+          fi
+
+          zip -q posters-pr.zip "${posters[@]}"
+          size=$(stat -c%s posters-pr.zip)
+          echo "Zipped ${#posters[@]} poster file(s) into posters-pr.zip ($size bytes)."
+
+          # VirusTotal accepts direct upload up to 32 MiB; larger files need a
+          # one-time upload URL.
+          if [ "$size" -le 33554432 ]; then
+            resp=$(curl -sS -X POST https://www.virustotal.com/api/v3/files \
+              -H "x-apikey: $VT_API_KEY" -F "file=@posters-pr.zip")
+          else
+            upload_url=$(curl -sS https://www.virustotal.com/api/v3/files/upload_url \
+              -H "x-apikey: $VT_API_KEY" | jq -r '.data')
+            resp=$(curl -sS -X POST "$upload_url" \
+              -H "x-apikey: $VT_API_KEY" -F "file=@posters-pr.zip")
+          fi
+
+          analysis_id=$(echo "$resp" | jq -r '.data.id // empty')
+          if [ -z "$analysis_id" ]; then
+            echo "::warning::VirusTotal upload failed: $(echo "$resp" | jq -c '.error // .')"
+            exit 0
+          fi
+
+          status=""
+          analysis="{}"
+          for _ in $(seq 1 20); do
+            analysis=$(curl -sS "https://www.virustotal.com/api/v3/analyses/$analysis_id" \
+              -H "x-apikey: $VT_API_KEY")
+            status=$(echo "$analysis" | jq -r '.data.attributes.status // empty')
+            [ "$status" = "completed" ] && break
+            sleep 15
+          done
+
+          malicious=$(echo "$analysis" | jq -r '.data.attributes.stats.malicious // 0')
+          suspicious=$(echo "$analysis" | jq -r '.data.attributes.stats.suspicious // 0')
+          undetected=$(echo "$analysis" | jq -r '.data.attributes.stats.undetected // 0')
+          harmless=$(echo "$analysis" | jq -r '.data.attributes.stats.harmless // 0')
+          sha256=$(echo "$analysis" | jq -r '.meta.file_info.sha256 // empty')
+
+          if [ "$malicious" -gt 0 ] || [ "$suspicious" -gt 0 ]; then
+            echo "::warning::VirusTotal flagged the poster bundle: $malicious malicious, $suspicious suspicious."
+          fi
+
+          {
+            echo "## VirusTotal poster scan"
+            echo
+            echo "Scanned ${#posters[@]} changed poster file(s), zipped into one bundle."
+            echo
+            echo "| Malicious | Suspicious | Undetected | Harmless | Status |"
+            echo "| --- | --- | --- | --- | --- |"
+            echo "| $malicious | $suspicious | $undetected | $harmless | ${status:-queued} |"
+            echo
+            if [ -n "$sha256" ]; then
+              echo "Full report: https://www.virustotal.com/gui/file/$sha256"
+              echo
+            fi
+            echo "Files:"
+            printf -- '- `%s`\n' "${posters[@]}"
+          } > vt-comment.md
+
+          gh pr comment "$PR_NUMBER" --body-file vt-comment.md
+          echo "Posted VirusTotal results to PR #$PR_NUMBER."
