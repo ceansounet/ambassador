@@ -166,10 +166,15 @@ jobs:
               -H "x-apikey: $VT_API_KEY" -F "file=@posters-pr.zip")
           fi
 
+          upload_failed() {
+            gh pr comment "$PR_NUMBER" --body "Failed to automatically upload to VirusTotal! Please bundle all of your files into a zip and upload it to VT, then send the report here."
+            exit 0
+          }
+
           analysis_id=$(echo "$resp" | jq -r '.data.id // empty')
           if [ -z "$analysis_id" ]; then
             echo "::warning::VirusTotal upload failed: $(echo "$resp" | jq -c '.error // .')"
-            exit 0
+            upload_failed
           fi
 
           status=""
@@ -182,31 +187,22 @@ jobs:
             sleep 15
           done
 
-          malicious=$(echo "$analysis" | jq -r '.data.attributes.stats.malicious // 0')
-          suspicious=$(echo "$analysis" | jq -r '.data.attributes.stats.suspicious // 0')
-          undetected=$(echo "$analysis" | jq -r '.data.attributes.stats.undetected // 0')
-          harmless=$(echo "$analysis" | jq -r '.data.attributes.stats.harmless // 0')
           sha256=$(echo "$analysis" | jq -r '.meta.file_info.sha256 // empty')
-
-          if [ "$malicious" -gt 0 ] || [ "$suspicious" -gt 0 ]; then
-            echo "::warning::VirusTotal flagged the poster bundle: $malicious malicious, $suspicious suspicious."
+          if [ -z "$sha256" ]; then
+            echo "::warning::No VirusTotal report available."
+            upload_failed
           fi
 
+          malicious=$(echo "$analysis" | jq -r '.data.attributes.stats.malicious // 0')
+          suspicious=$(echo "$analysis" | jq -r '.data.attributes.stats.suspicious // 0')
+          link="https://www.virustotal.com/gui/file/$sha256"
+
           {
-            echo "## VirusTotal poster scan"
-            echo
-            echo "Scanned ${#posters[@]} changed poster file(s), zipped into one bundle."
-            echo
-            echo "| Malicious | Suspicious | Undetected | Harmless | Status |"
-            echo "| --- | --- | --- | --- | --- |"
-            echo "| $malicious | $suspicious | $undetected | $harmless | ${status:-queued} |"
-            echo
-            if [ -n "$sha256" ]; then
-              echo "Full report: https://www.virustotal.com/gui/file/$sha256"
+            echo "VT: [$link]($link)"
+            if [ "$malicious" -gt 0 ] || [ "$suspicious" -gt 0 ]; then
               echo
+              echo "The ZIP has potentially been flagged by some vendors"
             fi
-            echo "Files:"
-            printf -- '- `%s`\n' "${posters[@]}"
           } > vt-comment.md
 
           gh pr comment "$PR_NUMBER" --body-file vt-comment.md
