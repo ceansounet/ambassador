@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { DeleteApplicationButton } from "@/components/admin/delete-application-button";
 import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
+import { AdminLocalDateTime } from "@/components/admin/admin-local-time";
 import { DetailFieldRow, DetailPager, DetailRow, DetailSection } from "@/components/admin/detail";
 import { HackatimeTrustStatus } from "@/components/admin/hackatime-trust-status";
 import { SlackAvatar, SlackProfile } from "@/components/admin/slack-profile";
@@ -660,7 +661,15 @@ export default async function AdminApplicationDetailPage({
                   {joinNonEmpty(visit.city, visit.region, null, visit.country_code) ?? "-"}
                 </div>
                 <div className="mt-1 font-body text-sm text-foreground">{visit.org ?? t("admin.application-detail.visits.unknown-network")}</div>
-                <div className="mt-1 text-xs text-foreground">{formatDateTime(visit.created_at, locale)}</div>
+                <div className="mt-1 text-xs text-foreground">
+                  <AdminLocalDateTime
+                    value={visit.created_at}
+                    locale={locale}
+                    fallback={formatDateTime(visit.created_at, locale) ?? "-"}
+                  />
+                  {" · "}
+                  {t("common.your-time")}
+                </div>
               </div>
             ))
           ) : (

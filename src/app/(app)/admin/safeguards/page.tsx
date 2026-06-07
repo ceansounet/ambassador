@@ -23,7 +23,7 @@ export default async function AdminSafeguardsPage() {
   const stateByKey = new Map(safeguards.map((state) => [state.key, state]));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.safeguards.title")}</h1>
 
       <SafeguardsClient

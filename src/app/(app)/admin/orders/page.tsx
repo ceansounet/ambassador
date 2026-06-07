@@ -128,7 +128,7 @@ export default async function AdminOrdersPage({
   const hcbStatusMessage = hcbStatus === "" ? null : HCB_AUTH_STATUS_MESSAGES.get(hcbStatus) ?? null;
   const lastHcbError = hcbConnection?.lastError?.trim() ?? "";
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-4">

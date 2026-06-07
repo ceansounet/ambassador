@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Bar, BarChart, Tooltip, XAxis, YAxis } from "recharts";
@@ -341,29 +342,43 @@ export function TopAmbassadorsChart({
               </DashboardResponsiveChart>
             </div>
             {pageCount > 1 && (
-              <div className="flex items-center justify-between gap-4 pt-4">
-                <div className="font-body text-sm text-secondary tabular-nums">
-                  {tp("page")} {safePage} / {pageCount}
-                </div>
-                <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-4 pt-4 font-body text-sm">
+                <span className="text-secondary tabular-nums">
+                  {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sortedData.length)}{" "}
+                  {tp("of")} {sortedData.length}
+                </span>
+                <div className="flex items-center gap-1">
                   {safePage > 1 ? (
                     <button
                       type="button"
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
-                      className="inline-flex h-10 items-center justify-center !rounded-none border border-foreground/10 bg-muted px-4 font-body text-sm text-foreground transition-colors hover:bg-foreground hover:text-white"
+                      aria-label={tp("previous")}
+                      className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
                     >
-                      {tp("previous")}
+                      <ChevronLeft className="size-4" aria-hidden />
                     </button>
-                  ) : null}
+                  ) : (
+                    <span aria-hidden className="inline-flex size-9 items-center justify-center rounded-md text-foreground/25">
+                      <ChevronLeft className="size-4" />
+                    </span>
+                  )}
+                  <span className="px-2 text-foreground tabular-nums">
+                    {safePage} / {pageCount}
+                  </span>
                   {safePage < pageCount ? (
                     <button
                       type="button"
                       onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
-                      className="inline-flex h-10 items-center justify-center !rounded-none border border-foreground/10 bg-muted px-4 font-body text-sm text-foreground transition-colors hover:bg-foreground hover:text-white"
+                      aria-label={tp("next")}
+                      className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-foreground transition-colors hover:bg-muted"
                     >
-                      {tp("next")}
+                      <ChevronRight className="size-4" aria-hidden />
                     </button>
-                  ) : null}
+                  ) : (
+                    <span aria-hidden className="inline-flex size-9 items-center justify-center rounded-md text-foreground/25">
+                      <ChevronRight className="size-4" />
+                    </span>
+                  )}
                 </div>
               </div>
             )}

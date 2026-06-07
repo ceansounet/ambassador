@@ -418,9 +418,12 @@ export function PriorityDashboard({
                     <Tooltip cursor={false} content={<ChartTooltip locale={locale} currency />} />
                   </PieChart>
                 </DashboardResponsiveChart>
-                <div className="absolute bottom-0 right-0 flex max-w-[60%] items-stretch gap-1.5">
+                <div className="absolute bottom-0 right-0 flex w-fit max-w-[60%] items-stretch gap-1.5">
                   <span aria-hidden className="w-1 self-stretch border-y border-l border-foreground/40" />
-                  <ul className="flex flex-wrap justify-start gap-x-2.5 gap-y-1 py-1">
+                  {/* A two-column max-content grid so the key hugs its labels and
+                      the right bracket sits flush against the longest one, instead
+                      of a wrapping flex row that fills the width and leaves a gap. */}
+                  <ul className="grid grid-cols-[repeat(2,max-content)] gap-x-3 gap-y-1 py-1">
                     {costBuckets.map((bucket) => (
                       <li
                         key={bucket.key}
@@ -478,19 +481,15 @@ export function PriorityDashboard({
                   label={t("efficiency.hours-approved")}
                   hint={t("efficiency.weighted-grants-hint")}
                   value={hoursFormatter.format(totalHoursApproved)}
-                  sub={
-                    <>
-                      <span>{t("efficiency.for-users", { count: approvedUsers })}</span>
-                      {totalHoursApproved > 0 ? (
-                        <span>
-                          {t("efficiency.weighted-grants", {
-                            count: hoursFormatter.format(weightedGrants),
-                            amount: currencyFormatter.format(weightedGrantDollars),
-                          })}
-                        </span>
-                      ) : null}
-                    </>
+                  beside={
+                    totalHoursApproved > 0
+                      ? t("efficiency.weighted-grants", {
+                          count: hoursFormatter.format(weightedGrants),
+                          amount: currencyFormatter.format(weightedGrantDollars),
+                        })
+                      : undefined
                   }
+                  sub={<span>{t("efficiency.for-users", { count: approvedUsers })}</span>}
                 />
               </div>
             </div>
@@ -658,6 +657,8 @@ export function PriorityDashboard({
             allCountries: tm("all-countries"),
             allStates: tm("all-states"),
             empty: tm("empty"),
+            dots: tm("dots"),
+            heatmap: tm("heatmap"),
           }}
         />
       </div>
@@ -701,12 +702,16 @@ function HoursKpi({
   label,
   value,
   sub,
+  beside,
   hint,
 }: {
   glyph: "clock" | "checkmark";
   label: string;
   value: string;
   sub?: React.ReactNode;
+  // Rendered inline to the right of the figure, in the same quiet font as the
+  // sub lines — used to sit the weighted-grant tally beside the hours count.
+  beside?: React.ReactNode;
   hint?: string;
 }) {
   return (
@@ -716,7 +721,12 @@ function HoursKpi({
         {label}
         {hint !== undefined ? <HintTooltip text={hint} /> : null}
       </span>
-      <span className="text-2xl font-bold leading-8 text-foreground tabular-nums">{value}</span>
+      <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="text-2xl font-bold leading-8 text-foreground tabular-nums">{value}</span>
+        {beside !== undefined ? (
+          <span className="font-body text-xs text-muted-foreground">{beside}</span>
+        ) : null}
+      </span>
       {sub !== undefined ? (
         <div className="flex flex-col gap-0.5 font-body text-xs text-muted-foreground">{sub}</div>
       ) : null}

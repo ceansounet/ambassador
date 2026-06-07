@@ -770,7 +770,7 @@ function GroupCard({
             className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent p-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <Pencil size={16} />
-            {t("actions.rename")}
+            <span className="hidden sm:inline">{t("actions.rename")}</span>
           </button>
           {canDeleteGroup ? (
             <button
@@ -783,7 +783,7 @@ function GroupCard({
               className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 bg-transparent p-0 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 size={16} />
-              {t("actions.delete")}
+              <span className="hidden sm:inline">{t("actions.delete")}</span>
             </button>
           ) : null}
         </div>
@@ -1374,14 +1374,18 @@ function PosterRow({
       </div>
 
       {!editing && (
-        <div className="flex shrink-0 items-center gap-2">
+        // Labels collapse to icon-only on mobile so the three actions never crowd
+        // out (and clip) the poster name on a narrow row.
+        <div className="flex shrink-0 items-center gap-3 sm:gap-2">
           <a
             href={`/api/posters/${poster.id}/pdf`}
             data-slot="icon-link"
+            aria-label={`Download poster ${displayCode}`}
+            title={`Download poster ${displayCode}`}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Icon glyph="download" size={20} />
-            {t("actions.download")}
+            <span className="hidden sm:inline">{t("actions.download")}</span>
           </a>
           <button
             type="button"
@@ -1396,7 +1400,7 @@ function PosterRow({
             title={t("actions.rename-poster", { code: displayCode })}
           >
             <Pencil size={16} />
-            {t("actions.rename")}
+            <span className="hidden sm:inline">{t("actions.rename")}</span>
           </button>
           {canDeletePoster(poster) ? (
             <button
@@ -1409,7 +1413,7 @@ function PosterRow({
               className="inline-flex cursor-pointer items-center gap-1.5 bg-transparent p-0 text-sm text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 size={16} />
-              {t("actions.delete")}
+              <span className="hidden sm:inline">{t("actions.delete")}</span>
             </button>
           ) : null}
         </div>
@@ -1575,7 +1579,9 @@ function CreateSection({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-foreground font-medium shrink-0">Poster group</p>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end">
-              <div className="flex w-full items-start gap-2 sm:w-auto">
+              {/* Reserve room on mobile for the absolutely-positioned size help
+                  below, so it can't overlap the create button stacked beneath. */}
+              <div className="flex w-full items-start gap-2 pb-6 sm:w-auto sm:pb-0">
                 <div className="relative w-16 flex-none">
                   <label htmlFor="group-size-input" className="sr-only">
                     {t("groups.size-label")}
@@ -1745,8 +1751,11 @@ function VariantCombobox({
 function PosterPreview({ url, posterType }: { url: string; posterType: PosterStyle }) {
   const label = posterType === "a4" || posterType === "a4_bw" ? "A4 poster preview" : "Letter poster preview";
 
+  // Capped to the desktop column width so the preview stays a tidy thumbnail
+  // instead of ballooning to a full-width, screen-tall image on mobile, where the
+  // grid collapses to a single column.
   return (
-    <div className="space-y-1.5">
+    <div className="w-full max-w-[11rem] space-y-1.5">
       <p className="text-xs text-muted-foreground">Preview</p>
       <div className="overflow-hidden border border-foreground/10">
         <Image

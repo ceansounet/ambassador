@@ -140,7 +140,7 @@ export default async function AdminAuditLogPage({
   const totalCount = eventList.at(0)?.total ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header className="space-y-2">
         <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.audit-log.title")}</h1>
       </header>

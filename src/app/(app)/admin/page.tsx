@@ -33,7 +33,7 @@ export default async function AdminDashboard({
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h1 className="text-4xl font-bold leading-[3rem] text-foreground">{t("title")}</h1>
         <div className="flex flex-wrap items-center gap-2">
           {activeView === "priority" ? <PriorityScopeSelect /> : null}

@@ -453,6 +453,8 @@ common:
   view: View
   page-fraction: "{page} / {totalPages}"
   confirm-destructive: Are you sure? Scary things will happen otherwise.
+  your-time: your time
+  visitor-time: "{time} · visitor's time ({zone})"
 
 status:
   pending: Pending
@@ -605,7 +607,7 @@ admin:
         posters: Posters
         shirts: Shirts
         admin: Admin payouts
-        grants: Office grants
+        grants: Office
         reimbursements: Reimbursements
       efficiency:
         hours-shipped: Hours shipped
@@ -715,6 +717,8 @@ admin:
       all-countries: All countries
       all-states: All states
       empty: No verified posters have coordinates yet.
+      dots: Dots
+      heatmap: Heatmap
   orders:
     metadata:
       title: Orders

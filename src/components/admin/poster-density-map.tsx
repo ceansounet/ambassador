@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Select,
@@ -11,11 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SectionHeading } from "@/components/admin/section-heading";
+import { cn } from "@/lib/utils";
 
 const PosterDensityMapInner = dynamic(() => import("./poster-density-map-inner"), {
   ssr: false,
   loading: () => <div className="h-full w-full animate-pulse bg-muted" />,
 });
+
+type PosterMapMode = "dots" | "heat";
 
 export type PosterMapDatum = {
   id: string;
@@ -32,6 +35,8 @@ type PosterDensityMapMessages = {
   allCountries: string;
   allStates: string;
   empty: string;
+  dots: string;
+  heatmap: string;
 };
 
 export function PosterDensityMap({
@@ -46,11 +51,15 @@ export function PosterDensityMap({
   messages: PosterDensityMapMessages;
 }) {
   const [selected, setSelected] = useState("all");
+  const [mode, setMode] = useState<PosterMapMode>("dots");
   // The region scope owns the coarse filter; reset the fine filter whenever it
-  // flips so a leftover state/country pick can't hide every point.
-  useEffect(() => {
+  // flips so a leftover state/country pick can't hide every point. Done as a
+  // during-render adjustment (not an effect) so the reset lands in the same pass.
+  const [prevScope, setPrevScope] = useState(scope);
+  if (scope !== prevScope) {
+    setPrevScope(scope);
     setSelected("all");
-  }, [scope]);
+  }
 
   // The US scope drills into states; the others group by country. "other" never
   // includes the US, which its scoped points already exclude.
@@ -92,7 +101,33 @@ export function PosterDensityMap({
     <section className="ui-group">
       <SectionHeading title={messages.title}>
         {scopedPoints.length > 0 ? (
-          <div className="w-full sm:w-64">
+          <>
+            {/* Segmented dots/heatmap switch, styled like the dashboard view
+                toggle: one bordered track, the active half filled solid. */}
+            <div className="inline-flex items-stretch overflow-hidden rounded-xl border border-foreground bg-background">
+              {([
+                { value: "dots", label: messages.dots },
+                { value: "heat", label: messages.heatmap },
+              ] as const).map((option, index) => {
+                const active = option.value === mode;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setMode(option.value)}
+                    className={cn(
+                      "flex items-center px-4 py-1.5 font-body text-sm font-bold transition-colors",
+                      index > 0 && "border-l border-foreground",
+                      active ? "bg-foreground text-white" : "text-foreground hover:bg-foreground/5",
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="w-full sm:w-64">
             <Select value={selected} onValueChange={setSelected}>
               <SelectTrigger
                 size="sm"
@@ -113,7 +148,8 @@ export function PosterDensityMap({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+            </div>
+          </>
         ) : null}
       </SectionHeading>
 
@@ -121,7 +157,7 @@ export function PosterDensityMap({
         <p className="font-body text-sm text-muted-foreground">{messages.empty}</p>
       ) : (
         <div className="isolate h-[28rem] w-full overflow-hidden rounded-xl">
-          <PosterDensityMapInner points={filtered} />
+          <PosterDensityMapInner points={filtered} mode={mode} />
         </div>
       )}
     </section>

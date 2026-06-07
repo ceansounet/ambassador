@@ -248,12 +248,15 @@ export function SafeguardsClient({
                     </td>
                   </tr>
                   {!enabled ? (
+                    // The override key spans the full row as one tidy block — a
+                    // quiet bold eyebrow on the left, the add control flush right —
+                    // so the title never wraps inside the narrow flag column.
                     <tr>
-                        <td className="px-4 pb-2 align-middle">
-                          <div className="text-lg text-foreground">{overridesStrings.heading}</div>
-                        </td>
-                        <td className="px-4 pb-2" />
-                        <td className="px-4 pb-2 text-center align-middle">
+                      <td colSpan={3} className="px-4 pt-2 pb-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="whitespace-nowrap font-body text-sm font-bold leading-4 text-secondary">
+                            {overridesStrings.heading}
+                          </span>
                           <button
                             type="button"
                             data-slot="icon-link"
@@ -271,11 +274,12 @@ export function SafeguardsClient({
                                 setError(null);
                               }
                             }}
-                            className="ui-open-link inline-flex items-center justify-center"
+                            className="ui-open-link inline-flex shrink-0 items-center justify-center"
                           >
                             <Plus size={18} strokeWidth={2.25} />
                           </button>
-                        </td>
+                        </div>
+                      </td>
                     </tr>
                   ) : null}
                   {!enabled ? (

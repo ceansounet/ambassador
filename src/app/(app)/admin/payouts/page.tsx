@@ -44,7 +44,7 @@ export default async function AdminPayoutsPage() {
   const finalized = payouts.filter((p) => p.status !== PAYOUT_STATUS_PENDING);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-4xl leading-[3rem] text-foreground">Payouts</h1>
         <div className="flex flex-wrap items-center gap-4">

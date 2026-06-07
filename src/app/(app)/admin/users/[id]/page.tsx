@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
+import { AdminLocalDateTime } from "@/components/admin/admin-local-time";
 import { ApproveWithGrantForm } from "@/components/admin/approve-with-grant-form";
 import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
 import { DetailFieldRow, DetailPager, DetailRow, DetailSection } from "@/components/admin/detail";
@@ -1076,11 +1077,8 @@ export default async function AdminUserDetailPage({
         <div className="space-y-4">
           {visits.length > 0 ? (
             visits.map((visit) => {
-              const localVisitTime = formatTimeInTimeZone(
-                visit.created_at,
-                locale,
-                visit.timezone ?? user.timezone,
-              );
+              const visitorZone = visit.timezone ?? user.timezone;
+              const localVisitTime = formatTimeInTimeZone(visit.created_at, locale, visitorZone);
 
               return (
                 <div key={visit.id} className="pb-4">
@@ -1093,9 +1091,19 @@ export default async function AdminUserDetailPage({
                   </div>
                   <div className="mt-1 font-body text-sm text-foreground">{visit.org ?? t("admin.user-detail.visits.unknown-network")}</div>
                   <div className="mt-1 text-xs text-foreground">
-                    {formatDateTime(visit.created_at, locale)}
-                    {localVisitTime !== null ? ` (${t("admin.user-detail.visits.local-time", { time: localVisitTime })})` : ""}
+                    <AdminLocalDateTime
+                      value={visit.created_at}
+                      locale={locale}
+                      fallback={formatDateTime(visit.created_at, locale) ?? "-"}
+                    />
+                    {" · "}
+                    {t("common.your-time")}
                   </div>
+                  {localVisitTime !== null && visitorZone ? (
+                    <div className="mt-0.5 text-xs text-secondary">
+                      {t("common.visitor-time", { time: localVisitTime, zone: visitorZone })}
+                    </div>
+                  ) : null}
                 </div>
               );
             })

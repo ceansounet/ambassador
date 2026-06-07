@@ -170,7 +170,7 @@ export default async function AdminApplicationsPage({
     `).at(0)?.count ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.applications-list.title")}</h1>
         <Link
