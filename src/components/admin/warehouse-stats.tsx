@@ -97,7 +97,7 @@ export function WarehouseStats({ locale }: { locale: string }) {
   });
 
   if (!hasLoaded) {
-    return <p className="font-body text-sm text-foreground/50">{t("crunching")}</p>;
+    return <WarehouseStatsSkeleton label={t("crunching")} />;
   }
 
   if (data === null) {
@@ -117,11 +117,11 @@ export function WarehouseStats({ locale }: { locale: string }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-6 sm:grid-cols-[minmax(16rem,1fr)_auto] sm:items-stretch">
-        <div className="min-w-0 flex flex-col gap-3">
+      <div className="grid gap-8 sm:grid-cols-[minmax(16rem,1fr)_auto] sm:items-stretch">
+        <div className="min-w-0 flex flex-col gap-4">
           <div>
             <p className="font-body text-sm text-secondary">{t("expenditure-label")}</p>
-            <p className="text-2xl text-foreground">{currencyFmt.format(data.expenditure.total)}</p>
+            <p className="text-2xl font-bold leading-8 text-foreground">{currencyFmt.format(data.expenditure.total)}</p>
           </div>
           <div className="grid grid-cols-[max-content_max-content] gap-x-3 gap-y-2 font-body text-sm text-foreground tabular-nums">
             {legendItems.map((item) => (
@@ -143,6 +143,42 @@ export function WarehouseStats({ locale }: { locale: string }) {
 
         <div className="shrink-0 justify-self-start sm:justify-self-end" style={{ width: 160, height: 160 }}>
           <ExpenditurePie data={pieData} locale={locale} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Mirrors the loaded layout (total + legend on the left, donut on the right) so
+// the figures resolve in place instead of replacing a line of text.
+function WarehouseStatsSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={label} className="space-y-4">
+      <div className="grid gap-8 sm:grid-cols-[minmax(16rem,1fr)_auto] sm:items-stretch">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <span className="h-4 w-28 animate-pulse rounded-none bg-muted" />
+            <span className="h-8 w-32 animate-pulse rounded-none bg-muted" />
+          </div>
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <span className="size-2 shrink-0 rounded-full bg-muted" />
+                  <span className="h-3.5 w-20 animate-pulse rounded-none bg-muted" />
+                </span>
+                <span className="h-3.5 w-16 animate-pulse rounded-none bg-muted" />
+              </div>
+            ))}
+          </div>
+          <span className="h-3 w-24 animate-pulse rounded-none bg-muted" />
+        </div>
+
+        <div
+          className="shrink-0 justify-self-start sm:justify-self-end"
+          style={{ width: 160, height: 160 }}
+        >
+          <div className="size-40 animate-pulse rounded-full border-[1.25rem] border-muted" />
         </div>
       </div>
     </div>
@@ -233,7 +269,7 @@ function PieTooltip({
   });
 
   return (
-    <div className="border border-foreground/10 bg-card px-4 py-3">
+    <div className="rounded-xl border border-foreground bg-background px-4 py-3">
       <div className="space-y-2">
         {payload.map((item) => (
           <div key={item.name} className="flex items-center justify-between gap-6">

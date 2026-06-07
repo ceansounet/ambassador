@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
 
 export function SortToggle({
   defaultSort = "oldest",
+  storageKey,
 }: {
   defaultSort?: "oldest" | "newest";
+  storageKey?: string;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -19,6 +21,24 @@ export function SortToggle({
     : searchParams.get("sort") === "oldest"
       ? "oldest"
       : defaultSort;
+
+  // Restore the saved sort preference when the URL doesn't pin one explicitly.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (storageKey === undefined || restored.current) return;
+    restored.current = true;
+    if (searchParams.get("sort") !== null) return;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if ((stored === "oldest" || stored === "newest") && stored !== defaultSort) {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("sort", stored);
+        router.replace(`${pathname}?${params.toString()}`);
+      }
+    } catch {
+      // ignore storage errors (private mode, quota, etc.)
+    }
+  }, [storageKey, defaultSort, searchParams, pathname, router]);
   const isOldest = currentSort === "oldest";
   const SortIcon = isOldest ? CalendarArrowDown : CalendarArrowUp;
   const sortLabel = isOldest
@@ -38,6 +58,13 @@ export function SortToggle({
           params.set("sort", nextSort);
         }
         params.delete("page");
+        if (storageKey !== undefined) {
+          try {
+            window.localStorage.setItem(storageKey, nextSort);
+          } catch {
+            // ignore
+          }
+        }
         startTransition(() => {
           router.replace(`${pathname}?${params.toString()}`);
         });

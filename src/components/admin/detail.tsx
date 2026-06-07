@@ -14,12 +14,12 @@ export function DetailSection({
   const hasDescription = description !== undefined && description.trim() !== "";
 
   return (
-    <section className="ui-card">
-      <h2 className="text-2xl text-foreground">{title}</h2>
+    <section className="ui-group">
+      <h2 className="text-2xl leading-8 text-foreground">{title}</h2>
       {hasDescription ? (
         <p className="mt-2 max-w-3xl font-body text-base text-foreground">{description}</p>
       ) : null}
-      <div className="mt-5 space-y-5">{children}</div>
+      <div className="mt-4 space-y-4">{children}</div>
     </section>
   );
 }

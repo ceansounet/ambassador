@@ -21,6 +21,7 @@ import {
   type DashboardFunnelPoint,
   type DashboardTopAmbassadorPoint,
 } from "@/components/admin/dashboard-chart-primitives";
+import { SectionHeading } from "@/components/admin/section-heading";
 import { TopAmbassadorsChart } from "@/components/admin/top-ambassadors-chart";
 import { Button } from "@/components/ui/button";
 
@@ -100,16 +101,11 @@ export function AdminDashboardCharts({
   const flowChartData = [...stageMetrics, ...outcomeMetrics];
 
   return (
-    <section className="overflow-hidden bg-card">
-      <div className="grid xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)]">
-        <section className="min-w-0 p-6">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-1">
-              <p className="font-body text-sm text-secondary">{messages.recentActivityEyebrow}</p>
-              <h2 className="text-2xl text-foreground">{selectedRangeLabel}</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {rangeOptions.map((option) => {
+    <section className="space-y-8">
+      <div className="ui-group grid gap-y-8 xl:grid-cols-[minmax(0,1.45fr)_minmax(0,0.95fr)] xl:gap-x-12 xl:gap-y-0">
+        <div className="min-w-0">
+          <SectionHeading eyebrow={messages.recentActivityEyebrow} title={selectedRangeLabel}>
+            {rangeOptions.map((option) => {
                 const href = option.value === "14d" ? "/admin?view=detailed" : `/admin?view=detailed&range=${option.value}`;
 
                 return (
@@ -129,8 +125,7 @@ export function AdminDashboardCharts({
                   </Button>
                 );
               })}
-            </div>
-          </div>
+          </SectionHeading>
           <div className="h-80 min-w-0">
             <DashboardResponsiveChart height={320}>
               <ComposedChart
@@ -202,13 +197,10 @@ export function AdminDashboardCharts({
               </ComposedChart>
             </DashboardResponsiveChart>
           </div>
-        </section>
+        </div>
 
-        <section className="min-w-0 p-6">
-          <div className="mb-6 space-y-1">
-            <p className="font-body text-sm text-secondary">{messages.decisionSplitEyebrow}</p>
-            <h2 className="text-2xl text-foreground">{messages.decisionSplitTitle}</h2>
-          </div>
+        <div className="min-w-0">
+          <SectionHeading eyebrow={messages.decisionSplitEyebrow} title={messages.decisionSplitTitle} />
           <div className="h-80 min-w-0">
             <DashboardResponsiveChart height={320}>
               <BarChart
@@ -239,12 +231,11 @@ export function AdminDashboardCharts({
               </BarChart>
             </DashboardResponsiveChart>
           </div>
-        </section>
+        </div>
       </div>
 
-      <div className="p-6">
-        <div className="min-w-0">
-          <h2 className="mb-6 text-2xl text-foreground">{messages.applicationFlowTitle}</h2>
+      <div className="ui-group min-w-0">
+          <SectionHeading title={messages.applicationFlowTitle} />
           <div className="h-[24rem] min-w-0">
             <DashboardResponsiveChart height={384}>
               <BarChart
@@ -277,27 +268,27 @@ export function AdminDashboardCharts({
             </DashboardResponsiveChart>
           </div>
         </div>
+
+      <div className="ui-group">
+        <TopAmbassadorsChart
+          data={topAmbassadorsData}
+          locale={locale}
+          messages={{
+            title: messages.topAmbassadorsTitle,
+            empty: messages.topAmbassadorsEmpty,
+            allMetrics: messages.topAmbassadorsAllMetrics,
+            metricsNoun: messages.topAmbassadorsMetricsNoun,
+            postersSeries: messages.postersSeries,
+            referralsSeries: messages.referralsSeries,
+            rsvpsSeries: messages.rsvpsSeries,
+            balanceSeries: messages.topAmbassadorsBalance,
+          }}
+        />
       </div>
 
-      <TopAmbassadorsChart
-        data={topAmbassadorsData}
-        locale={locale}
-        messages={{
-          title: messages.topAmbassadorsTitle,
-          empty: messages.topAmbassadorsEmpty,
-          allMetrics: messages.topAmbassadorsAllMetrics,
-          metricsNoun: messages.topAmbassadorsMetricsNoun,
-          postersSeries: messages.postersSeries,
-          referralsSeries: messages.referralsSeries,
-          rsvpsSeries: messages.rsvpsSeries,
-          balanceSeries: messages.topAmbassadorsBalance,
-        }}
-      />
-
-      <div className="grid xl:grid-cols-2">
-        <div className="p-6">
-          <div className="min-w-0">
-            <h2 className="mb-6 text-2xl text-foreground">{messages.referralDropOffTitle}</h2>
+      <div className="ui-group grid gap-y-8 xl:grid-cols-2 xl:gap-x-12 xl:gap-y-0">
+        <div className="min-w-0">
+            <SectionHeading title={messages.referralDropOffTitle} />
             <div className="h-[20rem] min-w-0">
               <DashboardResponsiveChart height={320}>
                 <BarChart
@@ -329,12 +320,10 @@ export function AdminDashboardCharts({
                 </BarChart>
               </DashboardResponsiveChart>
             </div>
-          </div>
         </div>
 
-        <div className="p-6">
-          <div className="min-w-0">
-            <h2 className="mb-6 text-2xl text-foreground">{messages.posterStatusTitle}</h2>
+        <div className="min-w-0">
+            <SectionHeading title={messages.posterStatusTitle} />
             <div className="h-[20rem] min-w-0">
               <DashboardResponsiveChart height={320}>
                 <BarChart
@@ -366,7 +355,6 @@ export function AdminDashboardCharts({
                 </BarChart>
               </DashboardResponsiveChart>
             </div>
-          </div>
         </div>
       </div>
 

@@ -67,7 +67,7 @@ export default async function LoginPage() {
           </div>
           <button
             type="submit"
-            className="flex size-12 flex-none rounded-sm cursor-pointer items-center justify-center bg-primary text-white transition-colors hover:bg-foreground"
+            className="flex size-12 flex-none rounded-sm cursor-pointer items-center justify-center bg-primary text-white transition-colors hover:bg-primary-hover"
           >
             <ArrowRightIcon className="size-5" strokeWidth={2.5} />
             <span className="sr-only">Next</span>
@@ -76,7 +76,7 @@ export default async function LoginPage() {
       </div>
       <a
         href="/api/auth/login"
-        className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white transition-colors hover:bg-foreground"
+        className="mt-4 flex h-12 w-full max-w-md items-center justify-center gap-3 bg-primary text-white transition-colors hover:bg-primary-hover"
       >
         <Image
           src={hackClub}

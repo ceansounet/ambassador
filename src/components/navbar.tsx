@@ -1,10 +1,7 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import { Wallet } from "lucide-react";
 
-import Icon from "@hackclub/icons";
-
-import { NavItem } from "@/components/nav-item";
+import { NavbarActions, type NavLink } from "@/components/navbar-actions";
 import { cn } from "@/lib/utils";
 
 const usdFormatter = new Intl.NumberFormat("en-US", {
@@ -18,25 +15,40 @@ export async function Navbar({
   showPostersLink = false,
   showReferralsLink = false,
   showBottomBorder = true,
+  slackId,
+  displayName,
+  region,
 }: {
   isAdmin?: boolean;
   balanceCents?: number;
   showPostersLink?: boolean;
   showReferralsLink?: boolean;
   showBottomBorder?: boolean;
+  slackId?: string | null;
+  displayName?: string | null;
+  region?: string | null;
 }) {
   const t = await getTranslations();
   const balance = usdFormatter.format(balanceCents / 100);
 
+  const links: NavLink[] = [
+    ...(isAdmin ? [{ href: "/admin", label: t("app.navbar.admin-link"), glyph: "admin" as const }] : []),
+    ...(showPostersLink ? [{ href: "/posters", label: t("app.navbar.posters-link"), glyph: "announcement" as const }] : []),
+    ...(showReferralsLink ? [{ href: "/referrals", label: t("app.navbar.referrals-link"), glyph: "people-3" as const }] : []),
+  ];
+
   return (
     <nav
       className={cn(
-        "bg-[var(--topbar)] px-3 py-4 sm:px-6",
-        showBottomBorder && "border-b border-foreground/10",
+        "sticky top-0 z-40 border-t-[3px] border-t-primary bg-topbar px-3 py-3 sm:px-6",
+        showBottomBorder && "border-b border-topbar-foreground/10",
       )}
     >
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-2">
-        <a href="/dashboard" className="flex shrink-0 items-center gap-3">
+        <a
+          href="/dashboard"
+          className="flex shrink-0 items-center gap-3 rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
           <Image
             src="/dashboard-logo.avif"
             alt={t("app.navbar.logo-alt")}
@@ -46,56 +58,18 @@ export async function Navbar({
             sizes="2.25rem"
           />
         </a>
-        <div className="flex items-center gap-1 sm:gap-2">
-          <NavItem
-            href="/payouts"
-            aria-label={t("app.navbar.balance-label")}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 text-sm tracking-wide text-acceptance transition-opacity hover:opacity-70 sm:px-3 sm:text-base"
-          >
-            <Wallet size={16} aria-hidden />
-            {balance}
-          </NavItem>
-          {isAdmin && (
-            <NavItem
-              href="/admin"
-              className="inline-flex h-9 items-center rounded-lg px-2 text-sm tracking-wide text-white transition-opacity hover:opacity-70 sm:px-3 sm:text-base"
-            >
-              {t("app.navbar.admin-link")}
-            </NavItem>
-          )}
-          {showPostersLink ? (
-            <NavItem
-              href="/posters"
-              className="inline-flex h-9 items-center rounded-lg px-2 text-sm tracking-wide text-white transition-opacity hover:opacity-70 sm:px-3 sm:text-base"
-            >
-              {t("app.navbar.posters-link")}
-            </NavItem>
-          ) : null}
-          {showReferralsLink ? (
-            <NavItem
-              href="/referrals"
-              className="inline-flex h-9 items-center rounded-lg px-2 text-sm tracking-wide text-white transition-opacity hover:opacity-70 sm:px-3 sm:text-base"
-            >
-              {t("app.navbar.referrals-link")}
-            </NavItem>
-          ) : null}
-          <NavItem
-            href="/settings"
-            aria-label={t("app.navbar.settings-label")}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-70"
-          >
-            <Icon glyph="settings" size={20} />
-          </NavItem>
-          <form action="/api/auth/logout" method="POST">
-            <button
-              type="submit"
-              aria-label={t("app.navbar.sign-out-label")}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-70"
-            >
-              <Icon glyph="door-leave" size={20} />
-            </button>
-          </form>
-        </div>
+        <NavbarActions
+          balance={balance}
+          balanceLabel={t("app.navbar.balance-label")}
+          links={links}
+          settingsHref="/settings"
+          settingsLabel={t("app.navbar.settings-label")}
+          signOutLabel={t("app.navbar.sign-out-label")}
+          menuLabel={t("app.navbar.menu-label")}
+          slackId={slackId}
+          displayName={displayName}
+          region={region}
+        />
       </div>
     </nav>
   );

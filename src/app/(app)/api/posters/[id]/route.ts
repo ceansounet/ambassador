@@ -3,6 +3,7 @@ import {
   getPosterForUserOrThrow,
   movePosterForUser,
   renamePosterForUser,
+  toClientPosterListItem,
 } from "@/lib/posters/service";
 import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isSameOriginRequest, posterErrorResponse, requirePosterSession } from "@/lib/posters/http";
@@ -16,7 +17,7 @@ export async function GET(_request: Request, context: RouteContext<"/api/posters
     const session = await requirePosterSession();
     const { id } = await context.params;
     const poster = await getPosterForUserOrThrow(session.sub, id);
-    return Response.json({ poster });
+    return Response.json({ poster: toClientPosterListItem(poster) });
   } catch (error) {
     return posterErrorResponse(error, "Failed to load poster.", 404);
   }
@@ -107,7 +108,7 @@ export async function DELETE(request: Request, context: RouteContext<"/api/poste
       },
     });
     revalidatePath("/admin/audit-log");
-    return Response.json(result);
+    return Response.json({ poster: toClientPosterListItem(poster) });
   } catch (error) {
     return posterErrorResponse(error, "Failed to delete poster.", 400);
   }

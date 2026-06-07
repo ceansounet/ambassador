@@ -26,7 +26,7 @@ export default async function PostersPage() {
     getPosterAccessState(session.sub),
     getEffectiveSafeguards(session.sub),
   ]);
-  const canAccessAdmin = Boolean(session.impersonator) || Boolean(user?.is_admin ?? session.isAdmin);
+  const canAccessAdmin = Boolean(session.impersonator) || user?.is_admin === true;
   const canUsePosters = canAccessPosters({
     latestApplicationStatus: user?.latest_application_status ?? null,
     manualDashboardState: user?.manual_dashboard_state ?? null,
@@ -51,28 +51,27 @@ export default async function PostersPage() {
   const pendingCount = allPosters.filter((p) => p.verification_status === "pending").length;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        <header className="mb-6 sm:mb-10">
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-3 sm:gap-x-8">
-            <h1 className="font-sub text-4xl text-foreground">{t("posters.heading")}</h1>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
+        <header className="mb-8">
+          <div className="flex flex-wrap items-baseline gap-x-8 gap-y-4">
+            <h1 className="font-sub text-4xl font-bold leading-[3rem] text-foreground">{t("posters.heading")}</h1>
             {totalPosters > 0 && (
-              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+              <div className="flex flex-wrap items-baseline gap-x-8 gap-y-1">
                 <span className="flex items-baseline gap-1.5">
-                  <span className="text-2xl leading-none font-medium text-foreground">{totalPosters}</span>
+                  <span className="text-2xl leading-none font-bold text-foreground tabular-nums">{totalPosters}</span>
                   <span className="font-body text-sm leading-none text-muted-foreground">{t("posters.stats.total")}</span>
                 </span>
                 <span className="flex items-baseline gap-1.5">
-                  <span className="text-2xl leading-none font-medium text-acceptance">{verifiedCount}</span>
+                  <span className="text-2xl leading-none font-bold text-acceptance tabular-nums">{verifiedCount}</span>
                   <span className="font-body text-sm leading-none text-muted-foreground">{t("posters.stats.verified")}</span>
                 </span>
                 <span className="flex items-baseline gap-1.5">
-                  <span className="text-2xl leading-none font-medium text-accent">{pendingCount}</span>
+                  <span className="text-2xl leading-none font-bold text-accent tabular-nums">{pendingCount}</span>
                   <span className="font-body text-sm leading-none text-muted-foreground">{t("posters.stats.pending")}</span>
                 </span>
               </div>
             )}
           </div>
-          <p className="mt-2 text-base text-muted-foreground">{t("posters.subheading")}</p>
         </header>
         <PostersClient
           initialCampaignSlug={campaigns[0]?.slug ?? null}

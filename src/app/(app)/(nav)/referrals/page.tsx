@@ -32,8 +32,7 @@ export default async function ReferralsPage() {
   ]);
 
   const user = await getPosterAccessState(session.sub);
-  const canAccessAdmin =
-    Boolean(session.impersonator) || Boolean(user?.is_admin ?? session.isAdmin);
+  const canAccessAdmin = Boolean(session.impersonator) || user?.is_admin === true;
 
   const canUseReferrals = canAccessStardanceReferrals({
     latestApplicationStatus: user?.latest_application_status ?? null,
@@ -61,7 +60,7 @@ export default async function ReferralsPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 pb-20 pt-8 sm:px-6 sm:pb-28 sm:pt-12">
       <header className="mb-6 sm:mb-10">
-        <h1 className="text-4xl text-foreground">{t("referrals.heading")}</h1>
+        <h1 className="font-sub text-4xl font-bold leading-[3rem] text-foreground">{t("referrals.heading")}</h1>
         <p className="mt-2 text-base text-muted-foreground">{t("referrals.subheading")}</p>
       </header>
       <ReferralsClient

@@ -103,7 +103,7 @@ export function RequestPayoutForm({ amountLabel }: { amountLabel: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className={buttonVariants({ variant: "success", size: "app" })}
+        className={`${buttonVariants({ variant: "success", size: "app" })} w-full sm:w-auto`}
       >
         {submitting ? "Submitting…" : `Request payout of ${amountLabel}`}
       </button>

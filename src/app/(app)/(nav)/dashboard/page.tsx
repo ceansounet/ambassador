@@ -32,6 +32,7 @@ import { getEffectiveSafeguards } from "@/lib/safeguards";
 import { getSession } from "@/lib/session";
 import { canAccessShirts } from "@/lib/shirt/access";
 import {
+  formatHackClubAddress,
   resolveAmbassadorRegion,
   type HackClubAddress,
 } from "@/lib/settings";
@@ -196,7 +197,7 @@ export default async function DashboardPage({
           dispatch_at: dashboardRow.shirt_order_dispatch_at,
         };
 
-  const canAccessAdmin = Boolean(session.impersonator) || Boolean(user.is_admin ?? session.isAdmin);
+  const canAccessAdmin = Boolean(session.impersonator) || user.is_admin === true;
   const canAccessShirtOrdering = canAccessShirts({
     latestApplicationStatus: application?.status ?? null,
     manualDashboardState: user.manual_dashboard_state,
@@ -265,7 +266,7 @@ export default async function DashboardPage({
       }
     : null;
   const shirt: ShirtOrderSectionProps = {
-    addresses: shirtAddresses,
+    addressLabels: shirtAddresses.map(formatHackClubAddress),
     needsAddressRefresh: shirtNeedsAddressRefresh,
     existingOrder: shirtExistingOrder,
     requiresOnboarding: shirtRequiresOnboarding,
@@ -304,30 +305,38 @@ export default async function DashboardPage({
     !shirtOnboardingStatus.hasAmbassadorRecord;
   const mockHcbEmail = session.email ?? "your account email";
 
+  const isApproved = resolved.decision === "approved";
+
   return (
     <>
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        <header className="flex items-center gap-2 md:gap-3">
-          <h1 className="font-sub text-4xl leading-none text-foreground md:text-5xl">
-            {t("dashboard.heading", { name: session.displayName })}
-          </h1>
-          {resolved.decision === "approved" ? (
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 sm:px-6">
+        <header className="flex items-center gap-4">
+          {isApproved ? (
             <AmbassadorCircleText
-              className="h-14 w-14 shrink-0 md:h-16 md:w-16"
+              className="h-16 w-16 shrink-0 md:h-20 md:w-20"
               slackId={session.slackId}
               fallbackName={session.displayName}
             />
           ) : null}
+          <div className="min-w-0">
+            {isApproved ? (
+              <p className="flex items-center gap-1.5 font-body text-sm leading-4 text-secondary">
+                {t("dashboard.approved.eyebrow")}
+                <Icon glyph="checkmark" size={16} className="shrink-0 text-foreground" aria-hidden />
+              </p>
+            ) : null}
+            <h1 className="font-sub text-4xl font-bold leading-[3rem] text-foreground md:text-5xl md:leading-[3.5rem]">
+              {t("dashboard.heading", { name: session.displayName })}
+            </h1>
+          </div>
         </header>
 
         {resolved.activeStep ? (
-          <div className="mt-8">
-            <JourneyStepper activeStep={resolved.activeStep} decision={resolved.decision} t={t} />
-          </div>
+          <JourneyStepper activeStep={resolved.activeStep} decision={resolved.decision} t={t} />
         ) : null}
 
         {showMockOnboardingAlert ? (
-          <section className="mt-6 border border-accent/40 bg-accent/10 p-4">
+          <section className="border border-accent/40 bg-accent/10 p-4">
             <p className="font-body text-sm leading-relaxed text-foreground">
               <span className="font-bold text-accent">
                 {t("dashboard.mock-onboarding-alert.title")}
@@ -337,7 +346,7 @@ export default async function DashboardPage({
           </section>
         ) : null}
 
-        <div className="mt-6">{resolved.node}</div>
+        <div>{resolved.node}</div>
       </div>
       {canUseSelector && <DevAdminSelector current={selectedDevState ?? baseResolved.devState} />}
     </>
@@ -661,12 +670,7 @@ function ApprovedDashboardContent({
 }) {
   return (
     <div className="space-y-8">
-      <StatusCard
-        tone="acceptance"
-        glyph="checkbox-checked"
-        title={t("dashboard.approved.title")}
-        body={t("dashboard.approved.body")}
-      />
+      <ApprovedHero t={t} />
       {shirt.requiresOnboarding ? (
         <OnboardingPromptBanner
           enabled={onboardingEnabled}
@@ -675,12 +679,25 @@ function ApprovedDashboardContent({
           t={t}
         />
       ) : (
-        <>
+        <div className="space-y-8">
           <OfficeGrantSection officeGrant={officeGrant} t={t} />
           {canUseShirts ? <ShirtOrderSection {...shirt} /> : null}
-        </>
+        </div>
       )}
     </div>
+  );
+}
+
+function ApprovedHero({ t }: { t: DashboardTranslations }) {
+  return (
+    <section>
+      <h2 className="font-sub text-3xl font-bold leading-8 text-foreground md:text-4xl md:leading-[3rem]">
+        {t("dashboard.approved.title")}
+      </h2>
+      <p className="mt-1 text-base leading-relaxed text-foreground md:text-lg">
+        {t("dashboard.approved.body")}
+      </p>
+    </section>
   );
 }
 
@@ -769,28 +786,27 @@ function OfficeGrantSection({
 
   return (
     <section>
-      <div className="min-w-0">
-        <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("office-grant.title")}</h2>
-
-        <p className="mt-2 text-base leading-relaxed text-muted-foreground md:text-lg">
-          {message.messageKey === "linked" && message.href !== null ? (
-            <>
-              {t("office-grant.messages.linked-open-label")}{" "}
-              <a
-                href={message.href}
-                target="_blank"
-                rel="noreferrer"
-                className="ui-open-link ml-1 inline-flex font-body text-lg leading-none"
-                aria-label={t("office-grant.messages.linked-open-aria")}
-              >
-                <span aria-hidden="true">↗</span>
-              </a>
-            </>
-          ) : (
-            t(`office-grant.messages.${message.messageKey}`)
-          )}
-        </p>
-      </div>
+      <h2 className="font-sub text-2xl font-bold leading-8 text-foreground">
+        <span className="text-muted-foreground">I.</span> {t("office-grant.title")}
+      </h2>
+      <p className="mt-4 text-base leading-relaxed text-muted-foreground md:text-lg">
+        {message.messageKey === "linked" && message.href !== null ? (
+          <>
+            {t("office-grant.messages.linked-open-label")}{" "}
+            <a
+              href={message.href}
+              target="_blank"
+              rel="noreferrer"
+              className="ui-open-link ml-1 inline-flex font-body text-lg leading-none"
+              aria-label={t("office-grant.messages.linked-open-aria")}
+            >
+              <span aria-hidden="true">↗</span>
+            </a>
+          </>
+        ) : (
+          t(`office-grant.messages.${message.messageKey}`)
+        )}
+      </p>
     </section>
   );
 }
@@ -808,12 +824,15 @@ function JourneyStepper({
   const activeIdx = steps.indexOf(activeStep);
   const progressRatio = Math.max(0, activeIdx) / (steps.length - 1);
 
+  const isApprovedJourney = decision === "approved";
+  const trackColor = isApprovedJourney ? "bg-acceptance" : "bg-foreground";
+
   return (
     <div className="relative">
       <span aria-hidden className="absolute left-5 right-5 top-5 h-px bg-foreground/15" />
       <span
         aria-hidden
-        className="absolute left-5 top-5 h-px bg-foreground"
+        className={cn("absolute left-5 top-5 h-px", trackColor)}
         style={{ width: `calc((100% - 2.5rem) * ${progressRatio})` }}
       />
       <ol className="relative flex items-start justify-between gap-3">
@@ -830,23 +849,23 @@ function JourneyStepper({
                 : null;
 
           const activeTone: Tone = decisionTone ?? "primary";
+          const activeIsAcceptance = activeTone === "acceptance";
 
           const circleClass = isActive
-            ? cn(
-                "text-white border-transparent",
-                activeTone === "acceptance" ? "bg-acceptance" : "bg-primary",
-              )
+            ? activeIsAcceptance
+              ? "border-acceptance bg-acceptance text-white"
+              : "border-primary bg-primary text-white"
             : isComplete
-              ? "bg-foreground text-background border-foreground"
+              ? "border-acceptance bg-acceptance text-white"
               : "border-foreground/15 bg-background text-muted-foreground";
 
           const labelClass = isActive
             ? cn(
                 "font-bold",
-                activeTone === "acceptance" ? "text-acceptance" : "text-primary",
+                activeIsAcceptance ? "text-acceptance" : "text-foreground",
               )
             : isComplete
-              ? "text-foreground"
+              ? "font-bold text-acceptance"
               : "text-muted-foreground";
 
           return (
@@ -857,16 +876,13 @@ function JourneyStepper({
                   circleClass,
                 )}
               >
-                {isComplete ? (
-                  <span
-                    aria-hidden
-                    className="block h-3 w-2 -translate-y-px rotate-45 border-b-2 border-r-2 border-current"
-                  />
+                {isComplete || (isActive && activeIsAcceptance) ? (
+                  <Icon glyph="checkmark" size={22} aria-hidden />
                 ) : (
                   i + 1
                 )}
               </span>
-              <span className={cn("text-center text-xs", labelClass)}>
+              <span className={cn("text-center text-xs leading-4", labelClass)}>
                 {t(`dashboard.stepper.${key}`)}
               </span>
             </li>

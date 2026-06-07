@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { Pagination } from "@/components/admin/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { SearchBar } from "@/components/admin/search-bar";
 import { StatusFilter } from "@/components/admin/status-filter";
 import { SlackAvatar } from "@/components/admin/slack-profile";
@@ -118,7 +118,7 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-4xl text-foreground">{t("admin.users-list.title")}</h1>
+        <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.users-list.title")}</h1>
       </header>
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full max-w-sm">
@@ -134,23 +134,23 @@ export default async function AdminUsersPage({
           />
         </div>
       </div>
-      <div className="ui-table-card">
+      <div className="ui-table-group">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-foreground">
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.name")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.email")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.latest-app")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.apps")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.admin")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.joined")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.users-list.columns.open")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.name")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.email")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.latest-app")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.apps")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.admin")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.joined")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.users-list.columns.open")}</th>
             </tr>
           </thead>
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-b border-foreground last:border-b-0">
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
                     <SlackAvatar
                       slackId={user.slack_id}
@@ -160,28 +160,28 @@ export default async function AdminUsersPage({
                     <div className="font-body text-base text-foreground">{user.display_name}</div>
                   </div>
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">{user.email ?? "-"}</td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">{user.email ?? "-"}</td>
+                <td className="px-4 py-4">
                   {user.latest_application_status !== null ? (
                     <StatusBadge status={user.latest_application_status} />
                   ) : (
                     <span className="font-body text-base text-foreground">{t("admin.users-list.no-application")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {user.application_count}
                 </td>
-                <td className="px-5 py-4 font-body text-base">
+                <td className="px-4 py-4 font-body text-base leading-8">
                   {user.is_admin === true ? (
                     <span className="text-acceptance">{t("common.yes")}</span>
                   ) : (
                     <span className="text-foreground">{t("common.no")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {new Date(user.created_at).toLocaleDateString(locale)}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <Link
                     href={`/admin/users/${user.id}`}
                     aria-label={t("admin.users-list.view-user")}
@@ -194,7 +194,7 @@ export default async function AdminUsersPage({
             ))}
             {users.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center font-body text-base text-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center font-body text-base text-foreground">
                   {t("admin.users-list.empty")}
                 </td>
               </tr>
@@ -207,7 +207,7 @@ export default async function AdminUsersPage({
           labels={{
             previous: t("admin.pagination.previous"),
             next: t("admin.pagination.next"),
-            page: t("admin.pagination.page"),
+            of: t("admin.pagination.of"),
           }}
         />
       </div>

@@ -186,7 +186,7 @@ export function ReferralsClient({
           aria-expanded={codesOpen}
           className="group inline-flex items-center gap-2 bg-transparent p-0 text-left"
         >
-          <h2 className="font-sub text-2xl leading-none text-foreground md:text-3xl">{t("codes.heading")}</h2>
+          <h2 className="font-sub text-2xl font-bold leading-8 text-foreground md:text-3xl">{t("codes.heading")}</h2>
           <span className="font-body text-sm leading-none text-muted-foreground">({codes.length})</span>
           <ChevronDown
             size={20}
@@ -270,7 +270,7 @@ export function ReferralsClient({
             aria-expanded={archiveOpen}
             className="group inline-flex items-center gap-2 bg-transparent p-0 text-left"
           >
-            <h2 className="font-sub text-2xl leading-none text-foreground md:text-3xl">
+            <h2 className="font-sub text-2xl font-bold leading-8 text-foreground md:text-3xl">
               {t("archive.heading")}
             </h2>
             <span className="font-body text-sm leading-none text-muted-foreground">
@@ -306,10 +306,19 @@ export function ReferralsClient({
       )}
 
       <section className="space-y-4 border-t border-foreground/10 pt-6">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <h2 className="font-sub text-2xl font-bold leading-8 text-foreground md:text-3xl">
+            {t("table.section-title")}
+          </h2>
+          {referrals.length > 0 ? (
+            <span className="font-body text-sm leading-none text-muted-foreground">
+              ({referrals.length})
+            </span>
+          ) : null}
+        </div>
         {referrals.length === 0 ? (
           <div className="max-w-2xl">
-            <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("empty.title")}</h2>
-            <p className="mt-2 font-body text-sm text-muted-foreground md:text-base">
+            <p className="font-body text-sm text-muted-foreground md:text-base">
               {t("empty.body")}
             </p>
           </div>
@@ -354,66 +363,66 @@ export function ReferralsClient({
                 </SelectContent>
               </Select>
             </div>
-            <div className="overflow-x-auto border border-foreground/10 bg-card">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-foreground/10">
-                    <Th>{t("table.name")}</Th>
-                    <Th>{t("table.code")}</Th>
-                    <Th>{t("table.type")}</Th>
-                    <Th>{t("table.slack")}</Th>
-                    <Th>{t("table.email")}</Th>
-                    <Th>{t("table.hours-logged")}</Th>
-                    <Th>{t("table.verification")}</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredReferrals.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-5 py-6 font-body text-sm text-muted-foreground">
-                        {t("table.no-results")}
-                      </td>
-                    </tr>
-                  ) : (
-                    pagedReferrals.map((referral) => (
-                      <tr
-                        key={referral.id}
-                        className="border-b border-foreground/5 last:border-b-0"
-                      >
-                        <Td>{referral.name}</Td>
-                        <Td>
-                          {referral.kind === "poster" ? (
-                            referral.posterName ??
-                            formatPosterCode(referral.posterReferralCode) ??
-                            referral.referralCodeLabel
-                          ) : (
-                            referral.referralCodeLabel
-                          )}
-                        </Td>
-                        <Td>
-                          {referral.kind === "poster"
-                            ? t("table.type-poster")
-                            : t("table.type-referral")}
-                        </Td>
-                        <Td>{referral.slackId || "-"}</Td>
-                        <Td>{referral.email || "-"}</Td>
-                        <Td>{referral.hoursLogged}</Td>
-                        <Td>
-                          <span
-                            className={cn(
-                              "font-body text-sm",
-                              VERIFICATION_TONES[referral.verificationStatus],
-                            )}
-                          >
-                            {t(`table.status.${referral.verificationStatus}`)}
-                          </span>
-                        </Td>
+            {filteredReferrals.length === 0 ? (
+              <div className="border border-foreground/10 bg-card px-5 py-6 font-body text-sm text-muted-foreground">
+                {t("table.no-results")}
+              </div>
+            ) : (
+              <>
+                {/* Mobile: stacked cards (the 7-column table is unreadable on a phone). */}
+                <ul className="space-y-2 md:hidden">
+                  {pagedReferrals.map((referral) => (
+                    <ReferralCard key={referral.id} referral={referral} />
+                  ))}
+                </ul>
+
+                {/* Desktop: full table, open layout (header rule + row dividers). */}
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-foreground">
+                        <Th>{t("table.name")}</Th>
+                        <Th>{t("table.code")}</Th>
+                        <Th>{t("table.type")}</Th>
+                        <Th>{t("table.slack")}</Th>
+                        <Th>{t("table.email")}</Th>
+                        <Th>{t("table.hours-logged")}</Th>
+                        <Th>{t("table.verification")}</Th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {pagedReferrals.map((referral) => (
+                        <tr
+                          key={referral.id}
+                          className="border-b border-foreground/10 last:border-b-0"
+                        >
+                          <Td>{referral.name}</Td>
+                          <Td>{referralCodeName(referral)}</Td>
+                          <Td>
+                            {referral.kind === "poster"
+                              ? t("table.type-poster")
+                              : t("table.type-referral")}
+                          </Td>
+                          <Td>{referral.slackId || "-"}</Td>
+                          <Td>{referral.email || "-"}</Td>
+                          <Td>{referral.hoursLogged}</Td>
+                          <Td>
+                            <span
+                              className={cn(
+                                "font-body text-sm",
+                                VERIFICATION_TONES[referral.verificationStatus],
+                              )}
+                            >
+                              {t(`table.status.${referral.verificationStatus}`)}
+                            </span>
+                          </Td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
             {filteredReferrals.length > pageSize && (
               <div className="flex items-center justify-between gap-3 font-body text-sm text-muted-foreground">
@@ -829,9 +838,74 @@ function IconButton({
   );
 }
 
+function referralCodeName(referral: StardanceReferral) {
+  if (referral.kind === "poster") {
+    return (
+      referral.posterName ??
+      formatPosterCode(referral.posterReferralCode) ??
+      referral.referralCodeLabel
+    );
+  }
+  return referral.referralCodeLabel;
+}
+
+function ReferralCard({ referral }: { referral: StardanceReferral }) {
+  const t = useTranslations("referrals");
+
+  return (
+    <li className="border border-foreground/10 bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-body text-base break-words text-foreground">{referral.name}</p>
+          <p className="font-body text-sm break-words text-muted-foreground">
+            {referralCodeName(referral)}
+          </p>
+        </div>
+        <span
+          className={cn(
+            "shrink-0 font-body text-sm",
+            VERIFICATION_TONES[referral.verificationStatus],
+          )}
+        >
+          {t(`table.status.${referral.verificationStatus}`)}
+        </span>
+      </div>
+      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 font-body text-sm">
+        <CardField label={t("table.type")}>
+          {referral.kind === "poster" ? t("table.type-poster") : t("table.type-referral")}
+        </CardField>
+        <CardField label={t("table.hours-logged")}>{referral.hoursLogged}</CardField>
+        <CardField label={t("table.slack")} className="col-span-2 break-all">
+          {referral.slackId || "-"}
+        </CardField>
+        <CardField label={t("table.email")} className="col-span-2 break-all">
+          {referral.email || "-"}
+        </CardField>
+      </dl>
+    </li>
+  );
+}
+
+function CardField({
+  label,
+  className,
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <dt className="font-body text-xs text-muted-foreground">{label}</dt>
+      <dd className="font-body text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
 function Th({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-5 py-4 font-body text-xs text-muted-foreground">
+    <th className="px-5 py-4 font-body text-sm leading-8 text-secondary">
       {children}
     </th>
   );

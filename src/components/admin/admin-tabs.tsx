@@ -30,8 +30,8 @@ export function AdminTabs() {
             href={tab.href}
             className={
               active
-                ? "shrink-0 whitespace-nowrap text-lg font-bold text-foreground"
-                : "shrink-0 whitespace-nowrap text-lg text-muted-foreground hover:text-foreground"
+                ? "shrink-0 whitespace-nowrap text-lg leading-8 font-bold text-foreground"
+                : "shrink-0 whitespace-nowrap text-lg leading-8 text-muted-foreground hover:text-foreground"
             }
           >
             {tab.label}

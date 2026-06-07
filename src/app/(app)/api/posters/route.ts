@@ -1,6 +1,7 @@
 import {
   createSinglePosterForUser,
   listClientPosterDataForUser,
+  toClientPosterListItem,
 } from "@/lib/posters/service";
 import { isSameOriginRequest, posterErrorResponse, requirePosterSession } from "@/lib/posters/http";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
       name: typeof payload?.name === "string" ? payload.name : undefined,
     });
 
-    return Response.json({ poster }, { status: 201 });
+    return Response.json({ poster: toClientPosterListItem(poster) }, { status: 201 });
   } catch (error) {
     return posterErrorResponse(error, "Failed to create poster.");
   }

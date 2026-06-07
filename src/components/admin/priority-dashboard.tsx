@@ -24,6 +24,9 @@ import {
   type DashboardTopAmbassadorPoint,
 } from "@/components/admin/dashboard-chart-primitives";
 import { MultiSelect, SingleSelect } from "@/components/admin/dashboard-selects";
+import { PosterDensityMap, type PosterMapDatum } from "@/components/admin/poster-density-map";
+import { usePriorityScope, type Scope } from "@/components/admin/priority-scope";
+import { SectionHeading } from "@/components/admin/section-heading";
 import { TopAmbassadorsChart } from "@/components/admin/top-ambassadors-chart";
 import { ambassadorRegionFlag } from "@/lib/settings";
 
@@ -43,7 +46,6 @@ export type PriorityActivityPoint = {
   hoursApprovedUS: number;
 };
 
-type Scope = "all" | "us" | "other";
 type ActivityRange = 7 | 14 | 30 | 90 | "all";
 type ActivityMetric = "referrals" | "posters" | "completed" | "hoursLogged" | "hoursApproved";
 
@@ -54,16 +56,6 @@ const ACTIVITY_METRICS: ActivityMetric[] = [
   "completed",
   "hoursLogged",
   "hoursApproved",
-];
-
-const REGION_BAR_PALETTE = [
-  "var(--chart-signups)",
-  "var(--chart-approved)",
-  "var(--chart-applications)",
-  "var(--chart-rejected)",
-  "var(--chart-visits)",
-  "var(--chart-pending)",
-  "var(--chart-banned)",
 ];
 
 // One weighted grant = 10 approved Stardance hours, worth $8.50.
@@ -134,6 +126,8 @@ export function PriorityDashboard({
   signupsByState,
   activityData,
   topAmbassadorsData,
+  posterPoints,
+  lockScopeAll = false,
 }: {
   locale: string;
   activeAmbassadors: { activeTotal: number; activeUs: number; approvedTotal: number; approvedUs: number };
@@ -143,10 +137,21 @@ export function PriorityDashboard({
   signupsByState: RegionCount[];
   activityData: PriorityActivityPoint[];
   topAmbassadorsData: DashboardTopAmbassadorPoint[];
+  posterPoints: PosterMapDatum[];
+  // The detailed page reuses these graphs but covers every region at once, so it
+  // forces the "all" scope and drops the US/Other/All selector entirely.
+  lockScopeAll?: boolean;
 }) {
   const t = useTranslations("admin.overview.priority");
   const tc = useTranslations("admin.overview.charts");
-  const [scope, setScope] = useState<Scope>("us");
+  const tm = useTranslations("admin.overview.poster-map");
+  // The region scope persists across visits (and syncs across tabs) via
+  // localStorage. useSyncExternalStore keeps it hydration-safe: the server
+  // snapshot is the default, then the client re-reads the stored value.
+  const storedScope = usePriorityScope();
+  // The detailed page forces every region; elsewhere the header selector drives
+  // the shared scope.
+  const scope: Scope = lockScopeAll ? "all" : storedScope;
   const [activityRange, setActivityRange] = useState<ActivityRange>(14);
   const [activityMetrics, setActivityMetrics] = useState<Set<ActivityMetric>>(
     () => new Set<ActivityMetric>(["referrals"]),
@@ -221,8 +226,6 @@ export function PriorityDashboard({
     totalCents !== null && signupsValue > 0 ? totalCents / 100 / signupsValue : null;
   const perSuccessfulReferral =
     totalCents !== null && completedValue > 0 ? totalCents / 100 / completedValue : null;
-  const perHourShipped =
-    totalCents !== null && totalHoursLogged > 0 ? totalCents / 100 / totalHoursLogged : null;
 
   const loggedUsers = scoped(hoursUsers.loggedTotal, hoursUsers.loggedUs);
   const approvedUsers = scoped(hoursUsers.approvedTotal, hoursUsers.approvedUs);
@@ -259,10 +262,10 @@ export function PriorityDashboard({
   }, [breakdownSource, usingStates, stateSearch]);
   const breakdownBarData = useMemo(
     () =>
-      filteredBreakdown.map((entry, index) => ({
+      filteredBreakdown.map((entry) => ({
         label: usingStates ? entry.region : `${ambassadorRegionFlag(entry.region)}  ${entry.region}`,
         value: entry.count,
-        fill: REGION_BAR_PALETTE[index % REGION_BAR_PALETTE.length],
+        fill: "var(--chart-signups)",
       })),
     [filteredBreakdown, usingStates],
   );
@@ -304,22 +307,11 @@ export function PriorityDashboard({
   };
 
   const fmtRate = (value: number | null) => (value !== null ? rateFormatter.format(value) : "—");
+  const costLoading = cost.status === "loading";
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <SingleSelect
-          value={scope}
-          options={[
-            { value: "us", label: t("region-us") },
-            { value: "all", label: t("region-all") },
-            { value: "other", label: t("region-other") },
-          ]}
-          onChange={setScope}
-        />
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-3">
+    <div className="space-y-4">
+      <div className="ui-group grid gap-x-12 gap-y-8 sm:grid-cols-3">
         <StatCard
           glyph="leader"
           label={t("stats.active-ambassadors")}
@@ -343,9 +335,21 @@ export function PriorityDashboard({
                 ? t("stats.cost-unavailable")
                 : null
           }
-          pending={cost.status === "loading" ? t("stats.cost-crunching") : undefined}
+          loading={costLoading}
           footer={
-            costBuckets.length > 0 ? (
+            costLoading ? (
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      <span className="size-2 shrink-0 rounded-full bg-muted" />
+                      <span className="h-3 w-20 animate-pulse rounded-none bg-muted" />
+                    </span>
+                    <span className="h-3 w-12 animate-pulse rounded-none bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : costBuckets.length > 0 ? (
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {costBuckets.map((bucket) => (
                   <div key={bucket.key} className="flex items-center justify-between gap-2">
@@ -364,24 +368,33 @@ export function PriorityDashboard({
         />
       </div>
 
-      <section className="bg-card">
-        <div className="grid xl:grid-cols-2">
-          <section className="min-w-0 p-6">
-            <h2 className="mb-6 text-2xl text-foreground">{t("cost-breakdown-title")}</h2>
+      <div className="space-y-4">
+        {/* One box holds every chart-driven section — cost, signups/activity and
+            the ambassador leaderboard — set apart by whitespace alone so the page
+            reads as three boxes: the figures, the graphs, and the density map. */}
+        <div className="ui-group space-y-8 md:space-y-12">
+        <section className="grid gap-y-8 xl:grid-cols-2 xl:gap-x-12 xl:gap-y-0">
+          <div className="min-w-0">
+            <SectionHeading title={t("cost-breakdown-title")} />
             {cost.status === "loading" ? (
-              <p className="font-body text-base text-foreground/50">{t("stats.cost-crunching")}</p>
+              <div className="flex h-[20rem] min-w-0 items-center justify-center">
+                <div className="size-44 animate-pulse rounded-full border-[1.75rem] border-muted" />
+              </div>
             ) : !hasCostBreakdown ? (
               <p className="font-body text-base text-foreground">{t("stats.cost-unavailable")}</p>
             ) : (
-              <div className="h-[20rem] min-w-0">
+              // The donut is pushed to the top-left so the legend can tuck into the
+              // free bottom-right corner — the bracketed key wraps there, staying
+              // as narrow as its content.
+              <div className="relative h-[20rem] min-w-0">
                 <DashboardResponsiveChart height={320}>
                   <PieChart margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
                     <Pie
                       data={costPieData}
                       dataKey="value"
                       nameKey="label"
-                      cx="50%"
-                      cy="50%"
+                      cx="38%"
+                      cy="42%"
                       innerRadius="55%"
                       outerRadius="80%"
                       strokeWidth={0}
@@ -393,11 +406,11 @@ export function PriorityDashboard({
                     </Pie>
                     {totalCents !== null ? (
                       <text
-                        x="50%"
-                        y="50%"
+                        x="38%"
+                        y="42%"
                         textAnchor="middle"
                         dominantBaseline="middle"
-                        className="fill-current text-2xl text-foreground tabular-nums"
+                        className="fill-current text-3xl font-bold text-foreground tabular-nums"
                       >
                         {currencyFormatter.format(totalCents / 100)}
                       </text>
@@ -405,67 +418,97 @@ export function PriorityDashboard({
                     <Tooltip cursor={false} content={<ChartTooltip locale={locale} currency />} />
                   </PieChart>
                 </DashboardResponsiveChart>
+                <div className="absolute bottom-0 right-0 flex max-w-[60%] items-stretch gap-1.5">
+                  <span aria-hidden className="w-1 self-stretch border-y border-l border-foreground/40" />
+                  <ul className="flex flex-wrap justify-start gap-x-2.5 gap-y-1 py-1">
+                    {costBuckets.map((bucket) => (
+                      <li
+                        key={bucket.key}
+                        className="flex items-center gap-1.5 whitespace-nowrap font-body text-xs text-muted-foreground"
+                      >
+                        <span
+                          className="size-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: bucket.fill }}
+                        />
+                        {bucket.label}
+                      </li>
+                    ))}
+                  </ul>
+                  <span aria-hidden className="w-1 self-stretch border-y border-r border-foreground/40" />
+                </div>
               </div>
             )}
-          </section>
+          </div>
 
-          <section className="min-w-0 p-6">
-            <h2 className="mb-6 text-2xl text-foreground">{t("cost-efficiency-title")}</h2>
-            <div className="grid grid-cols-2 items-start gap-x-6 gap-y-6">
-              <Kpi
-                label={t("efficiency.per-referral")}
-                value={cost.status === "loading" ? "…" : fmtRate(perReferral)}
-              />
-              <Kpi
-                label={t.rich("efficiency.per-successful-referral", {
-                  success: (chunks) => (
-                    <span className="font-bold text-[var(--acceptance)]">{chunks}</span>
-                  ),
-                })}
-                value={cost.status === "loading" ? "…" : fmtRate(perSuccessfulReferral)}
-              />
-              <Kpi
-                label={t("efficiency.per-hour-shipped")}
-                value={cost.status === "loading" ? "…" : fmtRate(perHourShipped)}
-              />
-              <Kpi
-                label={t("efficiency.hours-shipped")}
-                value={hoursFormatter.format(totalHoursLogged)}
-                sub={t("efficiency.by-users", { count: loggedUsers })}
-              />
-              <Kpi
-                label={t("efficiency.hours-approved")}
-                value={hoursFormatter.format(totalHoursApproved)}
-                sub={
-                  <>
-                    <span>{t("efficiency.for-users", { count: approvedUsers })}</span>
-                    {totalHoursApproved > 0 ? (
-                      <span className="inline-flex items-center gap-1">
-                        {t("efficiency.weighted-grants", {
-                          count: hoursFormatter.format(weightedGrants),
-                          amount: currencyFormatter.format(weightedGrantDollars),
-                        })}
-                        <HintTooltip text={t("efficiency.weighted-grants-hint")} align="end" />
-                      </span>
-                    ) : null}
-                  </>
-                }
-              />
-            </div>
-          </section>
-        </div>
-      </section>
-
-      <section className="bg-card">
-        <div className="grid xl:grid-cols-2">
-          <section className="min-w-0 p-6">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl text-foreground">{breakdownTitle}</h2>
-                {usingStates ? <HintTooltip text={t("signups-by-state-hint")} /> : null}
+          <div className="min-w-0">
+            <SectionHeading title={t("cost-efficiency-title")} />
+            <div className="flex flex-col gap-4">
+              {/* Efficiency tier — the three dollar ratios as a compact 3-up:
+                  figure over a tight label so the rates stay dense and scan left
+                  to right. The positive "successful" rate is carried in green. */}
+              <div className="grid grid-cols-2 gap-x-4">
+                <RateCell
+                  label={t("efficiency.per-referral")}
+                  hint={t("efficiency.per-referral-hint")}
+                  value={fmtRate(perReferral)}
+                  loading={costLoading}
+                />
+                <RateCell
+                  label={t("efficiency.per-successful-referral")}
+                  hint={t("efficiency.per-successful-referral-hint")}
+                  value={fmtRate(perSuccessfulReferral)}
+                  loading={costLoading}
+                />
               </div>
+
+              {/* Volume tier — the raw hour counts, led by a quiet glyph so they
+                  read as the effort behind the rates rather than headline figures.
+                  Two equal columns so the pair sits even, the figures sharing the
+                  left baseline of the rates above. */}
+              <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                <HoursKpi
+                  glyph="clock"
+                  label={t("efficiency.hours-shipped")}
+                  hint={t("efficiency.hours-shipped-hint")}
+                  value={hoursFormatter.format(totalHoursLogged)}
+                  sub={<span>{t("efficiency.by-users", { count: loggedUsers })}</span>}
+                />
+                <HoursKpi
+                  glyph="checkmark"
+                  label={t("efficiency.hours-approved")}
+                  hint={t("efficiency.weighted-grants-hint")}
+                  value={hoursFormatter.format(totalHoursApproved)}
+                  sub={
+                    <>
+                      <span>{t("efficiency.for-users", { count: approvedUsers })}</span>
+                      {totalHoursApproved > 0 ? (
+                        <span>
+                          {t("efficiency.weighted-grants", {
+                            count: hoursFormatter.format(weightedGrants),
+                            amount: currencyFormatter.format(weightedGrantDollars),
+                          })}
+                        </span>
+                      ) : null}
+                    </>
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-y-8 xl:grid-cols-2 xl:gap-x-12 xl:gap-y-0">
+          <div className="min-w-0">
+            <SectionHeading
+              title={
+                <>
+                  {breakdownTitle}
+                  {usingStates ? <HintTooltip text={t("signups-by-state-hint")} /> : null}
+                </>
+              }
+            >
               {usingStates ? (
-                <div className="relative w-full sm:w-44">
+                <div className="relative w-full sm:w-72">
                   <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="search"
@@ -476,7 +519,7 @@ export function PriorityDashboard({
                   />
                 </div>
               ) : null}
-            </div>
+            </SectionHeading>
             {hasBreakdownData ? (
               <div className="min-w-0" style={{ height: `${breakdownHeight}px` }}>
                 <DashboardResponsiveChart height={breakdownHeight}>
@@ -500,6 +543,7 @@ export function PriorityDashboard({
                       axisLine={false}
                       tickLine={false}
                       width={150}
+                      interval={0}
                     />
                     <Tooltip cursor={false} content={<ChartTooltip locale={locale} />} />
                     <Bar dataKey="value" radius={[0, 10, 10, 0]}>
@@ -513,32 +557,29 @@ export function PriorityDashboard({
             ) : (
               <p className="font-body text-base text-foreground">{t("signups-by-region-empty")}</p>
             )}
-          </section>
+          </div>
 
-          <section className="min-w-0 p-6">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl text-foreground">{t("recent-activity-title")}</h2>
-              <div className="flex flex-wrap items-center gap-2">
-                <MultiSelect
-                  options={ACTIVITY_METRICS.map((metric) => ({
-                    value: metric,
-                    label: metricLabels[metric],
-                  }))}
-                  selected={activityMetrics}
-                  onChange={setActivityMetrics}
-                  allLabel={tc("top-ambassadors-all-metrics")}
-                  selectionNoun={tc("top-ambassadors-metrics-noun")}
-                />
-                <SingleSelect
-                  value={activityRange}
-                  options={ACTIVITY_RANGES.map((range) => ({
-                    value: range,
-                    label: rangeLabels[range],
-                  }))}
-                  onChange={setActivityRange}
-                />
-              </div>
-            </div>
+          <div className="min-w-0">
+            <SectionHeading title={t("recent-activity-title")}>
+              <MultiSelect
+                options={ACTIVITY_METRICS.map((metric) => ({
+                  value: metric,
+                  label: metricLabels[metric],
+                }))}
+                selected={activityMetrics}
+                onChange={setActivityMetrics}
+                allLabel={tc("top-ambassadors-all-metrics")}
+                selectionNoun={tc("top-ambassadors-metrics-noun")}
+              />
+              <SingleSelect
+                value={activityRange}
+                options={ACTIVITY_RANGES.map((range) => ({
+                  value: range,
+                  label: rangeLabels[range],
+                }))}
+                onChange={setActivityRange}
+              />
+            </SectionHeading>
             {hasActivity ? (
               <div className="h-[20rem] min-w-0">
                 <DashboardResponsiveChart height={320}>
@@ -582,38 +623,100 @@ export function PriorityDashboard({
             ) : (
               <p className="font-body text-base text-foreground">{t("activity-empty")}</p>
             )}
-          </section>
+          </div>
+        </section>
+
+        <div>
+          <TopAmbassadorsChart
+            data={topAmbassadorsData}
+            locale={locale}
+            region={topRegion}
+            showFlags
+            rangeAsDropdown
+            includeBalance
+            defaultSelectedMetrics={["referrals"]}
+            messages={{
+              title: tc("top-ambassadors-title"),
+              empty: tc("top-ambassadors-empty"),
+              allMetrics: tc("top-ambassadors-all-metrics"),
+              metricsNoun: tc("top-ambassadors-metrics-noun"),
+              postersSeries: tc("series.posters"),
+              referralsSeries: tc("series.referrals"),
+              rsvpsSeries: tc("series.rsvps"),
+              balanceSeries: tc("top-ambassadors-balance"),
+            }}
+          />
+        </div>
         </div>
 
-        <TopAmbassadorsChart
-          data={topAmbassadorsData}
+        <PosterDensityMap
+          points={posterPoints}
+          scope={scope}
           locale={locale}
-          region={topRegion}
-          showFlags
-          rangeAsDropdown
-          includeBalance
-          defaultSelectedMetrics={["referrals"]}
           messages={{
-            title: tc("top-ambassadors-title"),
-            empty: tc("top-ambassadors-empty"),
-            allMetrics: tc("top-ambassadors-all-metrics"),
-            metricsNoun: tc("top-ambassadors-metrics-noun"),
-            postersSeries: tc("series.posters"),
-            referralsSeries: tc("series.referrals"),
-            rsvpsSeries: tc("series.rsvps"),
-            balanceSeries: tc("top-ambassadors-balance"),
+            title: tm("title"),
+            allCountries: tm("all-countries"),
+            allStates: tm("all-states"),
+            empty: tm("empty"),
           }}
         />
-      </section>
+      </div>
     </div>
   );
 }
 
-function Kpi({ label, value, sub }: { label: React.ReactNode; value: string; sub?: React.ReactNode }) {
+// One dollar-ratio cell: a tight caption label over its tabular figure, matching
+// the label-first rhythm of the hour KPIs below so titles always sit above their
+// numbers. The positive "successful" rate is the only figure carried green.
+function RateCell({
+  label,
+  value,
+  loading,
+  hint,
+}: {
+  label: React.ReactNode;
+  value: string;
+  loading: boolean;
+  hint?: string;
+}) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="font-body text-sm text-secondary">{label}</span>
-      <span className="text-2xl leading-none text-foreground tabular-nums">{value}</span>
+      <span className="flex items-center gap-1.5 font-body text-xs leading-4 text-secondary">
+        {label}
+        {hint !== undefined ? <HintTooltip text={hint} /> : null}
+      </span>
+      {loading ? (
+        <span className="h-8 w-16 animate-pulse rounded-none bg-muted" />
+      ) : (
+        <span className="text-2xl font-bold leading-8 text-foreground tabular-nums">{value}</span>
+      )}
+    </div>
+  );
+}
+
+// A volume figure (hours), led by a quiet glyph so the effort counts sit apart
+// from the dollar rates above and read as supporting context.
+function HoursKpi({
+  glyph,
+  label,
+  value,
+  sub,
+  hint,
+}: {
+  glyph: "clock" | "checkmark";
+  label: string;
+  value: string;
+  sub?: React.ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="flex items-center gap-1.5 font-body text-sm text-secondary">
+        <Icon glyph={glyph} size={16} className="shrink-0 text-muted-foreground" />
+        {label}
+        {hint !== undefined ? <HintTooltip text={hint} /> : null}
+      </span>
+      <span className="text-2xl font-bold leading-8 text-foreground tabular-nums">{value}</span>
       {sub !== undefined ? (
         <div className="flex flex-col gap-0.5 font-body text-xs text-muted-foreground">{sub}</div>
       ) : null}
@@ -626,7 +729,7 @@ function StatCard({
   label,
   value,
   detail,
-  pending,
+  loading = false,
   hint,
   footer,
 }: {
@@ -634,26 +737,26 @@ function StatCard({
   label: string;
   value: string | null;
   detail?: string;
-  pending?: string;
+  loading?: boolean;
   hint?: string;
   footer?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border border-foreground/10 bg-card p-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2.5">
         <Icon glyph={glyph} size={28} className="shrink-0 text-foreground" />
         <span className="font-body text-sm text-secondary">{label}</span>
         {hint !== undefined ? <HintTooltip text={hint} /> : null}
       </div>
-      {value !== null ? (
-        <span className="text-4xl leading-none text-foreground tabular-nums">{value}</span>
-      ) : (
-        <span className="font-body text-base text-foreground/50">{pending}</span>
-      )}
-      {detail !== undefined && value !== null ? (
+      {loading ? (
+        <span className="h-12 w-32 animate-pulse rounded-none bg-muted" />
+      ) : value !== null ? (
+        <span className="text-5xl font-bold leading-none text-foreground tabular-nums">{value}</span>
+      ) : null}
+      {detail !== undefined && value !== null && !loading ? (
         <span className="font-body text-xs text-muted-foreground">{detail}</span>
       ) : null}
-      {footer !== undefined && value !== null ? <div className="mt-1">{footer}</div> : null}
+      {footer !== undefined && (loading || value !== null) ? <div>{footer}</div> : null}
     </div>
   );
 }

@@ -67,6 +67,25 @@ const NON_US = [
 const REFERRAL_STATUSES = ["verified", "verified", "verified", "pending", "unverified", "rsvp", "rejected"];
 const POSTER_STATUSES = ["success", "success", "pending", "in_review", "rejected", "digital"];
 
+// Approximate centres so the density map clusters around real places (and the
+// gaps between them read as sparse). US keyed by state, others by country code.
+const GEO_CENTERS = {
+  California: [36.78, -119.42], "New York": [40.71, -74.0], Texas: [31.0, -99.0],
+  Florida: [27.99, -81.76], Washington: [47.4, -120.5], Illinois: [41.88, -87.63],
+  Massachusetts: [42.36, -71.06], Georgia: [33.75, -84.39], Colorado: [39.74, -104.99],
+  Oregon: [44.0, -120.5], Pennsylvania: [40.0, -77.6], Ohio: [40.0, -82.9],
+  CA: [43.65, -79.38], DE: [48.14, 11.58], GB: [52.49, -1.89], AU: [-33.87, 151.21],
+};
+// Gaussian-ish jitter (sum of two uniforms), so most posters hug the centre and
+// a few stray out — clusters stay dense, the periphery stays sparse.
+function jitter(spread) {
+  return (rng() + rng() - 1) * spread;
+}
+function geoFor(state, cc) {
+  const center = GEO_CENTERS[state] ?? GEO_CENTERS[cc] ?? [39.5, -98.35];
+  return [center[0] + jitter(1.4), center[1] + jitter(1.8)];
+}
+
 const users = [];
 const codes = [];
 const referrals = [];
@@ -120,6 +139,7 @@ function addAmbassador({ region, state, cc, cn, refCount, posterCount }) {
   for (let j = 0; j < posterCount; j++) {
     const status = weighted(POSTER_STATUSES);
     const at = recentDaysAgo(75);
+    const [latitude, longitude] = geoFor(state, cc);
     posters.push({
       id: `seed-poster-${i}-${j}`,
       user_id: id,
@@ -128,6 +148,9 @@ function addAmbassador({ region, state, cc, cn, refCount, posterCount }) {
       referral_code: makeCode(),
       poster_type: "color",
       verification_status: status,
+      latitude,
+      longitude,
+      location_accuracy: randInt(5, 60),
       verified_at: status === "success" ? at : null,
       submitted_at: at,
       created_at: at,
@@ -144,12 +167,12 @@ for (const [state, count] of US_PLAN) {
       cc: "US",
       cn: "United States",
       refCount: randInt(4, 16),
-      posterCount: randInt(1, 6),
+      posterCount: randInt(4, 12),
     });
   }
 }
 for (const a of NON_US) {
-  addAmbassador({ ...a, refCount: randInt(3, 9), posterCount: randInt(1, 4) });
+  addAmbassador({ ...a, refCount: randInt(3, 9), posterCount: randInt(3, 8) });
 }
 
 async function main() {
@@ -165,7 +188,7 @@ async function main() {
     await tx`INSERT INTO users ${tx(users, "id", "hca_id", "email", "display_name", "slack_id", "ambassador_region", "region", "country_code", "country_name", "manual_dashboard_state", "stardance_referral_code", "created_at")}`;
     await tx`INSERT INTO stardance_referral_codes ${tx(codes, "id", "user_id", "code", "label", "kind")}`;
     await tx`INSERT INTO stardance_referrals ${tx(referrals, "id", "user_id", "referral_code_id", "name", "slack_id", "email", "hours_logged", "hours_approved", "verification_status", "referred_at", "created_at")}`;
-    await tx`INSERT INTO posters ${tx(posters, "id", "user_id", "campaign_slug", "qr_code_token", "referral_code", "poster_type", "verification_status", "verified_at", "submitted_at", "created_at")}`;
+    await tx`INSERT INTO posters ${tx(posters, "id", "user_id", "campaign_slug", "qr_code_token", "referral_code", "poster_type", "verification_status", "latitude", "longitude", "location_accuracy", "verified_at", "submitted_at", "created_at")}`;
   });
 
   const usCount = users.filter((u) => u.ambassador_region === "United States").length;

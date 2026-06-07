@@ -460,8 +460,8 @@ export default async function AdminUserDetailPage({
   const canRemoveAdmin = user.is_admin === true && actorSession?.sub !== user.id;
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-5">
+    <div className="space-y-12">
+      <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
           <Link href="/admin/users" className="hover:text-foreground">
             {t("admin.user-detail.breadcrumb")}
@@ -478,7 +478,7 @@ export default async function AdminUserDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-foreground">{user.display_name}</h1>
+              <h1 className="text-4xl leading-[3rem] text-foreground">{user.display_name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {headerStatus !== null ? (
@@ -521,7 +521,7 @@ export default async function AdminUserDetailPage({
         title={t("admin.user-detail.sections.user-actions.title")}
         description={t("admin.user-detail.sections.user-actions.description")}
       >
-        <div className="space-y-6">
+        <div className="space-y-8">
           {superuserFlashMessage !== null ? (
             <p className="max-w-xl font-body text-base text-foreground">
               {superuserFlashMessage}
@@ -565,7 +565,7 @@ export default async function AdminUserDetailPage({
           ) : null}
 
           {latestApplication ? (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="pb-2">
                 <div className="text-sm text-secondary">{t("admin.user-detail.actions.current-review-target")}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-3">
@@ -645,9 +645,9 @@ export default async function AdminUserDetailPage({
             </p>
           )}
 
-          <div className="space-y-4 border-t border-foreground/10 pt-6">
+          <div className="space-y-4 pt-8">
             <div className="space-y-2">
-              <h3 className="text-2xl text-foreground">
+              <h3 className="text-2xl leading-8 text-foreground">
                 {t("admin.user-detail.sections.dashboard-state.title")}
               </h3>
               <p className="max-w-3xl font-body text-base text-foreground">
@@ -700,7 +700,7 @@ export default async function AdminUserDetailPage({
                 key={control.key}
                 action={`/api/admin/users/${user.id}/flags`}
                 method="POST"
-                className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/10 pb-3 last:border-b-0"
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/10 pb-4 last:border-b-0"
               >
                 <input type="hidden" name="redirectTo" value={`/admin/users/${user.id}`} />
                 <input type="hidden" name="flagKey" value={control.key} />
@@ -998,17 +998,17 @@ export default async function AdminUserDetailPage({
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-foreground/10">
-                  <th className="px-0 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.submitted")}</th>
-                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.status")}</th>
-                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.name")}</th>
-                  <th className="px-4 py-3 font-body text-sm text-muted-foreground">{t("admin.user-detail.applications.open")}</th>
+                <tr className="border-b border-foreground">
+                  <th className="px-0 py-4 font-body text-sm leading-8 text-secondary">{t("admin.user-detail.applications.submitted")}</th>
+                  <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">{t("admin.user-detail.applications.status")}</th>
+                  <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">{t("admin.user-detail.applications.name")}</th>
+                  <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">{t("admin.user-detail.applications.open")}</th>
                 </tr>
               </thead>
               <tbody>
                 {applications.map((application) => (
-                  <tr key={application.id} className="border-b border-foreground/10 last:border-b-0">
-                    <td className="px-0 py-4 font-body text-sm text-foreground">{formatDateTime(application.created_at, locale)}</td>
+                  <tr key={application.id} className="border-b border-foreground last:border-b-0">
+                    <td className="px-0 py-4 font-body text-sm leading-8 text-foreground">{formatDateTime(application.created_at, locale)}</td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={application.status} />
@@ -1023,7 +1023,7 @@ export default async function AdminUserDetailPage({
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 font-body text-sm text-foreground">{application.name}</td>
+                    <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">{application.name}</td>
                     <td className="px-4 py-4">
                       <Link
                         href={`/admin/applications/${application.id}`}
@@ -1171,26 +1171,26 @@ export default async function AdminUserDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-foreground/10">
-                    <th className="px-0 py-3 font-body text-sm text-muted-foreground">
+                  <tr className="border-b border-foreground">
+                    <th className="px-0 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.created")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.proof")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.name")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.code")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.type")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.status")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.posters.columns.actions")}
                     </th>
                   </tr>
@@ -1202,8 +1202,8 @@ export default async function AdminUserDetailPage({
                       poster.verification_status !== "success";
                     const proofUrl = posterProofUrls.get(poster.id) ?? null;
                     return (
-                      <tr key={poster.id} className="border-b border-foreground/10 last:border-b-0">
-                        <td className="px-0 py-4 font-body text-sm text-foreground">
+                      <tr key={poster.id} className="border-b border-foreground last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm leading-8 text-foreground">
                           {formatDateTime(poster.created_at, locale)}
                         </td>
                         <td className="px-4 py-4">
@@ -1218,15 +1218,15 @@ export default async function AdminUserDetailPage({
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {poster.name && poster.name.trim() !== ""
                             ? poster.name
                             : t("admin.user-detail.posters.no-name")}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {poster.referral_code}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {poster.poster_type}
                         </td>
                         <td className="px-4 py-4">
@@ -1322,23 +1322,23 @@ export default async function AdminUserDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-foreground/10">
-                    <th className="px-0 py-3 font-body text-sm text-muted-foreground">
+                  <tr className="border-b border-foreground">
+                    <th className="px-0 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.referred")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.name")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.email")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.hours")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.status")}
                     </th>
-                    <th className="px-4 py-3 font-body text-sm text-muted-foreground">
+                    <th className="px-4 py-4 font-body text-sm leading-8 text-secondary">
                       {t("admin.user-detail.referrals.columns.actions")}
                     </th>
                   </tr>
@@ -1353,17 +1353,17 @@ export default async function AdminUserDetailPage({
                     const canReject =
                       !isRsvp && referral.verification_status !== "rejected";
                     return (
-                      <tr key={referral.id} className="border-b border-foreground/10 last:border-b-0">
-                        <td className="px-0 py-4 font-body text-sm text-foreground">
+                      <tr key={referral.id} className="border-b border-foreground last:border-b-0">
+                        <td className="px-0 py-4 font-body text-sm leading-8 text-foreground">
                           {formatDateTime(referral.referred_at, locale)}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {referral.name}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground break-words [overflow-wrap:anywhere]">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground break-words [overflow-wrap:anywhere]">
                           {referral.email}
                         </td>
-                        <td className="px-4 py-4 font-body text-sm text-foreground">
+                        <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {hoursFormatter.format(Number.isFinite(hoursApproved) ? hoursApproved : 0)}
                           {" / "}
                           {hoursFormatter.format(Number.isFinite(hoursLogged) ? hoursLogged : 0)}

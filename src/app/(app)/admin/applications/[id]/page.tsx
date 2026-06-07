@@ -255,8 +255,8 @@ export default async function AdminApplicationDetailPage({
   );
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-5">
+    <div className="space-y-12">
+      <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
           <Link href="/admin/applications" className="hover:text-foreground">
             {t("admin.application-detail.breadcrumb")}
@@ -273,7 +273,7 @@ export default async function AdminApplicationDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-foreground">{application.name ?? application.user_name}</h1>
+              <h1 className="text-4xl leading-[3rem] text-foreground">{application.name ?? application.user_name}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={application.status} />
@@ -307,7 +307,7 @@ export default async function AdminApplicationDetailPage({
 
       {!isLatest && (
         <section className="pt-4">
-          <h2 className="text-2xl text-foreground">{t("admin.application-detail.locked.title")}</h2>
+          <h2 className="text-2xl leading-8 text-foreground">{t("admin.application-detail.locked.title")}</h2>
           <p className="mt-2 max-w-3xl font-body text-base text-foreground">
             {t("admin.application-detail.locked.body")}{" "}
             <Link
@@ -355,7 +355,7 @@ export default async function AdminApplicationDetailPage({
         </ConfirmSubmitForm>
 
         {isLatest ? (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {canAccept ? (
               <form action={`/api/admin/applications/${application.id}/approve`} method="POST" className="max-w-xl space-y-3">
                 <input type="hidden" name="redirectTo" value={`/admin/applications/${application.id}`} />
@@ -605,16 +605,16 @@ export default async function AdminApplicationDetailPage({
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-foreground">
-                <th className="px-0 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.when")}</th>
-                <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.status")}</th>
-                <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.name")}</th>
-                <th className="px-4 py-3 font-body text-base text-secondary">{t("admin.application-detail.history.open")}</th>
+                <th className="px-0 py-4 font-body text-base leading-8 text-secondary">{t("admin.application-detail.history.when")}</th>
+                <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.application-detail.history.status")}</th>
+                <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.application-detail.history.name")}</th>
+                <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.application-detail.history.open")}</th>
               </tr>
             </thead>
             <tbody>
               {history.map((entry) => (
                 <tr key={entry.id} className="border-b border-foreground last:border-b-0">
-                  <td className="px-0 py-4 font-body text-sm text-foreground">{formatDateTime(entry.created_at, locale)}</td>
+                  <td className="px-0 py-4 font-body text-sm leading-8 text-foreground">{formatDateTime(entry.created_at, locale)}</td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={entry.status} />
@@ -627,7 +627,7 @@ export default async function AdminApplicationDetailPage({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-4 font-body text-sm text-foreground">{entry.name ?? "-"}</td>
+                  <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">{entry.name ?? "-"}</td>
                   <td className="px-4 py-4">
                     <Link
                       href={`/admin/applications/${entry.id}`}

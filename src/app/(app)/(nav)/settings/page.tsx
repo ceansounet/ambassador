@@ -45,7 +45,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-12">
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
         <h1 className="text-4xl text-foreground">{t("settings.heading")}</h1>
         <hr className="mt-6 border-foreground/10" />
 

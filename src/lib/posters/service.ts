@@ -40,6 +40,7 @@ import {
   type CreatePosterGroupInput,
   type CreatePosterInput,
   type PosterGroupCharset,
+  type PosterGroupRow,
   type PosterRow,
   type PosterStyle,
   type PublicScanResult,
@@ -181,7 +182,32 @@ export async function listPosterDataForUser(userId: string) {
   };
 }
 
-function toPosterListItem(poster: ReturnType<typeof toClientPoster>) {
+export type ClientPosterListItem = {
+  id: string;
+  referral_code: string;
+  poster_type: PosterRow["poster_type"];
+  verification_status: PosterRow["verification_status"];
+  campaign_slug: string;
+  poster_group_id: string | null;
+  location_description: string | null;
+  name: string | null;
+  scanCount: number;
+};
+
+export type ClientPosterGroupDetail = {
+  id: string;
+  name: string | null;
+  campaign_slug: string;
+  poster_count: number;
+  posters: ClientPosterListItem[];
+};
+
+/**
+ * The client-safe projection of a poster. Internal-only fields on `PosterRow`
+ * (qr_code_token, proof_*, coordinates, metadata, user_id, timestamps, …) never
+ * cross to the browser; only the fields the UI actually renders do.
+ */
+export function toClientPosterListItem(poster: PosterRow, scanCount = 0): ClientPosterListItem {
   return {
     id: poster.id,
     referral_code: poster.referral_code,
@@ -190,9 +216,26 @@ function toPosterListItem(poster: ReturnType<typeof toClientPoster>) {
     campaign_slug: poster.campaign_slug,
     poster_group_id: poster.poster_group_id,
     location_description: poster.location_description,
-    name: poster.name,
-    scanCount: poster.scanCount,
+    name: getPosterName(poster),
+    scanCount,
   };
+}
+
+export function toClientPosterGroupDetail(
+  group: PosterGroupRow,
+  posters: PosterRow[],
+): ClientPosterGroupDetail {
+  return {
+    id: group.id,
+    name: group.name,
+    campaign_slug: group.campaign_slug,
+    poster_count: group.poster_count,
+    posters: posters.map((poster) => toClientPosterListItem(poster)),
+  };
+}
+
+function toPosterListItem(poster: ReturnType<typeof toClientPoster>): ClientPosterListItem {
+  return toClientPosterListItem(poster, poster.scanCount);
 }
 
 export async function listClientPosterDataForUser(userId: string) {
@@ -327,7 +370,7 @@ export async function renamePosterForUser(
   const poster = await getPosterForUserOrThrow(userId, posterId);
   const normalized = normalizePosterName(name);
   const updated = await updatePosterName(poster.id, normalized);
-  return { poster: toClientPoster(updated) };
+  return { poster: toClientPosterListItem(updated) };
 }
 
 export async function movePosterForUser(input: {
@@ -353,7 +396,7 @@ export async function movePosterForUser(input: {
   if (!updated) {
     throw new PosterRequestError("Poster not found.", 404);
   }
-  return { poster: toClientPoster(updated) };
+  return { poster: toClientPosterListItem(updated) };
 }
 
 export async function renamePosterGroupForUser(
@@ -364,7 +407,14 @@ export async function renamePosterGroupForUser(
   const { group } = await getPosterGroupForUserOrThrow(userId, groupId);
   const normalized = normalizePosterName(name);
   const updated = await updatePosterGroupName(group.id, normalized);
-  return { group: updated };
+  return {
+    group: {
+      id: updated.id,
+      name: updated.name,
+      campaign_slug: updated.campaign_slug,
+      poster_count: updated.poster_count,
+    },
+  };
 }
 
 export async function deletePosterForUser(userId: string, posterId: string) {

@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { Pagination } from "@/components/admin/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { SearchBar } from "@/components/admin/search-bar";
 import { SortToggle } from "@/components/admin/sort-toggle";
 import { StatusFilter } from "@/components/admin/status-filter";
@@ -149,15 +149,35 @@ export default async function AdminApplicationsPage({
   const applications = applicationList?.applications ?? [];
   const totalCount = applicationList?.total ?? 0;
 
+  // The review-mode queue: latest pending-review applications not on hold. This
+  // mirrors the WHERE in the review-mode entry page (locks are transient, so
+  // they don't change the queue size).
+  const reviewQueueCount =
+    (await sql<{ count: number }[]>`
+      SELECT COUNT(*)::int AS count
+      FROM applications a
+      LEFT JOIN LATERAL (
+        SELECT id
+        FROM applications
+        WHERE (a.user_id IS NOT NULL AND user_id = a.user_id)
+           OR (a.user_id IS NULL AND a.applicant_email IS NOT NULL AND user_id IS NULL AND LOWER(applicant_email) = LOWER(a.applicant_email))
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+      ) latest ON true
+      WHERE a.status = ${APPLICATION_STATUS_PENDING_REVIEW}
+        AND a.review_on_hold IS NOT TRUE
+        AND COALESCE(latest.id, a.id) = a.id
+    `).at(0)?.count ?? 0;
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-4xl text-foreground">{t("admin.applications-list.title")}</h1>
+        <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.applications-list.title")}</h1>
         <Link
           href="/admin/applications/review"
           className="ui-open-link inline-flex items-center gap-1 whitespace-nowrap font-body text-lg leading-none"
         >
-          Review Mode <span aria-hidden="true">↗</span>
+          Review Mode ({reviewQueueCount}) <span aria-hidden="true">↗</span>
         </Link>
       </header>
       <div className="flex flex-wrap items-center gap-3">
@@ -174,19 +194,19 @@ export default async function AdminApplicationsPage({
               }))}
             />
           </div>
-          <SortToggle />
+          <SortToggle storageKey="admin:applications:sort" />
         </div>
       </div>
-      <div className="ui-table-card">
+      <div className="ui-table-group">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-foreground">
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.applicant")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.name-on-app")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.status")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.location")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.submitted")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.applications-list.columns.open")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.applicant")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.name-on-app")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.status")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.location")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.submitted")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.applications-list.columns.open")}</th>
             </tr>
           </thead>
           <tbody>
@@ -199,7 +219,7 @@ export default async function AdminApplicationsPage({
 
               return (
                 <tr key={application.id} className="border-b border-foreground last:border-b-0">
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="relative shrink-0">
                         <SlackAvatar
@@ -226,10 +246,10 @@ export default async function AdminApplicationsPage({
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-foreground">
+                  <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                     {applicationName}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <StatusBadge status={application.status} />
                       {application.is_latest === true ? (
@@ -243,17 +263,17 @@ export default async function AdminApplicationsPage({
                       )}
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-foreground">
+                  <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                     {application.city !== null && application.country_code !== null
                       ? `${application.city}, ${application.country_code}`
                       : application.address_city !== null && application.address_country !== null
                         ? `${application.address_city}, ${application.address_country}`
                         : "-"}
                   </td>
-                  <td className="px-5 py-4 font-body text-base text-foreground">
+                  <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                     {new Date(application.created_at).toLocaleDateString(locale)}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-4">
                     <Link
                       href={`/admin/applications/${application.id}`}
                       aria-label={t("admin.applications-list.view-details")}
@@ -267,7 +287,7 @@ export default async function AdminApplicationsPage({
             })}
             {applications.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
+                <td colSpan={6} className="px-4 py-8 text-center font-body text-base text-foreground">
                   {t("admin.applications-list.empty")}
                 </td>
               </tr>
@@ -280,7 +300,7 @@ export default async function AdminApplicationsPage({
           labels={{
             previous: t("admin.pagination.previous"),
             next: t("admin.pagination.next"),
-            page: t("admin.pagination.page"),
+            of: t("admin.pagination.of"),
           }}
         />
       </div>

@@ -1,3 +1,4 @@
+import { isUserAdmin } from "@/lib/applications/review";
 import { getActorSession, getSession } from "@/lib/session";
 
 export async function GET() {
@@ -12,9 +13,14 @@ export async function GET() {
     });
   }
 
+  // Read the live admin flag from the DB rather than trusting the JWT claim, so
+  // a demoted admin stops seeing admin affordances without waiting for cookie
+  // expiry. The acting user (impersonator, if any) owns the admin capability.
+  const isAdmin = await isUserAdmin(actorSession?.sub ?? session.sub);
+
   return Response.json({
     isAuthenticated: true,
-    isAdmin: Boolean(actorSession?.isAdmin ?? session.isAdmin),
+    isAdmin,
     isImpersonating: Boolean(session.impersonator),
     impersonation: session.impersonator
       ? {

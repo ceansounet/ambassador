@@ -113,8 +113,8 @@ export default async function AdminOrderDetailPage({
       : null;
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-5">
+    <div className="space-y-12">
+      <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
           <Link href="/admin/orders" className="hover:text-foreground">
             {t("admin.order-detail.breadcrumb")}
@@ -131,7 +131,7 @@ export default async function AdminOrderDetailPage({
                 sizeClassName="h-16 w-16"
                 textClassName="text-lg"
               />
-              <h1 className="text-4xl text-foreground">
+              <h1 className="text-4xl leading-[3rem] text-foreground">
                 {order.user_name ?? t("admin.order-detail.unknown-user")}
               </h1>
             </div>
@@ -172,7 +172,7 @@ export default async function AdminOrderDetailPage({
       >
         {isLatestOrder ? (
           order.status === ORDER_STATUS_PENDING ? (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="max-w-xl space-y-2">
                 <p className="font-body text-base text-foreground">
                   {withinEmbargo

@@ -350,17 +350,9 @@ export async function DetailedView({ activeRange }: { activeRange: ActivityRange
   ];
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-2">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] xl:items-start">
-          <div className="space-y-2">
-            <h1 className="text-4xl leading-none text-foreground xl:flex xl:h-6 xl:items-center">
-              {t("admin.overview.title")}
-            </h1>
-            <p className="font-body text-base text-foreground">{t("admin.overview.description")}</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-8">
+      <header>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: "view" as const,
@@ -406,7 +398,7 @@ export async function DetailedView({ activeRange }: { activeRange: ActivityRange
               <div key={stat.label} className="flex flex-col gap-1.5">
                 <div className="flex items-baseline gap-2.5 whitespace-nowrap">
                   <Icon glyph={stat.icon} size={24} className="shrink-0 self-center text-foreground" />
-                  <span className="text-2xl leading-none text-foreground tabular-nums">
+                  <span className="text-2xl font-bold leading-8 text-foreground tabular-nums">
                     {stat.value}
                   </span>
                   <span className="font-body text-base text-foreground">{stat.label}</span>
@@ -418,7 +410,6 @@ export async function DetailedView({ activeRange }: { activeRange: ActivityRange
                 ) : null}
               </div>
             ))}
-          </div>
         </div>
       </header>
 

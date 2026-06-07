@@ -117,7 +117,7 @@ export default async function AdminPayoutReviewPage({
 
   return (
     <PayoutReviewModeClient payoutId={id} isPending={isPending}>
-      <div className="space-y-6">
+      <div className="space-y-12">
         <Link href="/admin/payouts" className="ui-open-link inline-flex items-center gap-1 font-body text-sm">
           <span aria-hidden>←</span> Payouts
         </Link>
@@ -126,7 +126,7 @@ export default async function AdminPayoutReviewPage({
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="truncate text-3xl text-foreground">{name}</h1>
+              <h1 className="truncate text-3xl leading-[3rem] text-foreground">{name}</h1>
               <span className={pillVariants({ tone: STATUS_TONE[payout.status] })}>
                 {STATUS_LABEL[payout.status]}
               </span>
@@ -142,7 +142,7 @@ export default async function AdminPayoutReviewPage({
         </header>
 
         {/* Amount */}
-        <section className="ui-card">
+        <section>
           <p className="text-xs text-secondary">
             {isPending
               ? isManual
@@ -171,7 +171,7 @@ export default async function AdminPayoutReviewPage({
         </section>
 
         {/* Details */}
-        <section className="ui-card">
+        <section>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <Field label="Legal name" value={name} />
             <Field label="Email" value={payout.ambassador.email} />
@@ -195,7 +195,7 @@ export default async function AdminPayoutReviewPage({
 
         {/* Map */}
         {!isManual && mapPosters.length > 0 ? (
-          <section className="ui-card">
+          <section>
             <h2 className="text-xl text-foreground">Where the posters are</h2>
             <p className="mt-1 font-body text-sm text-muted-foreground">
               Click a spot to zoom to it.
@@ -208,7 +208,7 @@ export default async function AdminPayoutReviewPage({
 
         {/* Posters */}
         {!isManual ? (
-        <section className="ui-card">
+        <section>
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-xl text-foreground">Posters</h2>
             <span className="text-xs text-secondary">{formatUsdCents(breakdown.posterCountedCents)}</span>
@@ -279,7 +279,7 @@ export default async function AdminPayoutReviewPage({
 
         {/* Referrals */}
         {!isManual ? (
-        <section className="ui-card">
+        <section>
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-xl text-foreground">Referrals</h2>
             <span className="text-xs text-secondary">{formatUsdCents(breakdown.referralCountedCents)}</span>
@@ -342,7 +342,7 @@ export default async function AdminPayoutReviewPage({
 
         {/* Adjustments */}
         {!isManual ? (
-        <section className="ui-card">
+        <section>
           <div className="flex items-baseline justify-between gap-2">
             <h2 className="text-xl text-foreground">Adjustments</h2>
             <span className="text-xs text-secondary">{formatUsdCents(breakdown.miscCents)}</span>
@@ -373,7 +373,7 @@ export default async function AdminPayoutReviewPage({
             <form
               action={`/api/admin/users/${ambassadorId}/balance`}
               method="POST"
-              className="mt-5 grid max-w-md gap-3 border-t border-foreground/10 pt-4"
+              className="mt-8 grid max-w-md gap-3"
             >
               <input type="hidden" name="redirectTo" value={redirectTo} />
               <input type="hidden" name="payoutId" value={id} />
@@ -398,15 +398,15 @@ export default async function AdminPayoutReviewPage({
         ) : null}
 
         {/* Internal notes */}
-        <section className="ui-card">
+        <section>
           <h2 className="text-xl text-foreground">Internal notes</h2>
           <p className="mt-1 font-body text-sm text-muted-foreground">
             Only admins see these.
           </p>
           {notes.length > 0 ? (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               {notes.map((note) => (
-                <div key={note.id} className="border-t border-foreground/5 pt-3 first:border-t-0 first:pt-0">
+                <div key={note.id}>
                   <p className="font-body text-base whitespace-pre-line text-foreground">{note.note}</p>
                   <p className="mt-1 font-body text-xs text-muted-foreground">
                     {note.authorName ?? "Unknown admin"} · {formatDateTime(note.createdAt, locale)}
@@ -418,7 +418,7 @@ export default async function AdminPayoutReviewPage({
           <form
             action={`/api/admin/payouts/${id}/notes`}
             method="POST"
-            className="mt-5 grid max-w-md gap-3 border-t border-foreground/10 pt-4"
+            className="mt-8 grid max-w-md gap-3"
           >
             <input type="hidden" name="redirectTo" value={redirectTo} />
             <label className="block text-sm text-secondary">
@@ -433,7 +433,7 @@ export default async function AdminPayoutReviewPage({
 
         {/* Decision / fulfilment */}
         {isPending ? (
-          <section className="ui-card">
+          <section>
             <h2 className="text-xl text-foreground">Decision</h2>
             <div className="mt-4">
               <PayoutReviewActions
@@ -445,7 +445,7 @@ export default async function AdminPayoutReviewPage({
             </div>
           </section>
         ) : (
-          <section className="ui-card">
+          <section>
             <h2 className="text-xl text-foreground">Fulfilment</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field label="Reviewed" value={payout.reviewedAt ? formatDateTime(payout.reviewedAt, locale) : null} />
@@ -466,7 +466,7 @@ export default async function AdminPayoutReviewPage({
               {payout.adminComment ? <Field label="Internal note" value={payout.adminComment} /> : null}
             </div>
             {payout.status === PAYOUT_STATUS_APPROVED ? (
-              <div className="mt-5 border-t border-foreground/10 pt-4">
+              <div className="mt-8">
                 <PayoutFulfilmentActions
                   payoutId={id}
                   amountLabel={formatUsdCents(payout.amountCents)}

@@ -3,6 +3,7 @@ import {
   deletePosterGroupForUser,
   getPosterGroupForUserOrThrow,
   renamePosterGroupForUser,
+  toClientPosterGroupDetail,
 } from "@/lib/posters/service";
 import { logAdminActionEvent } from "@/lib/admin-action-events";
 import { isSameOriginRequest, posterErrorResponse, requirePosterSession } from "@/lib/posters/http";
@@ -15,8 +16,8 @@ export async function GET(_request: Request, context: RouteContext<"/api/poster-
   try {
     const session = await requirePosterSession();
     const { id } = await context.params;
-    const data = await getPosterGroupForUserOrThrow(session.sub, id);
-    return Response.json(data);
+    const { group, posters } = await getPosterGroupForUserOrThrow(session.sub, id);
+    return Response.json(toClientPosterGroupDetail(group, posters));
   } catch (error) {
     return posterErrorResponse(error, "Failed to load poster group.", 404);
   }
@@ -49,7 +50,9 @@ export async function POST(request: Request, context: RouteContext<"/api/poster-
       groupId: id,
       count: typeof payload?.count === "number" && Number.isFinite(payload.count) ? payload.count : 1,
     });
-    return Response.json(result, { status: 201 });
+    return Response.json(toClientPosterGroupDetail(result.group, result.posters), {
+      status: 201,
+    });
   } catch (error) {
     return posterErrorResponse(error, "Failed to add posters to group.", 400);
   }
@@ -121,7 +124,7 @@ export async function DELETE(request: Request, context: RouteContext<"/api/poste
       },
     });
     revalidatePath("/admin/audit-log");
-    return Response.json(result);
+    return Response.json(toClientPosterGroupDetail(result.group, result.posters));
   } catch (error) {
     return posterErrorResponse(error, "Failed to delete poster group.", 400);
   }

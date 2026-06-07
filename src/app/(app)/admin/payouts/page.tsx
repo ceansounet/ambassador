@@ -4,10 +4,8 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 
 import { ManualPayoutForm } from "@/components/admin/manual-payout-form";
-import { buttonVariants } from "@/components/ui/button";
 import { pillVariants } from "@/components/ui/pill";
 import { formatDateTime } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import {
   formatUsdCents,
   listAdminPayouts,
@@ -46,9 +44,9 @@ export default async function AdminPayoutsPage() {
   const finalized = payouts.filter((p) => p.status !== PAYOUT_STATUS_PENDING);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-4xl text-foreground">Payouts</h1>
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-4xl leading-[3rem] text-foreground">Payouts</h1>
         <div className="flex flex-wrap items-center gap-4">
           {pending.length > 0 ? (
             <Link
@@ -62,10 +60,10 @@ export default async function AdminPayoutsPage() {
         </div>
       </div>
 
-      <section className="ui-card">
-        <h2 className="text-2xl text-foreground">Review queue</h2>
+      <section>
+        <h2 className="text-2xl leading-8 text-foreground">Review queue</h2>
         <p className="mt-2 font-body text-base text-muted-foreground">Oldest first.</p>
-        <div className="mt-5">
+        <div className="mt-4">
           {pending.length === 0 ? (
             <p className="font-body text-base text-muted-foreground">Nothing waiting for review.</p>
           ) : (
@@ -74,9 +72,9 @@ export default async function AdminPayoutsPage() {
         </div>
       </section>
 
-      <section className="ui-card">
-        <h2 className="text-2xl text-foreground">Recent decisions</h2>
-        <div className="mt-5">
+      <section>
+        <h2 className="text-2xl leading-8 text-foreground">Recent decisions</h2>
+        <div className="mt-4">
           {finalized.length === 0 ? (
             <p className="font-body text-base text-muted-foreground">No decisions yet.</p>
           ) : (
@@ -96,43 +94,44 @@ function PayoutTable({
   locale: string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="ui-table-group">
       <table className="w-full border-collapse font-body text-sm">
         <thead>
-          <tr className="border-b border-foreground/10 text-left text-secondary">
-            <th className="py-2 pr-4 font-normal">Ambassador</th>
-            <th className="py-2 pr-4 font-normal">Amount</th>
-            <th className="py-2 pr-4 font-normal">Method</th>
-            <th className="py-2 pr-4 font-normal">Submitted</th>
-            <th className="py-2 pr-4 font-normal">Status</th>
-            <th className="py-2" />
+          <tr className="border-b border-foreground text-left text-secondary">
+            <th className="py-4 pr-4 font-bold leading-8">Ambassador</th>
+            <th className="py-4 pr-4 font-bold leading-8">Amount</th>
+            <th className="py-4 pr-4 font-bold leading-8">Method</th>
+            <th className="py-4 pr-4 font-bold leading-8">Submitted</th>
+            <th className="py-4 pr-4 font-bold leading-8">Status</th>
+            <th className="py-4 font-bold leading-8" />
           </tr>
         </thead>
         <tbody>
           {payouts.map((payout) => (
-            <tr key={payout.id} className="border-b border-foreground/5">
-              <td className="py-3 pr-4 text-foreground">
+            <tr key={payout.id} className="border-b border-foreground last:border-b-0">
+              <td className="py-4 pr-4 leading-8 text-foreground">
                 {payout.ambassador.legalName ?? payout.ambassador.displayName}
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-xs leading-4 text-muted-foreground">
                   {payout.ambassador.email}
                 </span>
               </td>
-              <td className="py-3 pr-4 text-foreground">{formatUsdCents(payout.amountCents)}</td>
-              <td className="py-3 pr-4 text-foreground uppercase">{payout.bankTransferMethod}</td>
-              <td className="py-3 pr-4 text-muted-foreground">
+              <td className="py-4 pr-4 leading-8 text-foreground">{formatUsdCents(payout.amountCents)}</td>
+              <td className="py-4 pr-4 leading-8 text-foreground">{payout.bankTransferMethod}</td>
+              <td className="py-4 pr-4 leading-8 text-muted-foreground">
                 {formatDateTime(payout.submittedAt, locale)}
               </td>
-              <td className="py-3 pr-4">
+              <td className="py-4 pr-4 leading-8">
                 <span className={pillVariants({ tone: STATUS_TONE[payout.status] })}>
                   {STATUS_LABEL[payout.status]}
                 </span>
               </td>
-              <td className="py-3 text-right">
+              <td className="py-4 text-right leading-8">
                 <Link
                   href={`/admin/payouts/${payout.id}`}
-                  className={cn(buttonVariants({ size: "app-sm" }), "!bg-foreground hover:!bg-foreground/85")}
+                  aria-label="Open payout"
+                  className="ui-open-link inline-flex font-body text-lg leading-none"
                 >
-                  Open
+                  <span aria-hidden="true">↗</span>
                 </Link>
               </td>
             </tr>

@@ -26,6 +26,7 @@ app:
     balance-label: View balance and payouts
     settings-label: Settings
     sign-out-label: Sign out
+    menu-label: Menu
   impersonation:
     label: impersonating
     active: "{name}"
@@ -116,6 +117,7 @@ dashboard:
     body: "Your latest application has been permanently rejected. Please email ambassadors@hackclub.com if you think this is erroneous."
 
 office-grant:
+  eyebrow: Your perks
   title: Office grant
   messages:
     none: "There is no office grant linked to your Ambassador account yet. Please send a message in #hq-ambassadors-support or email ambassadors@hackclub.com so we can help."
@@ -295,6 +297,7 @@ referrals:
     delete-failed: Could not delete referral code.
     restore-failed: Could not restore referral code.
   table:
+    section-title: People you've referred
     name: Name
     code: Code
     type: Type
@@ -321,6 +324,7 @@ referrals:
       rejected: Rejected
 
 shirt:
+  eyebrow: Merch
   heading: Order a shirt!
   subheading-main: A completely free of cost shirt, just for you!
   subheading-footnote: Customs will apply if you live outside the US, refer to local import duties.
@@ -473,9 +477,10 @@ admin:
     rejected: Rejected
     rejected-permanently: Rejected Permanently
   pagination:
+    page: Page
     previous: Previous
     next: Next
-    page: Page
+    of: of
   tabs:
     dashboard: Overview
     users: Users
@@ -513,7 +518,7 @@ admin:
       enable: Turn on
       disable: Turn off
     shirt-ordering:
-      title: Shirt ordering
+      title: Shirts
       description: Allow ambassadors to place new shirt orders.
       enable: Turn on
       disable: Turn off
@@ -606,8 +611,11 @@ admin:
         hours-shipped: Hours shipped
         hours-approved: Hours approved
         per-referral: $ per referral
-        per-successful-referral: "$ per <success>successful</success> referral"
+        per-referral-hint: Total program cost divided by every non-rejected referral.
+        per-successful-referral: "$ per successful referral"
+        per-successful-referral-hint: Total program cost divided by verified referrals.
         per-hour-shipped: $ per hour shipped
+        hours-shipped-hint: Stardance hours logged by people your ambassadors referred.
         by-users: "by {count} users"
         for-users: "for {count} users"
         weighted-grants: "≈ {count} weighted grants · {amount}"
@@ -702,6 +710,11 @@ admin:
         visited-website: Visited website
         signed-up: Signed up
         filled-form: Filled form
+    poster-map:
+      title: Poster density
+      all-countries: All countries
+      all-states: All states
+      empty: No verified posters have coordinates yet.
   orders:
     metadata:
       title: Orders
@@ -1044,7 +1057,7 @@ admin:
       unknown-actor: Unknown admin
     flags:
       onboarding-enabled: Onboarding
-      shirt-ordering-enabled: Shirt ordering
+      shirt-ordering-enabled: Shirts
       posters-enabled: Posters
       referrals-enabled: Referrals
       override-active: Override active (always enabled for this user)

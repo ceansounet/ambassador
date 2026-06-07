@@ -12,7 +12,10 @@ import { WarehouseApiClient } from "@/lib/warehouse";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** The presented key, from a header (preferred) or a `?key=` query param. */
+/**
+ * The presented key, taken only from a header. Query-string secrets leak into
+ * logs, analytics, and referrers, so `?key=` is not accepted.
+ */
 function presentedKey(request: Request): string | null {
   const direct = request.headers.get("x-stardance-data-access-key")?.trim();
   if (direct) {
@@ -24,8 +27,7 @@ function presentedKey(request: Request): string | null {
     return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : auth;
   }
 
-  const queryKey = new URL(request.url).searchParams.get("key")?.trim();
-  return queryKey ? queryKey : null;
+  return null;
 }
 
 function keysMatch(provided: string, expected: string) {

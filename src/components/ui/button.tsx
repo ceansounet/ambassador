@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-white hover:border-foreground hover:bg-foreground",
+          "bg-primary text-white hover:bg-primary-hover active:bg-primary-hover",
         outline:
           "border-border bg-background text-foreground hover:border-foreground hover:bg-foreground hover:text-white aria-expanded:border-foreground aria-expanded:bg-foreground aria-expanded:text-white",
         secondary:
@@ -20,7 +20,7 @@ const buttonVariants = cva(
         ghost:
           "text-foreground hover:bg-foreground hover:text-white aria-expanded:bg-foreground aria-expanded:text-white",
         destructive:
-          "bg-primary text-white hover:border-foreground hover:bg-foreground focus-visible:border-destructive/40 focus-visible:ring-destructive/20 data-[selected=true]:border-foreground data-[selected=true]:bg-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-[current=page]:border-foreground aria-[current=page]:bg-foreground",
+          "bg-primary text-white hover:bg-primary-hover active:bg-primary-hover focus-visible:border-destructive/40 focus-visible:ring-destructive/20 data-[selected=true]:border-foreground data-[selected=true]:bg-foreground aria-pressed:border-foreground aria-pressed:bg-foreground aria-[current=page]:border-foreground aria-[current=page]:bg-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

@@ -1,6 +1,7 @@
 import {
   createPosterGroupForUser,
   listClientPosterDataForUser,
+  toClientPosterGroupDetail,
 } from "@/lib/posters/service";
 import { isSameOriginRequest, posterErrorResponse, requirePosterSession } from "@/lib/posters/http";
 import { checkRateLimit, getRateLimitKey, rateLimitResponse } from "@/lib/rate-limit";
@@ -48,7 +49,9 @@ export async function POST(request: Request) {
       posterType: typeof payload?.posterType === "string" ? payload.posterType : undefined,
     });
 
-    return Response.json(result, { status: 201 });
+    return Response.json(toClientPosterGroupDetail(result.group, result.posters), {
+      status: 201,
+    });
   } catch (error) {
     return posterErrorResponse(error, "Failed to create poster group.");
   }

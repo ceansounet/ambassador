@@ -77,7 +77,7 @@ export function ManualPayoutForm() {
     <>
       <button
         type="button"
-        className={buttonVariants({ variant: "default", size: "app" })}
+        className={buttonVariants({ variant: "default", size: "app-sm" })}
         onClick={() => setOpen(true)}
       >
         New manual payout

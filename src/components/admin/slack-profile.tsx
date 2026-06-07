@@ -25,7 +25,7 @@ export function SlackAvatar({
         />
       ) : (
         <div
-          className={`flex h-full w-full items-center justify-center rounded-full bg-secondary text-black ${textClassName}`}
+          className={`flex h-full w-full items-center justify-center rounded-full bg-secondary text-secondary-foreground ${textClassName}`}
         >
           {initial}
         </div>

@@ -302,7 +302,7 @@ export default async function ReviewModePage({
 
   return (
     <ReviewModeClient applicationId={application.id}>
-      <div className="space-y-6">
+      <div className="space-y-12">
         {/* Priority banner: accepted from same city */}
         {acceptedSameCity.length > 0 && (
           <div className="border border-[var(--acceptance)]/40 bg-[var(--acceptance)]/10 p-4">
@@ -356,7 +356,7 @@ export default async function ReviewModePage({
             />
           </div>
           <div className="min-w-0 flex min-h-12 items-center md:col-start-2 md:row-start-1">
-            <h1 className="truncate text-3xl text-foreground">
+            <h1 className="truncate text-3xl leading-[3rem] text-foreground">
               {titleName}
               {" ("}
               {slackHandleLabel !== null && slackProfileUrl !== null ? (
@@ -393,7 +393,7 @@ export default async function ReviewModePage({
         </header>
 
         {/* Application info grid */}
-        <section className="ui-card">
+        <section>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <div className="text-xs text-secondary">{t("admin.application-detail.answers.name")}</div>
@@ -461,7 +461,7 @@ export default async function ReviewModePage({
         </section>
 
         {/* Application questions */}
-        <section className="ui-card space-y-5">
+        <section className="space-y-4">
           <h2 className="text-xl text-foreground">{t("admin.application-detail.review.sections.questions")}</h2>
           <div className="space-y-4">
             <div>
@@ -481,7 +481,7 @@ export default async function ReviewModePage({
 
         {/* Previous applications */}
         {history.length > 1 && (
-          <section className="ui-card space-y-3">
+          <section className="space-y-4">
             <h2 className="text-xl text-foreground">{t("admin.application-detail.review.sections.previous-applications")}</h2>
             <div className="space-y-2">
               {history.map((entry) => (
@@ -510,7 +510,7 @@ export default async function ReviewModePage({
 
         {/* Internal notes */}
         {application.user_id !== null && (
-          <section className="ui-card space-y-4">
+          <section className="space-y-4">
             <h2 className="text-xl text-foreground">{t("admin.user-detail.sections.notes.title")}</h2>
             {currentUserNote !== null && (
               <div>
@@ -562,7 +562,7 @@ export default async function ReviewModePage({
         )}
 
         {/* Actions menu */}
-        <section className="ui-card">
+        <section>
           <h2 className="text-xl text-foreground mb-4">{t("admin.application-detail.review.sections.decision")}</h2>
           <ReviewDecisionActions
             applicationId={application.id}

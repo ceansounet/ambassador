@@ -10,28 +10,36 @@ export type PosterAccessState = {
   is_admin?: boolean | null;
   manual_dashboard_state?: string | null;
   latest_application_status?: string | null;
-  latest_application_airtable_record_id?: string | null;
-  latest_application_airtable_payload?: unknown;
   country_code?: string | null;
   ambassador_region?: string | null;
+  slack_id?: string | null;
+  display_name?: string | null;
   is_onboarding_complete: boolean;
+};
+
+type AccessStateRow = Omit<PosterAccessState, "is_onboarding_complete"> & {
+  latest_application_id: string | null;
 };
 
 // cache() so the (nav) layout and the page it wraps share one lookup per request.
 export const getPosterAccessState = cache(async (userId: string): Promise<PosterAccessState | null> => {
-  const user = (await sql<Omit<PosterAccessState, "is_onboarding_complete">[]>`
+  // The common navbar/layout query stays lean: it never selects the (large)
+  // Airtable payload, only the latest application's id so we can fetch the
+  // payload separately if — and only if — the onboarding check needs it.
+  const row = (await sql<AccessStateRow[]>`
     SELECT
       users.balance_cents,
       users.is_admin,
       users.manual_dashboard_state,
       users.country_code,
       users.ambassador_region,
+      users.slack_id,
+      users.display_name,
       latest_application.status AS latest_application_status,
-      latest_application.airtable_record_id AS latest_application_airtable_record_id,
-      latest_application.airtable_payload AS latest_application_airtable_payload
+      latest_application.id AS latest_application_id
     FROM users
     LEFT JOIN LATERAL (
-      SELECT status, airtable_record_id, airtable_payload
+      SELECT id, status
       FROM applications
       WHERE user_id = users.id
       ORDER BY created_at DESC, id DESC
@@ -41,9 +49,11 @@ export const getPosterAccessState = cache(async (userId: string): Promise<Poster
     LIMIT 1
   `).at(0) ?? null;
 
-  if (user === null) {
+  if (row === null) {
     return null;
   }
+
+  const { latest_application_id, ...user } = row;
 
   if (!hasApprovedAmbassadorStatus({
     latestApplicationStatus: user.latest_application_status ?? null,
@@ -52,9 +62,20 @@ export const getPosterAccessState = cache(async (userId: string): Promise<Poster
     return { ...user, is_onboarding_complete: false };
   }
 
+  // Only approved ambassadors reach the Airtable-backed onboarding check, the
+  // sole reader of the payload — so the payload read happens only here.
+  const application = latest_application_id === null
+    ? null
+    : (await sql<{ airtable_record_id: string | null; airtable_payload: unknown }[]>`
+        SELECT airtable_record_id, airtable_payload
+        FROM applications
+        WHERE id = ${latest_application_id}
+        LIMIT 1
+      `).at(0) ?? null;
+
   const onboardingStatus = await getAmbassadorOnboardingStatus({
-    applicationAirtableRecordId: user.latest_application_airtable_record_id ?? null,
-    applicationAirtablePayload: user.latest_application_airtable_payload ?? null,
+    applicationAirtableRecordId: application?.airtable_record_id ?? null,
+    applicationAirtablePayload: application?.airtable_payload ?? null,
   });
 
   return {

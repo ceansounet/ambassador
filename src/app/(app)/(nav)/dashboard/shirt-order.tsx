@@ -25,7 +25,6 @@ import {
   type ShirtStockBySize,
   type ShirtSize,
 } from "@/lib/shop";
-import { formatHackClubAddress, type HackClubAddress } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
 export type ShirtOrderState = {
@@ -39,7 +38,10 @@ export type ShirtOrderState = {
 };
 
 export type ShirtOrderSectionProps = {
-  addresses: HackClubAddress[];
+  // Pre-formatted, display-only address labels. The browser never needs the
+  // structured address fields (phone number, recipient name, …), so only the
+  // label the dropdown renders crosses to the client.
+  addressLabels: string[];
   needsAddressRefresh: boolean;
   existingOrder: ShirtOrderState | null;
   requiresOnboarding: boolean;
@@ -65,9 +67,11 @@ export default function ShirtOrderSection(props: ShirtOrderSectionProps) {
   const retryableWarningParts = retryableWarning?.split(/(rejected)/i) ?? [];
   return (
     <section>
-      <h2 className="font-sub text-2xl text-foreground md:text-3xl">{t("heading")}</h2>
+      <h2 className="font-sub text-2xl font-bold leading-8 text-foreground">
+        <span className="text-muted-foreground">II.</span> {t("heading")}
+      </h2>
       {retryableWarning !== null ? (
-        <p className="mt-2 text-base text-black">
+        <p className="mt-4 text-base text-black">
           {retryableWarningParts.map((part, index) =>
             /^rejected$/i.test(part) ? (
               <span key={`${part}-${index}`} className="text-primary">
@@ -129,7 +133,7 @@ function NoAddressMessage({
 }
 
 function ShirtOrderBody({
-  addresses,
+  addressLabels,
   needsAddressRefresh,
   existingOrder,
   requiresOnboarding,
@@ -140,7 +144,7 @@ function ShirtOrderBody({
   const router = useRouter();
   const refreshAddressesHref = "/api/auth/refresh?next=%2Fdashboard";
   useAddressRefreshRedirect(needsAddressRefresh);
-  useAddressReturnRefresh(addresses.length === 0 && !existingOrder && !requiresOnboarding);
+  useAddressReturnRefresh(addressLabels.length === 0 && !existingOrder && !requiresOnboarding);
   const [size, setSize] = useState<ShirtSize>(
     existingOrder?.size === "S" ||
       existingOrder?.size === "M" ||
@@ -270,7 +274,7 @@ function ShirtOrderBody({
 
   if (order && !canPlaceOrder) {
     return (
-      <div className="mt-2">
+      <div className="mt-4">
         <LatestOrderCard order={order} />
       </div>
     );
@@ -278,7 +282,7 @@ function ShirtOrderBody({
 
   if (requiresOnboarding) {
     return (
-      <p className="mt-2 font-body text-base text-foreground">
+      <p className="mt-4 font-body text-base text-foreground">
         {t.rich("onboarding.body", {
           link: (chunks) => (
             <a
@@ -297,7 +301,7 @@ function ShirtOrderBody({
 
   if (needsAddressRefresh && !order) {
     return (
-      <div className="mt-5 space-y-3">
+      <div className="mt-4 space-y-4">
         <p className="font-body text-base text-foreground">{t("refresh-addresses.body")}</p>
         <a href={refreshAddressesHref} className={buttonVariants({ size: "app" })}>
           {t("refresh-addresses.cta")}
@@ -306,9 +310,9 @@ function ShirtOrderBody({
     );
   }
 
-  if (addresses.length === 0 && !order) {
+  if (addressLabels.length === 0 && !order) {
     return (
-      <div className="mt-5">
+      <div className="mt-4">
         <NoAddressMessage
           onRefresh={handleRefreshAddresses}
           refreshing={refreshingAddresses}
@@ -318,8 +322,8 @@ function ShirtOrderBody({
   }
 
   return (
-    <div className="mt-5 space-y-5">
-      {addresses.length === 0 ? (
+    <div className="mt-4 space-y-8">
+      {addressLabels.length === 0 ? (
         needsAddressRefresh ? (
           <div className="space-y-4">
             <p className="font-body text-base text-foreground">{t("refresh-addresses.body")}</p>
@@ -386,11 +390,11 @@ function ShirtOrderBody({
                 refreshing={refreshingAddresses}
               />
             </div>
-            {addresses.length === 1 ? (
+            {addressLabels.length === 1 ? (
               <Input
                 type="text"
                 disabled
-                value={formatHackClubAddress(addresses[0])}
+                value={addressLabels[0]}
                 className={readOnlySurfaceClass}
               />
             ) : (
@@ -413,13 +417,13 @@ function ShirtOrderBody({
                   avoidCollisions={false}
                   className={selectContentClass}
                 >
-                  {addresses.map((address, index) => (
+                  {addressLabels.map((label, index) => (
                     <SelectItem
                       key={index}
                       value={String(index)}
                       className="focus:bg-card focus:text-foreground"
                     >
-                      {formatHackClubAddress(address)}
+                      {label}
                     </SelectItem>
                   ))}
                 </SelectContent>

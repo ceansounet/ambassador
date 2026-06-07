@@ -66,7 +66,7 @@ export default async function AdminAuditLogEventPage({
 
   return (
     <div className="space-y-8">
-      <header className="space-y-5">
+      <header className="space-y-4">
         <div className="flex flex-wrap items-center gap-3 text-sm text-secondary">
           <Link href="/admin/audit-log" className="hover:text-foreground">
             {t("admin.audit-log.event-detail.breadcrumb")}
@@ -75,7 +75,7 @@ export default async function AdminAuditLogEventPage({
           <span className="font-body text-foreground">{event.id}</span>
         </div>
         <div className="space-y-2">
-          <h1 className="text-4xl text-foreground">{formatEventType(event.action)}</h1>
+          <h1 className="text-4xl leading-[3rem] text-foreground">{formatEventType(event.action)}</h1>
           <p className="max-w-3xl font-body text-base text-foreground">
             {formatAuditEventSummary(event)}
           </p>

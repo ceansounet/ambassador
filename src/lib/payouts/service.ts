@@ -340,7 +340,8 @@ export type BalanceTransaction = {
 /** The ambassador-facing transaction history. Internal notes are never exposed. */
 export async function listBalanceTransactionsForUser(
   userId: string,
-): Promise<BalanceTransaction[]> {
+  { limit, offset }: { limit: number; offset: number },
+): Promise<{ transactions: BalanceTransaction[]; total: number }> {
   await ensureSchema();
   const rows = await sql<
     {
@@ -351,24 +352,29 @@ export async function listBalanceTransactionsForUser(
       balance_after_cents: number;
       payout_id: string | null;
       created_at: string;
+      total: number;
     }[]
   >`
-    SELECT id, amount_cents, reason, public_note, balance_after_cents, payout_id, created_at
+    SELECT id, amount_cents, reason, public_note, balance_after_cents, payout_id, created_at,
+           COUNT(*) OVER()::int AS total
     FROM payout_balance_events
     WHERE user_id = ${userId}
-    ORDER BY created_at DESC, id DESC
-    LIMIT 200
+    ORDER BY seq DESC
+    LIMIT ${limit} OFFSET ${offset}
   `;
 
-  return rows.map((row) => ({
-    id: row.id,
-    amountCents: row.amount_cents,
-    reason: row.reason,
-    publicNote: row.public_note,
-    balanceAfterCents: row.balance_after_cents,
-    payoutId: row.payout_id,
-    createdAt: row.created_at,
-  }));
+  return {
+    transactions: rows.map((row) => ({
+      id: row.id,
+      amountCents: row.amount_cents,
+      reason: row.reason,
+      publicNote: row.public_note,
+      balanceAfterCents: row.balance_after_cents,
+      payoutId: row.payout_id,
+      createdAt: row.created_at,
+    })),
+    total: rows.at(0)?.total ?? 0,
+  };
 }
 
 export async function getPayoutForUser(userId: string, payoutId: string) {
@@ -940,7 +946,7 @@ export async function getPayoutBreakdown(payoutId: string) {
       FROM payout_balance_events
       WHERE user_id = ${payout.user_id}
         AND reason IN ('manual_adjustment', 'poster_unverified', 'referral_unverified')
-      ORDER BY created_at DESC
+      ORDER BY seq DESC
       LIMIT 50
     `,
   ]);
@@ -1010,7 +1016,7 @@ function parseTransferLink(value: unknown) {
 
   try {
     const url = new URL(transferLink);
-    if (url.protocol !== "https:" && url.protocol !== "http:") {
+    if (url.protocol !== "https:") {
       throw new Error("invalid protocol");
     }
   } catch {
@@ -1417,6 +1423,17 @@ export async function adjustUserBalance(input: {
 
     if (!user) {
       throw new PayoutRequestError("not_found", 404);
+    }
+
+    // A cross-linked payout must belong to the same user we're adjusting, so an
+    // adjustment can't reference another user's payout id.
+    if (input.payoutId != null) {
+      const payout = (await transaction<{ user_id: string }[]>`
+        SELECT user_id FROM payouts WHERE id = ${input.payoutId} LIMIT 1
+      `).at(0);
+      if (!payout || payout.user_id !== input.userId) {
+        throw new PayoutRequestError("invalid_payout", 400);
+      }
     }
 
     const row = (await transaction<{ balance_after_cents: number }[]>`

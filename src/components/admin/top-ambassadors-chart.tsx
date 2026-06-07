@@ -10,6 +10,7 @@ import {
   type DashboardTopAmbassadorPoint,
 } from "@/components/admin/dashboard-chart-primitives";
 import { MultiSelect, SingleSelect } from "@/components/admin/dashboard-selects";
+import { SectionHeading } from "@/components/admin/section-heading";
 import { Button } from "@/components/ui/button";
 import { ambassadorRegionFlag } from "@/lib/settings";
 
@@ -30,7 +31,7 @@ type TopAmbassadorMetric = "posters" | "referrals" | "rsvps" | "balance";
 // only surfaced when includeBalance is set (priority view).
 const METRIC_DEFS: { key: TopAmbassadorMetric; dataKey: string; fill: string }[] = [
   { key: "posters", dataKey: "verifiedPosters", fill: "var(--chart-approved)" },
-  { key: "referrals", dataKey: "verifiedReferrals", fill: "var(--chart-rejected)" },
+  { key: "referrals", dataKey: "verifiedReferrals", fill: "var(--primary)" },
   { key: "rsvps", dataKey: "rsvps", fill: "var(--chart-signups)" },
   { key: "balance", dataKey: "balanceDollars", fill: "var(--chart-visits)" },
 ];
@@ -240,11 +241,9 @@ export function TopAmbassadorsChart({
   const isPending = loading && rangeData === undefined;
 
   return (
-    <div className="p-6">
+    <div className="min-w-0">
       <div className="min-w-0">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl text-foreground">{messages.title}</h2>
-          <div className="flex flex-wrap items-center gap-2">
+        <SectionHeading title={messages.title}>
             {isUSRegion && stateOptions.length > 0 ? (
               <SingleSelect
                 value={stateFilter}
@@ -296,10 +295,9 @@ export function TopAmbassadorsChart({
               allLabel={messages.allMetrics}
               selectionNoun={messages.metricsNoun}
             />
-          </div>
-        </div>
+        </SectionHeading>
         {isPending ? (
-          <p className="font-body text-base text-foreground/50">{t("top-ambassadors-loading")}</p>
+          <TopAmbassadorsSkeleton label={t("top-ambassadors-loading")} />
         ) : pageData.length === 0 ? (
           <p className="font-body text-base text-foreground">{messages.empty}</p>
         ) : (
@@ -371,6 +369,26 @@ export function TopAmbassadorsChart({
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// On-grid placeholder for the lazily fetched slice: ten rows on the chart's
+// 44px rhythm, each a name stub plus a pulsing bar of varied width, so loading
+// reads as the ranked bars about to arrive rather than a line of text.
+function TopAmbassadorsSkeleton({ label }: { label: string }) {
+  const widths = ["92%", "78%", "70%", "64%", "58%", "52%", "46%", "40%", "34%", "28%"];
+
+  return (
+    <div role="status" aria-label={label} className="min-w-0" style={{ height: 440 }}>
+      <div className="flex h-full flex-col justify-between py-2">
+        {widths.map((width, index) => (
+          <div key={index} className="flex items-center gap-3">
+            <span className="h-3 w-32 shrink-0 animate-pulse rounded-none bg-muted" />
+            <span className="h-5 animate-pulse rounded-none bg-muted" style={{ width }} />
+          </div>
+        ))}
       </div>
     </div>
   );

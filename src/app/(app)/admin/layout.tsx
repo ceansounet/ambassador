@@ -40,8 +40,11 @@ export default async function AdminLayout({
         balanceCents={user.balance_cents ?? 0}
         showPostersLink={showPostersLink}
         showReferralsLink={showReferralsLink}
+        slackId={user.slack_id ?? null}
+        displayName={user.display_name ?? null}
+        region={user.ambassador_region ?? null}
       />
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8">
         <AdminTabs />
         {children}
       </div>

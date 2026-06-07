@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { ConfirmSubmitForm } from "@/components/admin/confirm-submit-form";
-import { Pagination } from "@/components/admin/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { SearchBar } from "@/components/admin/search-bar";
 import { StatusFilter } from "@/components/admin/status-filter";
 import { SlackAvatar } from "@/components/admin/slack-profile";
@@ -131,8 +131,8 @@ export default async function AdminOrdersPage({
     <div className="space-y-6">
       <header className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-3">
-            <h1 className="text-4xl leading-none text-foreground">{t("admin.orders.title")}</h1>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-4">
+            <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.orders.title")}</h1>
             <div className="flex flex-wrap items-center self-center gap-x-4 gap-y-2 font-body text-sm text-foreground tabular-nums">
               {SHIRT_SIZES.map((size) => (
                 <div key={size} className="flex items-center gap-2">
@@ -188,26 +188,26 @@ export default async function AdminOrdersPage({
           />
         </div>
       </div>
-      <div className="ui-table-card">
+      <div className="ui-table-group">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-foreground">
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.user")}
               </th>
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.item")}
               </th>
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.address")}
               </th>
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.status")}
               </th>
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.placed")}
               </th>
-              <th className="px-5 py-4 font-body text-base text-secondary">
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">
                 {t("admin.orders.columns.open")}
               </th>
             </tr>
@@ -215,7 +215,7 @@ export default async function AdminOrdersPage({
           <tbody>
             {orders.map((order) => (
               <tr key={order.id} className="border-b border-foreground last:border-b-0 align-top">
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
                     <SlackAvatar
                       slackId={order.user_slack_id}
@@ -232,7 +232,7 @@ export default async function AdminOrdersPage({
                     </div>
                   </div>
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base text-foreground">
                   <div>{order.sku ?? "-"}</div>
                   {order.variant !== null && order.variant !== "" ? (
                     <div className="font-body text-sm text-black">
@@ -240,10 +240,10 @@ export default async function AdminOrdersPage({
                     </div>
                   ) : null}
                 </td>
-                <td className="px-5 py-4 max-w-xs font-body text-sm text-foreground">
+                <td className="px-4 py-4 max-w-xs font-body text-sm text-foreground">
                   {formatHackClubAddress(order.address) || "-"}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <span
                     className={pillVariants({
                       tone:
@@ -266,10 +266,10 @@ export default async function AdminOrdersPage({
                     </p>
                   ) : null}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {new Date(order.created_at).toLocaleDateString(locale)}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <Link
                     href={`/admin/orders/${order.id}`}
                     aria-label={t("admin.orders.view-order")}
@@ -282,7 +282,7 @@ export default async function AdminOrdersPage({
             ))}
             {orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
+                <td colSpan={6} className="px-4 py-8 text-center font-body text-base text-foreground">
                   {t("admin.orders.empty")}
                 </td>
               </tr>
@@ -295,7 +295,7 @@ export default async function AdminOrdersPage({
           labels={{
             previous: t("admin.pagination.previous"),
             next: t("admin.pagination.next"),
-            page: t("admin.pagination.page"),
+            of: t("admin.pagination.of"),
           }}
         />
       </div>

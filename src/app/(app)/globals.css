@@ -12,16 +12,17 @@
   --popover-foreground: var(--foreground);
   --primary: #ec3750;
   --primary-foreground: #fff;
-  --secondary: #ffbf71;
-  --secondary-foreground: #000;
+  --primary-hover: color-mix(in srgb, var(--primary) 85%, #000);
+  --secondary: #7e22ce;
+  --secondary-foreground: #fff;
   --muted: color-mix(in srgb, var(--foreground) 4%, var(--background));
   --muted-foreground: color-mix(
     in srgb,
     var(--foreground) 72%,
     var(--background)
   );
-  --accent: #ffbf71;
-  --accent-foreground: #000;
+  --accent: #7e22ce;
+  --accent-foreground: #fff;
   --destructive: #ec3750;
   --acceptance: #16a34a;
   --acceptance-foreground: #fff;
@@ -36,6 +37,7 @@
   );
   --paper-grid-size: 16px;
   --topbar: #181818;
+  --topbar-foreground: #fff;
   --chart-visits: var(--foreground);
   --chart-signups: var(--secondary);
   --chart-applications: color-mix(in srgb, var(--primary) 78%, var(--background));
@@ -54,6 +56,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -66,6 +69,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-topbar: var(--topbar);
+  --color-topbar-foreground: var(--topbar-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -178,6 +183,20 @@ h6 {
 
   .ui-table-card {
     @apply overflow-x-auto rounded-none border border-border bg-card p-3 md:p-4;
+  }
+
+  /* Background-less group box: frames a logical group so it reads intuitively,
+     but stays transparent so the paper grid shows through. Padding is on the
+     16px grid (16 / 32). Use this instead of the filled .ui-card on pages. */
+  .ui-group {
+    @apply rounded-none border border-border p-4 md:p-8;
+  }
+
+  /* Open-layout table wrapper: no frame, so the list reads as header rule plus
+     row dividers against the paper grid. Keeps horizontal scroll for wide
+     tables on small screens. */
+  .ui-table-group {
+    @apply overflow-x-auto;
   }
 
   .ui-modal-backdrop {

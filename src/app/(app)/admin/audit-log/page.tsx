@@ -4,7 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { SearchBar } from "@/components/admin/search-bar";
 import { SortToggle } from "@/components/admin/sort-toggle";
-import { Pagination } from "@/components/admin/pagination";
+import { Pagination } from "@/components/ui/pagination";
 import { EventTypeFilter, UserMultiSelect } from "@/components/admin/audit-log-filters";
 import { LocalDateTime } from "@/components/admin/local-date-time";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
@@ -142,7 +142,7 @@ export default async function AdminAuditLogPage({
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-4xl text-foreground">{t("admin.audit-log.title")}</h1>
+        <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.audit-log.title")}</h1>
       </header>
       <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
         <div className="w-full max-w-sm">
@@ -164,28 +164,28 @@ export default async function AdminAuditLogPage({
             noneLabel={t("admin.audit-log.user-filter.none")}
             selectionNoun={t("admin.audit-log.user-filter.selection-noun")}
           />
-          <SortToggle defaultSort="newest" />
+          <SortToggle defaultSort="newest" storageKey="admin:audit-log:sort" />
         </div>
       </div>
-      <div className="ui-table-card">
+      <div className="ui-table-group">
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-foreground">
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.event")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.actor")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.target")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.details")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.when")}</th>
-              <th className="px-5 py-4 font-body text-base text-secondary">{t("admin.audit-log.columns.open")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.event")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.actor")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.target")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.details")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.when")}</th>
+              <th className="px-4 py-4 font-body text-base leading-8 text-secondary">{t("admin.audit-log.columns.open")}</th>
             </tr>
           </thead>
           <tbody>
             {events.map((event) => (
               <tr key={event.id} className="border-b border-foreground last:border-b-0">
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {formatEventType(event.action)}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {event.actor_user_id ? (
                     <Link
                       href={`/admin/users/${event.actor_user_id}`}
@@ -197,7 +197,7 @@ export default async function AdminAuditLogPage({
                     <span className="text-secondary">{t("admin.audit-log.system")}</span>
                   )}
                 </td>
-                <td className="px-5 py-4 font-body text-base text-foreground">
+                <td className="px-4 py-4 font-body text-base leading-8 text-foreground">
                   {event.target_user_id ? (
                     <Link
                       href={`/admin/users/${event.target_user_id}`}
@@ -209,15 +209,15 @@ export default async function AdminAuditLogPage({
                     <span className="text-secondary">-</span>
                   )}
                 </td>
-                <td className="max-w-sm px-5 py-4 font-body text-sm font-bold text-foreground">
+                <td className="max-w-sm px-4 py-4 font-body text-sm font-bold text-foreground">
                   <span className="line-clamp-2" title={formatAuditEventSummary(event)}>
                     {formatAuditEventSummary(event)}
                   </span>
                 </td>
-                <td className="whitespace-nowrap px-5 py-4 font-body text-base text-foreground">
+                <td className="whitespace-nowrap px-4 py-4 font-body text-base leading-8 text-foreground">
                   <LocalDateTime value={event.created_at} locale={locale} />
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-4 py-4">
                   <Link
                     href={`/admin/audit-log/${event.id}`}
                     aria-label={t("admin.audit-log.view-event")}
@@ -230,7 +230,7 @@ export default async function AdminAuditLogPage({
             ))}
             {events.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center font-body text-base text-foreground">
+                <td colSpan={6} className="px-4 py-8 text-center font-body text-base text-foreground">
                   {t("admin.audit-log.empty")}
                 </td>
               </tr>
@@ -243,7 +243,7 @@ export default async function AdminAuditLogPage({
           labels={{
             previous: t("admin.pagination.previous"),
             next: t("admin.pagination.next"),
-            page: t("admin.pagination.page"),
+            of: t("admin.pagination.of"),
           }}
         />
       </div>

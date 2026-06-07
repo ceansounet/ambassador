@@ -461,12 +461,12 @@ export function PostersClient({
 
   return (
     <PosterDragContext.Provider value={dragContextValue}>
-    <div className="space-y-10 pb-16">
+    <div className="space-y-12 pb-16">
       {error !== null ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
 
       {/* Scan prompts */}
       {pendingPosters.length > 0 && (
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-1">
             <p className="font-sub text-lg text-foreground">
               {t("scan-prompt.title", { count: pendingPosters.length })}
@@ -501,8 +501,8 @@ export function PostersClient({
 
       {/* Create */}
       <section>
-        <h2 className="font-sub text-2xl text-foreground">{t("sections.new")}</h2>
-        <div className="mt-5">
+        <h2 className="font-sub text-2xl font-bold leading-8 text-foreground">{t("sections.new")}</h2>
+        <div className="ui-group mt-4">
           <CreateSection
             campaigns={campaigns}
             campaignSlug={campaignSlug}
@@ -541,7 +541,7 @@ export function PostersClient({
             className="group inline-flex items-center gap-2 bg-transparent p-0 text-left"
             aria-expanded={showGroups}
           >
-            <span className="font-sub text-2xl text-foreground">{t("sections.yours")}</span>
+            <span className="font-sub text-2xl font-bold leading-8 text-foreground">{t("sections.yours")}</span>
             <ChevronDown
               size={20}
               className={cn(
@@ -552,7 +552,7 @@ export function PostersClient({
             />
           </button>
           {showGroups && (
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 space-y-4">
               {data.groups.map((group) => (
                 <GroupCard
                   key={group.id}
@@ -703,9 +703,9 @@ function GroupCard({
     <div
       {...dropHandlers}
       className={cn(
-        "rounded-lg border border-foreground/10 bg-card p-4 transition-colors",
+        "ui-group transition-colors",
         isDragging && !groupFull && "border-dashed border-foreground/30",
-        hover && !groupFull && "border-solid border-primary/60 bg-primary/5",
+        hover && !groupFull && "border-solid border-primary/60",
         isDragging && groupFull && "opacity-60",
       )}
     >
@@ -791,7 +791,7 @@ function GroupCard({
       </div>
 
       {remaining > 0 ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 pb-6">
+        <div className="mt-4 flex flex-wrap items-center gap-2 pb-8">
           <div className="relative w-16 flex-none">
             <label htmlFor={`group-add-count-${group.id}`} className="sr-only">
               {t("group-card.add-count-label")}
@@ -861,9 +861,9 @@ function UngroupedCard({
     <div
       {...dropHandlers}
       className={cn(
-        "rounded-lg border border-dashed border-foreground/15 bg-card p-4 transition-colors",
-        isDragging && "border-foreground/30",
-        hover && "border-solid border-primary/60 bg-primary/5",
+        "ui-group transition-colors",
+        isDragging && "border-dashed border-foreground/30",
+        hover && "border-solid border-primary/60",
       )}
     >
       <div className="flex flex-col gap-1">
@@ -874,7 +874,7 @@ function UngroupedCard({
           {t("groups.count", { count: posters.length })}
         </p>
       </div>
-      <ul className="mt-3 divide-y divide-border">
+      <ul className="mt-4 space-y-0">
         {posters.map((poster) => (
           <PosterRow
             key={poster.id}
@@ -1177,7 +1177,7 @@ function PosterTreeItem({
               />
             ) : (
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span className="truncate text-sm font-medium text-foreground">{title}</span>
+                <span className="text-sm font-medium break-words text-foreground">{title}</span>
                 {poster.name !== null ? (
                   <span className={cn("font-mono text-xs", statusColor[poster.verification_status])}>
                     {prefix}{displayCode}
@@ -1353,7 +1353,7 @@ function PosterRow({
             />
           ) : (
             <div className="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-              <span className="truncate text-sm font-medium text-foreground">{title}</span>
+              <span className="text-sm font-medium break-words text-foreground">{title}</span>
               {poster.name !== null ? (
                 <span className="font-mono text-xs text-muted-foreground">{displayCode}</span>
               ) : null}
@@ -1486,18 +1486,18 @@ function CreateSection({
   const correctedGroupSize = clampGroupSize(parsedGroupSizeInput);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_11rem] lg:items-start">
-      <div className="space-y-5">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_11rem] lg:items-start">
+      <div className="space-y-8">
         {/* Campaign + format options */}
-        <div className="flex flex-wrap items-end gap-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
           {campaigns.length > 1 && (
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <label className="block text-xs text-muted-foreground">{t("campaign.label")}</label>
               {campaigns.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("campaign.empty")}</p>
               ) : (
                 <Select value={campaignSlug ?? undefined} onValueChange={setCampaignSlug}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder={t("campaign.placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -1513,10 +1513,10 @@ function CreateSection({
           )}
 
           {availableSizes.length > 1 && (
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <label className="block text-xs text-muted-foreground">Paper size</label>
               <Select value={paperSize} onValueChange={(value) => setPaperSize(value as PaperSize)}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-full sm:w-32">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent
@@ -1537,7 +1537,7 @@ function CreateSection({
           )}
 
           {availableVariants.length > 1 && (
-            <div className="space-y-1.5">
+            <div className="min-w-0 space-y-1.5">
               <label className="block text-xs text-muted-foreground">Variant</label>
               <VariantCombobox
                 value={`${colorMode}|${regionCode ?? ""}`}
@@ -1552,19 +1552,19 @@ function CreateSection({
         </div>
 
         {/* Create actions */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-foreground font-medium">Single poster</p>
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end">
               <Input
                 value={posterName}
                 onChange={(event) => setPosterName(event.target.value)}
                 placeholder="Poster name"
-                className="flex-[1_1_13rem] sm:w-64 sm:flex-none"
+                className="w-full sm:w-64 sm:flex-none"
               />
               <Button
                 size="app-sm"
-                className="w-32"
+                className="w-full sm:w-32"
                 onClick={createPoster}
                 disabled={busy || campaignSlug === null}
               >
@@ -1574,44 +1574,46 @@ function CreateSection({
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-foreground font-medium shrink-0">Poster group</p>
-            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
-              <div className="relative w-16 flex-none">
-                <label htmlFor="group-size-input" className="sr-only">
-                  {t("groups.size-label")}
-                </label>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end">
+              <div className="flex w-full items-start gap-2 sm:w-auto">
+                <div className="relative w-16 flex-none">
+                  <label htmlFor="group-size-input" className="sr-only">
+                    {t("groups.size-label")}
+                  </label>
+                  <Input
+                    id="group-size-input"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={groupSizeInput}
+                    onChange={(event) => setGroupSizeInput(event.target.value)}
+                    onBlur={(event) => setGroupSizeInput(String(clampGroupSizeInput(event.currentTarget.value)))}
+                    aria-invalid={groupSizeNeedsCorrection ? "true" : "false"}
+                    aria-describedby="group-size-help"
+                    className="w-full"
+                  />
+                  <p
+                    id="group-size-help"
+                    className={cn(
+                      "pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap text-xs",
+                      groupSizeNeedsCorrection ? "text-destructive" : "text-muted-foreground",
+                    )}
+                  >
+                    {groupSizeNeedsCorrection
+                      ? t("groups.size-invalid", { count: correctedGroupSize })
+                      : t("groups.size-help")}
+                  </p>
+                </div>
                 <Input
-                  id="group-size-input"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={groupSizeInput}
-                  onChange={(event) => setGroupSizeInput(event.target.value)}
-                  onBlur={(event) => setGroupSizeInput(String(clampGroupSizeInput(event.currentTarget.value)))}
-                  aria-invalid={groupSizeNeedsCorrection ? "true" : "false"}
-                  aria-describedby="group-size-help"
-                  className="w-full"
+                  value={groupName}
+                  onChange={(event) => setGroupName(event.target.value)}
+                  placeholder="Group name"
+                  className="min-w-0 flex-1 sm:w-64 sm:flex-none"
                 />
-                <p
-                  id="group-size-help"
-                  className={cn(
-                    "pointer-events-none absolute left-0 top-full mt-1 whitespace-nowrap text-xs",
-                    groupSizeNeedsCorrection ? "text-destructive" : "text-muted-foreground",
-                  )}
-                >
-                  {groupSizeNeedsCorrection
-                    ? t("groups.size-invalid", { count: correctedGroupSize })
-                    : t("groups.size-help")}
-                </p>
               </div>
-              <Input
-                value={groupName}
-                onChange={(event) => setGroupName(event.target.value)}
-                placeholder="Group name"
-                className="flex-[1_1_13rem] sm:w-64 sm:flex-none"
-              />
               <Button
                 size="app-sm"
-                className="w-32"
+                className="w-full sm:w-32"
                 onClick={createGroup}
                 disabled={
                   busy ||
@@ -1679,7 +1681,7 @@ function VariantCombobox({
           data-size="default"
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex h-9 w-56 cursor-pointer items-center justify-between gap-1.5 rounded-none border border-transparent bg-input/50 px-3 py-2 text-sm text-foreground whitespace-nowrap outline-none transition-[color,box-shadow,background-color] select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+          className="flex h-9 w-full cursor-pointer items-center justify-between gap-1.5 rounded-none border border-transparent bg-input/50 px-3 py-2 text-sm text-foreground whitespace-nowrap outline-none transition-[color,box-shadow,background-color] select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-56"
         >
           <span className="truncate">{active?.label ?? ""}</span>
           <ChevronDown size={16} className="opacity-50" aria-hidden />
@@ -1746,7 +1748,7 @@ function PosterPreview({ url, posterType }: { url: string; posterType: PosterSty
   return (
     <div className="space-y-1.5">
       <p className="text-xs text-muted-foreground">Preview</p>
-      <div className="overflow-hidden rounded-lg border border-foreground/10 bg-card">
+      <div className="overflow-hidden border border-foreground/10">
         <Image
           src={url}
           alt={label}

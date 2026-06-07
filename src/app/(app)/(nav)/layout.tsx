@@ -25,8 +25,9 @@ export default async function NavLayout({
     getEffectiveSafeguards(session.sub),
   ]);
 
-  const canAccessAdmin =
-    Boolean(session.impersonator) || Boolean(user?.is_admin ?? session.isAdmin);
+  // Derive admin affordances from the live DB flag, not the JWT claim, so a
+  // demoted admin loses them immediately instead of at cookie expiry.
+  const canAccessAdmin = Boolean(session.impersonator) || user?.is_admin === true;
   const access = {
     latestApplicationStatus: user?.latest_application_status ?? null,
     manualDashboardState: user?.manual_dashboard_state ?? null,
@@ -41,6 +42,9 @@ export default async function NavLayout({
         balanceCents={user?.balance_cents ?? 0}
         showPostersLink={safeguards.postersEnabled && canAccessPosters(access)}
         showReferralsLink={safeguards.referralsEnabled && canAccessStardanceReferrals(access)}
+        slackId={user?.slack_id ?? null}
+        displayName={user?.display_name ?? null}
+        region={user?.ambassador_region ?? null}
       />
       {children}
     </main>
