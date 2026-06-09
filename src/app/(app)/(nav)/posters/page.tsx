@@ -84,25 +84,25 @@ export default async function PostersPage() {
           initialData={data}
           defaultPaperSize={getDefaultPaperSize(user.country_code, user.ambassador_region)}
           defaultRegionCode={normalizeRegionCode(user.country_code)}
+          densityMap={
+            <PosterDensityMap
+              points={posterMapPoints}
+              scope="all"
+              interaction="zoom"
+              myCountry={user.country_code ?? undefined}
+              locale={locale}
+              messages={{
+                title: t("posters.map.title"),
+                allCountries: t("posters.map.all-countries"),
+                allStates: t("posters.map.all-states"),
+                empty: t("posters.map.empty"),
+                dots: t("posters.map.dots"),
+                heatmap: t("posters.map.heatmap"),
+                myRegion: t("posters.map.my-region"),
+              }}
+            />
+          }
         />
-        <div className="mt-12">
-          <PosterDensityMap
-            points={posterMapPoints}
-            scope="all"
-            interaction="zoom"
-            myCountry={user.country_code ?? undefined}
-            locale={locale}
-            messages={{
-              title: t("posters.map.title"),
-              allCountries: t("posters.map.all-countries"),
-              allStates: t("posters.map.all-states"),
-              empty: t("posters.map.empty"),
-              dots: t("posters.map.dots"),
-              heatmap: t("posters.map.heatmap"),
-              myRegion: t("posters.map.my-region"),
-            }}
-          />
-        </div>
     </div>
   );
 }

@@ -94,17 +94,42 @@ export function PosterDensityMap({
 
   const numberFormatter = new Intl.NumberFormat(locale);
 
+  // Resolve a country's display name from its ISO code so the list reads as one
+  // consistent set of full names ("India", not "IN") regardless of whether the
+  // ambassador's stored country_name was ever filled in. Falls back to the
+  // stored name (then the raw code) for non-ISO values like the "XX" unknown.
+  const countryLabel = useMemo(() => {
+    let display: Intl.DisplayNames | null = null;
+    try {
+      display = new Intl.DisplayNames([locale], { type: "region" });
+    } catch {
+      display = null;
+    }
+    return (point: PosterMapDatum) => {
+      const code = point.country.toUpperCase();
+      if (display !== null && /^[A-Z]{2}$/.test(code)) {
+        try {
+          const name = display.of(code);
+          if (name !== undefined && name !== code) return name;
+        } catch {
+          // not a recognised region code; fall through
+        }
+      }
+      return point.countryName || point.country;
+    };
+  }, [locale]);
+
   const options = useMemo(() => {
     const counts = new Map<string, { key: string; label: string; count: number }>();
     for (const point of scopedPoints) {
       const key = usingStates ? point.state : point.country;
-      const label = usingStates ? point.state : point.countryName;
+      const label = usingStates ? point.state : countryLabel(point);
       const existing = counts.get(key);
       if (existing) existing.count += 1;
       else counts.set(key, { key, label, count: 1 });
     }
     return [...counts.values()].sort((a, b) => b.count - a.count);
-  }, [scopedPoints, usingStates]);
+  }, [scopedPoints, usingStates, countryLabel]);
 
   const filtered = useMemo(
     () =>

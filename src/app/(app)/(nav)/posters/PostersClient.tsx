@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,12 +177,16 @@ export function PostersClient({
   initialData,
   defaultPaperSize,
   defaultRegionCode,
+  densityMap,
 }: {
   campaigns: PosterCampaignSummary[];
   initialCampaignSlug: string | null;
   initialData: ClientPosterData;
   defaultPaperSize: PaperSize;
   defaultRegionCode: string | null;
+  // The global poster map, sat right under "New posters" so it shares the
+  // page's section rhythm instead of floating at the very bottom.
+  densityMap?: ReactNode;
 }) {
   const t = useTranslations("posters");
   const router = useRouter();
@@ -499,36 +504,40 @@ export function PostersClient({
         </section>
       )}
 
-      {/* Create */}
-      <section>
-        <h2 className="font-sub text-2xl font-bold leading-8 text-foreground">{t("sections.new")}</h2>
-        <div className="ui-group mt-4">
-          <CreateSection
-            campaigns={campaigns}
-            campaignSlug={campaignSlug}
-            setCampaignSlug={setCampaignSlug}
-            availableSizes={availableSizes}
-            availableVariants={availableVariants}
-            paperSize={selectedPaperSize}
-            setPaperSize={setPaperSize}
-            colorMode={effectiveColorMode}
-            setColorMode={setColorMode}
-            regionCode={effectiveRegionCode}
-            setRegionCode={setRegionCode}
-            posterType={posterType}
-            posterPreviewUrl={posterPreviewUrl}
-            posterName={posterName}
-            setPosterName={setPosterName}
-            groupName={groupName}
-            setGroupName={setGroupName}
-            groupSizeInput={groupSizeInput}
-            setGroupSizeInput={setGroupSizeInput}
-            busy={busy}
-            groupCount={data.groups.length}
-            createPoster={createPoster}
-            createGroup={createGroup}
-          />
+      {/* Create + the global poster map, clustered with the same tight gap the
+          grouped/ungrouped cards use so the map reads as part of this block. */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-sub text-2xl font-bold leading-8 text-foreground">{t("sections.new")}</h2>
+          <div className="ui-group mt-4">
+            <CreateSection
+              campaigns={campaigns}
+              campaignSlug={campaignSlug}
+              setCampaignSlug={setCampaignSlug}
+              availableSizes={availableSizes}
+              availableVariants={availableVariants}
+              paperSize={selectedPaperSize}
+              setPaperSize={setPaperSize}
+              colorMode={effectiveColorMode}
+              setColorMode={setColorMode}
+              regionCode={effectiveRegionCode}
+              setRegionCode={setRegionCode}
+              posterType={posterType}
+              posterPreviewUrl={posterPreviewUrl}
+              posterName={posterName}
+              setPosterName={setPosterName}
+              groupName={groupName}
+              setGroupName={setGroupName}
+              groupSizeInput={groupSizeInput}
+              setGroupSizeInput={setGroupSizeInput}
+              busy={busy}
+              groupCount={data.groups.length}
+              createPoster={createPoster}
+              createGroup={createGroup}
+            />
+          </div>
         </div>
+        {densityMap}
       </section>
 
       {/* Your posters (groups + ungrouped) */}
