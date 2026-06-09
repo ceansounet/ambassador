@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { forbidden, redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { PosterDensityMap } from "@/components/admin/poster-density-map";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
 import { ensureSchema } from "@/lib/database/ensure-schema";
 import { canAccessPosters, getPosterAccessState } from "@/lib/posters/access";
 import { listPosterCampaigns } from "@/lib/posters/config";
+import { loadPosterMapPoints } from "@/lib/posters/map-points";
 import { getDefaultPaperSize, normalizeRegionCode } from "@/lib/posters/paper-size";
 import { listClientPosterDataForUser } from "@/lib/posters/service";
 import { getEffectiveSafeguards } from "@/lib/safeguards";
@@ -20,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PostersPage() {
   const session = await getSession();
   if (!session) redirect("/");
-  const [, t] = await Promise.all([ensureSchema(), getTranslations()]);
+  const [, t, locale] = await Promise.all([ensureSchema(), getTranslations(), getLocale()]);
 
   const [user, safeguards] = await Promise.all([
     getPosterAccessState(session.sub),
@@ -38,7 +40,10 @@ export default async function PostersPage() {
     forbidden();
   }
 
-  const data = await listClientPosterDataForUser(session.sub);
+  const [data, posterMapPoints] = await Promise.all([
+    listClientPosterDataForUser(session.sub),
+    loadPosterMapPoints(),
+  ]);
 
   const campaigns = listPosterCampaigns();
 
@@ -80,6 +85,21 @@ export default async function PostersPage() {
           defaultPaperSize={getDefaultPaperSize(user.country_code, user.ambassador_region)}
           defaultRegionCode={normalizeRegionCode(user.country_code)}
         />
+        <div className="mt-16">
+          <PosterDensityMap
+            points={posterMapPoints}
+            scope="all"
+            locale={locale}
+            messages={{
+              title: t("posters.map.title"),
+              allCountries: t("posters.map.all-countries"),
+              allStates: t("posters.map.all-states"),
+              empty: t("posters.map.empty"),
+              dots: t("posters.map.dots"),
+              heatmap: t("posters.map.heatmap"),
+            }}
+          />
+        </div>
     </div>
   );
 }
