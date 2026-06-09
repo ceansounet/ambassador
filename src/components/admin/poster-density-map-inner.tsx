@@ -5,17 +5,23 @@ import "leaflet/dist/leaflet.css";
 import "./leaflet-heat";
 
 import L from "leaflet";
-import { useEffect, useMemo } from "react";
-import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { useEffect, useMemo, useState } from "react";
+import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 
 export type PosterMapPoint = {
   id: string;
   lat: number;
   lng: number;
   country: string;
+  placedBy?: { id: string; name: string };
 };
 
 export type PosterMapMode = "dots" | "heat";
+
+export type PosterMapDetailsMessages = {
+  addressLoading: string;
+  addressUnavailable: string;
+};
 
 // Pull the brand red from the live token so dots stay inside the palette
 // (Leaflet writes colours as SVG values, which don't resolve CSS vars).
@@ -58,12 +64,69 @@ function HeatLayer({ points, color }: { points: PosterMapPoint[]; color: string 
   return null;
 }
 
+// Popup body for one dot: the placer (linked to their admin page) and the
+// reverse-geocoded street address. react-leaflet only portals popup children in
+// once the popup first opens, so mounting this component is what triggers the
+// lazy address lookup; it stays mounted afterwards, caching the result.
+function DotDetails({
+  point,
+  messages,
+}: {
+  point: PosterMapPoint;
+  messages: PosterMapDetailsMessages;
+}) {
+  const [address, setAddress] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/admin/posters/${point.id}/address`);
+        const data: unknown = response.ok ? await response.json() : null;
+        const value =
+          typeof data === "object" && data !== null && "address" in data && typeof data.address === "string"
+            ? data.address
+            : null;
+        if (cancelled) return;
+        if (value !== null) setAddress(value);
+        else setFailed(true);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [point.id]);
+
+  // Leaflet's popup stylesheet outranks plain utility classes (it colours links
+  // and adds paragraph margins), so the overrides here carry !important.
+  return (
+    <div className="font-body text-sm">
+      {point.placedBy !== undefined ? (
+        <a
+          href={`/admin/users/${point.placedBy.id}`}
+          className="font-bold !text-foreground underline"
+        >
+          {point.placedBy.name}
+        </a>
+      ) : null}
+      <div className={failed ? "text-muted-foreground" : undefined}>
+        {failed ? messages.addressUnavailable : address ?? messages.addressLoading}
+      </div>
+    </div>
+  );
+}
+
 export default function PosterDensityMapInner({
   points,
   mode = "dots",
+  detailsMessages,
 }: {
   points: PosterMapPoint[];
   mode?: PosterMapMode;
+  detailsMessages?: PosterMapDetailsMessages;
 }) {
   const dotColor = useMemo(() => brandColor(), []);
 
@@ -96,7 +159,13 @@ export default function PosterDensityMapInner({
               opacity: 0.6,
               weight: 1,
             }}
-          />
+          >
+            {detailsMessages !== undefined ? (
+              <Popup>
+                <DotDetails point={point} messages={detailsMessages} />
+              </Popup>
+            ) : null}
+          </CircleMarker>
         ))
       )}
     </MapContainer>

@@ -1,9 +1,10 @@
 import { getLocale } from "next-intl/server";
 
 import { loadTopAmbassadors } from "@/lib/admin/top-ambassadors";
+import type { Scope } from "@/components/admin/priority-scope";
 import sql from "@/lib/database/client";
+import { loadPosterMapPoints } from "@/lib/posters/map-points";
 import { SUPPORTED_AMBASSADOR_REGIONS } from "@/lib/settings";
-import { type PosterMapDatum } from "@/components/admin/poster-density-map";
 import {
   PriorityDashboard,
   type PriorityActivityPoint,
@@ -44,17 +45,10 @@ type ActivityRow = {
   hours_approved_us: number;
 };
 
-type PosterPointRow = {
-  id: string;
-  lat: number | string;
-  lng: number | string;
-  country_code: string;
-  country_name: string;
-  state: string;
-  is_us: boolean;
-};
-
-export async function PriorityView({ lockScopeAll = false }: { lockScopeAll?: boolean } = {}) {
+export async function PriorityView({
+  lockScopeAll = false,
+  initialScope,
+}: { lockScopeAll?: boolean; initialScope?: Scope } = {}) {
   const locale = await getLocale();
   const activityLabelFormatter = new Intl.DateTimeFormat(locale, {
     month: "short",
@@ -68,7 +62,7 @@ export async function PriorityView({ lockScopeAll = false }: { lockScopeAll?: bo
     stateRows,
     activityRows,
     topAmbassadorsData,
-    posterPointRows,
+    posterPoints,
   ] = await Promise.all([
       // Approved = manual 'approved' state or a latest application that is
       // Accepted (legacy 'approved' included). Active = approved AND has logged
@@ -239,24 +233,9 @@ export async function PriorityView({ lockScopeAll = false }: { lockScopeAll?: bo
       `,
       // The priority leaderboard defaults to United States, so seed that slice.
       loadTopAmbassadors("all", "United States"),
-      // Every verified poster with coordinates, for the density map. The map
-      // groups US points by state and the rest by country, so carry both names
-      // plus the program-region US flag the dashboard scope filters on.
-      sql<PosterPointRow[]>`
-        SELECT
-          p.id,
-          p.latitude AS lat,
-          p.longitude AS lng,
-          COALESCE(NULLIF(u.country_code, ''), 'XX') AS country_code,
-          COALESCE(NULLIF(u.country_name, ''), NULLIF(u.country_code, ''), 'Unknown') AS country_name,
-          COALESCE(NULLIF(TRIM(u.region), ''), 'Unknown') AS state,
-          (u.ambassador_region = 'United States') AS is_us
-        FROM posters p
-        LEFT JOIN users u ON u.id = p.user_id
-        WHERE p.verification_status = 'success'
-          AND p.latitude IS NOT NULL
-          AND p.longitude IS NOT NULL
-      `,
+      // Every verified poster with coordinates, with the placer attached so the
+      // admin map's dots can say who put each one up.
+      loadPosterMapPoints({ includePlacer: true }),
     ]);
 
   const ambassadors = ambassadorRows[0] ?? {
@@ -294,16 +273,6 @@ export async function PriorityView({ lockScopeAll = false }: { lockScopeAll?: bo
     count: row.count,
   }));
 
-  const posterPoints: PosterMapDatum[] = posterPointRows.map((row) => ({
-    id: row.id,
-    lat: Number(row.lat),
-    lng: Number(row.lng),
-    country: row.country_code,
-    countryName: row.country_name,
-    state: row.state,
-    isUS: row.is_us,
-  }));
-
   const activityData: PriorityActivityPoint[] = activityRows.map((row) => ({
     label: activityLabelFormatter.format(new Date(row.day)),
     referrals: row.referrals,
@@ -321,6 +290,7 @@ export async function PriorityView({ lockScopeAll = false }: { lockScopeAll?: bo
   return (
     <PriorityDashboard
       lockScopeAll={lockScopeAll}
+      initialScope={initialScope}
       locale={locale}
       activeAmbassadors={{
         activeTotal: ambassadors.active_total,

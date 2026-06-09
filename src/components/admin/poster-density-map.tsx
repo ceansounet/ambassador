@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SectionHeading } from "@/components/admin/section-heading";
+import type { PosterMapDetailsMessages } from "@/components/admin/poster-density-map-inner";
 import { cn } from "@/lib/utils";
 
 const PosterDensityMapInner = dynamic(() => import("./poster-density-map-inner"), {
@@ -28,6 +29,7 @@ export type PosterMapDatum = {
   countryName: string;
   state: string;
   isUS: boolean;
+  placedBy?: { id: string; name: string };
 };
 
 type PosterDensityMapMessages = {
@@ -44,11 +46,16 @@ export function PosterDensityMap({
   scope,
   locale,
   messages,
+  detailsMessages,
 }: {
   points: PosterMapDatum[];
   scope: "us" | "all" | "other";
   locale: string;
   messages: PosterDensityMapMessages;
+  // When set, dots open a popup with the placer and the poster's address
+  // (looked up through the admin-only address endpoint), so only pass it on
+  // admin surfaces.
+  detailsMessages?: PosterMapDetailsMessages;
 }) {
   const [selected, setSelected] = useState("all");
   const [mode, setMode] = useState<PosterMapMode>("dots");
@@ -157,7 +164,7 @@ export function PosterDensityMap({
         <p className="font-body text-sm text-muted-foreground">{messages.empty}</p>
       ) : (
         <div className="isolate h-[28rem] w-full overflow-hidden rounded-xl">
-          <PosterDensityMapInner points={filtered} mode={mode} />
+          <PosterDensityMapInner points={filtered} mode={mode} detailsMessages={detailsMessages} />
         </div>
       )}
     </section>

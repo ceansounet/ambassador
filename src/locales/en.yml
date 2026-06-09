@@ -146,6 +146,13 @@ posters:
     total: total
     verified: verified
     pending: pending
+  map:
+    title: Posters around the world
+    all-countries: All countries
+    all-states: All states
+    empty: No verified posters have coordinates yet.
+    dots: Dots
+    heatmap: Heatmap
   scan-prompt:
     title: "{count, plural, one {# poster} other {# posters}} ready to verify"
     body: Put them up as soon as possible, and be prepared to take a picture!
@@ -719,6 +726,8 @@ admin:
       empty: No verified posters have coordinates yet.
       dots: Dots
       heatmap: Heatmap
+      address-loading: Looking up address...
+      address-unavailable: Address unavailable
   orders:
     metadata:
       title: Orders

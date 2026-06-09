@@ -128,6 +128,7 @@ export function PriorityDashboard({
   topAmbassadorsData,
   posterPoints,
   lockScopeAll = false,
+  initialScope,
 }: {
   locale: string;
   activeAmbassadors: { activeTotal: number; activeUs: number; approvedTotal: number; approvedUs: number };
@@ -141,14 +142,17 @@ export function PriorityDashboard({
   // The detailed page reuses these graphs but covers every region at once, so it
   // forces the "all" scope and drops the US/Other/All selector entirely.
   lockScopeAll?: boolean;
+  // The cookie-stored scope read by the server, so the first render already
+  // shows the visitor's preference instead of the US default.
+  initialScope?: Scope;
 }) {
   const t = useTranslations("admin.overview.priority");
   const tc = useTranslations("admin.overview.charts");
   const tm = useTranslations("admin.overview.poster-map");
   // The region scope persists across visits (and syncs across tabs) via
-  // localStorage. useSyncExternalStore keeps it hydration-safe: the server
-  // snapshot is the default, then the client re-reads the stored value.
-  const storedScope = usePriorityScope();
+  // localStorage, mirrored into a cookie so the server snapshot already
+  // matches the stored preference on first paint.
+  const storedScope = usePriorityScope(initialScope);
   // The detailed page forces every region; elsewhere the header selector drives
   // the shared scope.
   const scope: Scope = lockScopeAll ? "all" : storedScope;
@@ -659,6 +663,10 @@ export function PriorityDashboard({
             empty: tm("empty"),
             dots: tm("dots"),
             heatmap: tm("heatmap"),
+          }}
+          detailsMessages={{
+            addressLoading: tm("address-loading"),
+            addressUnavailable: tm("address-unavailable"),
           }}
         />
       </div>
