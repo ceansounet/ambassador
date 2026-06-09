@@ -120,3 +120,75 @@ tables:
   syncRoster:
     id: tblslMnXrac9C7euL
     name: sync-roster
+  meetups:
+    id: tblHerEASWSjRBWJi
+    name: meetup
+    views:
+      publicStardance:
+        id: viwz74acHu6m7HT4a
+        name: Public (Stardance)
+    fields:
+      name:
+        id: fldX7g9gjuEuns9z3
+        name: name
+      prettyName:
+        id: fldv1loCARhncKTk0
+        name: pretty_name
+      slug:
+        id: fldAUumoQCUnNsskG
+        name: slug
+      season:
+        id: fldr0UD7IL1iEkrEF
+        name: season
+      date:
+        id: fldgGAQD79NPfHVa1
+        name: date
+      concluded:
+        id: fldsormjjNGVVOvTz
+        name: concluded
+      channelId:
+        id: fldmgWuwVwEE524Kr
+        name: channel_id
+      ambassadorSlackId:
+        id: fldJo1a9YSLVsMinC
+        name: ambassador_slack_id
+      venueName:
+        id: fldVUBd4eOtWsVLMW
+        name: venue_name
+      venueAddress:
+        id: fldcXVCuBBNo6RSBr
+        name: venue_address
+      venueCity:
+        id: fldpCUzIuLTUSRZe7
+        name: venue_address_city
+      venueState:
+        id: fldeRFmVhGtLLQ7Er
+        name: venue_address_state
+      venueZip:
+        id: fldtjotaYNuVP0sT0
+        name: venue_address_zip
+      venueCountry:
+        id: fldG7nlmvyrIGGnvN
+        name: venue_address_country
+      latitude:
+        id: fldmb22nBctYUjXnD
+        name: latitude
+      longitude:
+        id: fldTA4CXjwcX0cjry
+        name: longitude
+  meetupParticipants:
+    id: tblo7Pcv4TfeYUbBX
+    name: meetup-participants
+    fields:
+      meetup:
+        id: fldhZVzK2jFHWjg73
+        name: meetup
+      name:
+        id: fldxsp1h4Cf30bwjn
+        name: name
+      email:
+        id: fld88d5DtRZRAXMl1
+        name: email
+      slackId:
+        id: fldqjXfVUATzsQWS0
+        name: slack_id

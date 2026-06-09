@@ -1,40 +1,14 @@
-import { timingSafeEqual } from "node:crypto";
-
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
-import { optionalEnv } from "@/lib/env";
 import { getOfficeGrantCost } from "@/lib/hcb/office-grant-cost";
 import { POSTER_PAYOUT_CENTS, REFERRAL_PAYOUT_CENTS } from "@/lib/payouts/service";
 import { SUPPORTED_AMBASSADOR_REGIONS } from "@/lib/settings";
 import { SHIRT_SIZES, SHIRT_UNIT_COST, shirtSku } from "@/lib/shop";
+import { requireStardanceDataKey } from "@/lib/stardance-data-key";
 import { WarehouseApiClient } from "@/lib/warehouse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-/**
- * The presented key, taken only from a header. Query-string secrets leak into
- * logs, analytics, and referrers, so `?key=` is not accepted.
- */
-function presentedKey(request: Request): string | null {
-  const direct = request.headers.get("x-stardance-data-access-key")?.trim();
-  if (direct) {
-    return direct;
-  }
-
-  const auth = request.headers.get("authorization")?.trim();
-  if (auth) {
-    return auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : auth;
-  }
-
-  return null;
-}
-
-function keysMatch(provided: string, expected: string) {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 type CostRow = {
   poster_count: number;
@@ -55,14 +29,9 @@ function usd(cents: number) {
 }
 
 export async function GET(request: Request) {
-  const expectedKey = optionalEnv("STARDANCE_DATA_ACCESS_KEY");
-  if (!expectedKey) {
-    return Response.json({ error: "This endpoint is not enabled" }, { status: 503 });
-  }
-
-  const provided = presentedKey(request);
-  if (!provided || !keysMatch(provided, expectedKey)) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+  const denied = requireStardanceDataKey(request);
+  if (denied) {
+    return denied;
   }
 
   await ensureSchema();

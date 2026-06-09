@@ -43,20 +43,59 @@ export type OnboardingFieldKey =
   | "status"
   | "hcbEmail";
 
-type AirtableTableKey = "applications" | "ambassadors" | "onboarding" | "syncRoster";
+export type MeetupFieldKey =
+  | "name"
+  | "prettyName"
+  | "slug"
+  | "season"
+  | "date"
+  | "concluded"
+  | "channelId"
+  | "ambassadorSlackId"
+  | "venueName"
+  | "venueAddress"
+  | "venueCity"
+  | "venueState"
+  | "venueZip"
+  | "venueCountry"
+  | "latitude"
+  | "longitude";
+
+export type MeetupParticipantFieldKey =
+  | "meetup"
+  | "name"
+  | "email"
+  | "slackId";
+
+type AirtableTableKey =
+  | "applications"
+  | "ambassadors"
+  | "onboarding"
+  | "syncRoster"
+  | "meetups"
+  | "meetupParticipants";
 
 type AirtableFieldKeysByTable = {
   applications: ApplicationFieldKey;
   ambassadors: AmbassadorFieldKey;
   onboarding: OnboardingFieldKey;
+  meetups: MeetupFieldKey;
+  meetupParticipants: MeetupParticipantFieldKey;
 };
 
 type AirtableFieldTableKey = keyof AirtableFieldKeysByTable;
+
+type AirtableViewKeysByTable = {
+  meetups: "publicStardance";
+};
+
+type AirtableViewTableKey = keyof AirtableViewKeysByTable;
 
 type AirtableTableSchema = {
   id: string;
   name: string;
   fields?: Record<string, AirtableIdRef & { choices?: Record<string, AirtableChoiceRef> }>;
+  views?: Record<string, AirtableIdRef>;
 };
 
 type AirtableSchema = {
@@ -68,6 +107,8 @@ type AirtableSchema = {
     ambassadors: AirtableTableSchema;
     onboarding: AirtableTableSchema;
     syncRoster: AirtableTableSchema;
+    meetups: AirtableTableSchema;
+    meetupParticipants: AirtableTableSchema;
   };
 };
 
@@ -76,6 +117,8 @@ const AIRTABLE_TABLE_ENV_KEYS: Record<AirtableTableKey, string> = {
   ambassadors: "AIRTABLE_AMBASSADORS_TABLE_ID",
   onboarding: "AIRTABLE_ONBOARDING_TABLE_ID",
   syncRoster: "AIRTABLE_SYNC_ROSTER_TABLE_ID",
+  meetups: "AIRTABLE_MEETUPS_TABLE_ID",
+  meetupParticipants: "AIRTABLE_MEETUP_PARTICIPANTS_TABLE_ID",
 };
 
 function toRecord(value: unknown): Record<string, unknown> | null {
@@ -124,6 +167,26 @@ function readChoices(value: unknown, fieldKey: string) {
   );
 }
 
+function readViews(value: unknown) {
+  const views = toRecord(value);
+
+  if (views === null) {
+    return undefined;
+  }
+
+  return Object.fromEntries(
+    Object.entries(views).map(([key, entry]) => {
+      const view = toRecord(entry);
+
+      if (view === null || typeof view.id !== "string" || typeof view.name !== "string") {
+        throw new Error(`Invalid Airtable view in src/lib/airtable.yaml for ${key}`);
+      }
+
+      return [key, { id: view.id, name: view.name }];
+    }),
+  );
+}
+
 const parsedSchema = toRecord(parse(readFileSync(path.join(process.cwd(), "src/lib/airtable.yaml"), "utf8")));
 const base = toRecord(parsedSchema?.base);
 const tables = toRecord(parsedSchema?.tables);
@@ -131,6 +194,8 @@ const applications = toRecord(tables?.applications);
 const ambassadors = toRecord(tables?.ambassadors);
 const onboarding = toRecord(tables?.onboarding);
 const syncRoster = toRecord(tables?.syncRoster);
+const meetups = toRecord(tables?.meetups);
+const meetupParticipants = toRecord(tables?.meetupParticipants);
 
 if (
   base === null ||
@@ -146,7 +211,13 @@ if (
   typeof onboarding.name !== "string" ||
   syncRoster === null ||
   typeof syncRoster.id !== "string" ||
-  typeof syncRoster.name !== "string"
+  typeof syncRoster.name !== "string" ||
+  meetups === null ||
+  typeof meetups.id !== "string" ||
+  typeof meetups.name !== "string" ||
+  meetupParticipants === null ||
+  typeof meetupParticipants.id !== "string" ||
+  typeof meetupParticipants.name !== "string"
 ) {
   throw new Error("src/lib/airtable.yaml has an invalid shape");
 }
@@ -174,6 +245,17 @@ const airtableSchema: AirtableSchema = {
     syncRoster: {
       id: syncRoster.id,
       name: syncRoster.name,
+    },
+    meetups: {
+      id: meetups.id,
+      name: meetups.name,
+      fields: readFields(meetups.fields),
+      views: readViews(meetups.views),
+    },
+    meetupParticipants: {
+      id: meetupParticipants.id,
+      name: meetupParticipants.name,
+      fields: readFields(meetupParticipants.fields),
     },
   },
 };
@@ -206,6 +288,19 @@ export function getAirtableTableId<TTable extends AirtableTableKey>(tableKey: TT
   const envKey = AIRTABLE_TABLE_ENV_KEYS[tableKey];
   const override = process.env[envKey]?.trim();
   return override !== undefined && override !== "" ? override : getAirtableTable(tableKey).id;
+}
+
+export function getAirtableViewId<TTable extends AirtableViewTableKey>(
+  tableKey: TTable,
+  viewKey: AirtableViewKeysByTable[TTable],
+) {
+  const view = getAirtableTable(tableKey).views?.[viewKey];
+
+  if (view === undefined) {
+    throw new Error(`Airtable view ${tableKey}.${viewKey} is not defined`);
+  }
+
+  return view.id;
 }
 
 export function getAirtableFieldId<TTable extends AirtableFieldTableKey>(
