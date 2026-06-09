@@ -69,7 +69,11 @@ export function PosterDensityMap({
   myCountry?: string;
 }) {
   const zooming = interaction === "zoom";
-  const supportsMyRegion = zooming && myCountry !== undefined && myCountry !== "";
+  // Zoom mode always offers "My region" as the default landing view. It doesn't
+  // depend on the viewer having a stored country: with one, it frames that
+  // country; without, focusPoints falls back to framing everyone, so the label
+  // is still honoured rather than silently dropping to "All countries".
+  const supportsMyRegion = zooming && messages.myRegion !== undefined;
   const defaultSelected = supportsMyRegion ? "myregion" : "all";
   const [selected, setSelected] = useState(defaultSelected);
   const [mode, setMode] = useState<PosterMapMode>("dots");
