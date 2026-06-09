@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 
 import { DashboardViewToggle } from "@/components/admin/dashboard-view-toggle";
+import type { Scope } from "@/components/admin/priority-scope";
 import { PriorityScopeSelect } from "@/components/admin/priority-scope-select";
 import { getTranslatedPageMetadata } from "@/i18n/metadata";
 import { ensureSchema } from "@/lib/database/ensure-schema";
@@ -19,6 +21,12 @@ export default async function AdminDashboard({
 }) {
   const query = await searchParams;
   const activeView = query.view === "detailed" ? "detailed" : "priority";
+  // The client persists the region scope in localStorage and mirrors it into
+  // this cookie, so the server can render the stored preference immediately
+  // instead of flashing the US default until hydration re-reads it.
+  const storedScope = (await cookies()).get("admin_priority_scope")?.value;
+  const initialScope: Scope =
+    storedScope === "all" || storedScope === "other" || storedScope === "us" ? storedScope : "us";
   const activeRange: ActivityRange =
     query.range === "7d" ||
     query.range === "14d" ||
@@ -36,7 +44,7 @@ export default async function AdminDashboard({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h1 className="text-4xl font-bold leading-[3rem] text-foreground">{t("title")}</h1>
         <div className="flex flex-wrap items-center gap-2">
-          {activeView === "priority" ? <PriorityScopeSelect /> : null}
+          {activeView === "priority" ? <PriorityScopeSelect initialScope={initialScope} /> : null}
           <DashboardViewToggle />
         </div>
       </div>
@@ -46,7 +54,7 @@ export default async function AdminDashboard({
           <PriorityView lockScopeAll />
         </div>
       ) : (
-        <PriorityView />
+        <PriorityView initialScope={initialScope} />
       )}
     </div>
   );
