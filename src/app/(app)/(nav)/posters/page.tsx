@@ -86,6 +86,7 @@ export default async function PostersPage() {
           defaultRegionCode={normalizeRegionCode(user.country_code)}
           densityMap={
             <PosterDensityMap
+              key="poster-density-map"
               points={posterMapPoints}
               scope="all"
               interaction="zoom"
