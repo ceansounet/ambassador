@@ -85,10 +85,12 @@ export default async function PostersPage() {
           defaultPaperSize={getDefaultPaperSize(user.country_code, user.ambassador_region)}
           defaultRegionCode={normalizeRegionCode(user.country_code)}
         />
-        <div className="mt-16">
+        <div className="mt-12">
           <PosterDensityMap
             points={posterMapPoints}
             scope="all"
+            interaction="zoom"
+            myCountry={user.country_code ?? undefined}
             locale={locale}
             messages={{
               title: t("posters.map.title"),
@@ -97,6 +99,7 @@ export default async function PostersPage() {
               empty: t("posters.map.empty"),
               dots: t("posters.map.dots"),
               heatmap: t("posters.map.heatmap"),
+              myRegion: t("posters.map.my-region"),
             }}
           />
         </div>

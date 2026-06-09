@@ -121,10 +121,15 @@ function DotDetails({
 
 export default function PosterDensityMapInner({
   points,
+  focusPoints,
   mode = "dots",
   detailsMessages,
 }: {
   points: PosterMapPoint[];
+  // The subset the map reframes onto. Defaults to every point; in zoom mode it
+  // tracks the dropdown selection so picking an area flies the map there while
+  // every dot stays rendered.
+  focusPoints?: PosterMapPoint[];
   mode?: PosterMapMode;
   detailsMessages?: PosterMapDetailsMessages;
 }) {
@@ -143,7 +148,7 @@ export default function PosterDensityMapInner({
         attribution="&copy; OpenStreetMap contributors &copy; CARTO"
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
-      <FitBounds points={points} />
+      <FitBounds points={focusPoints ?? points} />
       {mode === "heat" ? (
         <HeatLayer points={points} color={dotColor} />
       ) : (

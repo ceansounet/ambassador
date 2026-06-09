@@ -148,6 +148,7 @@ posters:
     pending: pending
   map:
     title: Posters around the world
+    my-region: My region
     all-countries: All countries
     all-states: All states
     empty: No verified posters have coordinates yet.

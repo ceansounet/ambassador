@@ -461,7 +461,7 @@ export function PostersClient({
 
   return (
     <PosterDragContext.Provider value={dragContextValue}>
-    <div className="space-y-12 pb-16">
+    <div className="space-y-12">
       {error !== null ? <ErrorBanner message={error} onDismiss={() => setError(null)} /> : null}
 
       {/* Scan prompts */}

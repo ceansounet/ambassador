@@ -39,6 +39,8 @@ type PosterDensityMapMessages = {
   empty: string;
   dots: string;
   heatmap: string;
+  // Only needed in "zoom" interaction (the viewer-facing posters map).
+  myRegion?: string;
 };
 
 export function PosterDensityMap({
@@ -47,6 +49,8 @@ export function PosterDensityMap({
   locale,
   messages,
   detailsMessages,
+  interaction = "filter",
+  myCountry,
 }: {
   points: PosterMapDatum[];
   scope: "us" | "all" | "other";
@@ -56,8 +60,18 @@ export function PosterDensityMap({
   // (looked up through the admin-only address endpoint), so only pass it on
   // admin surfaces.
   detailsMessages?: PosterMapDetailsMessages;
+  // "filter" (admin) hides every point outside the selection. "zoom" (the
+  // viewer-facing map) keeps all dots on screen and instead reframes the map on
+  // the selection, so a viewer can never accidentally hide other people's
+  // posters. Zoom mode also pins a "My region" entry (the viewer's own country)
+  // to the top of the dropdown.
+  interaction?: "filter" | "zoom";
+  myCountry?: string;
 }) {
-  const [selected, setSelected] = useState("all");
+  const zooming = interaction === "zoom";
+  const supportsMyRegion = zooming && myCountry !== undefined && myCountry !== "";
+  const defaultSelected = supportsMyRegion ? "myregion" : "all";
+  const [selected, setSelected] = useState(defaultSelected);
   const [mode, setMode] = useState<PosterMapMode>("dots");
   // The region scope owns the coarse filter; reset the fine filter whenever it
   // flips so a leftover state/country pick can't hide every point. Done as a
@@ -65,7 +79,7 @@ export function PosterDensityMap({
   const [prevScope, setPrevScope] = useState(scope);
   if (scope !== prevScope) {
     setPrevScope(scope);
-    setSelected("all");
+    setSelected(defaultSelected);
   }
 
   // The US scope drills into states; the others group by country. "other" never
@@ -101,6 +115,20 @@ export function PosterDensityMap({
           ),
     [scopedPoints, selected, usingStates],
   );
+
+  // In zoom mode every dot stays rendered; the selection only chooses which
+  // subset the map reframes onto. An empty subset (e.g. "My region" before the
+  // viewer's country has any posters) falls back to framing everything so the
+  // map is never left staring at nothing.
+  const focusPoints = useMemo(() => {
+    if (!zooming) return undefined;
+    if (selected === "all") return scopedPoints;
+    const key = selected === "myregion" ? myCountry : selected;
+    const subset = scopedPoints.filter((point) => point.country === key);
+    return subset.length > 0 ? subset : scopedPoints;
+  }, [zooming, selected, scopedPoints, myCountry]);
+
+  const renderPoints = zooming ? scopedPoints : filtered;
 
   const allLabel = usingStates ? messages.allStates : messages.allCountries;
 
@@ -147,6 +175,9 @@ export function PosterDensityMap({
                 position="popper"
                 className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
               >
+                {supportsMyRegion ? (
+                  <SelectItem value="myregion">{messages.myRegion}</SelectItem>
+                ) : null}
                 <SelectItem value="all">{allLabel}</SelectItem>
                 {options.map((option) => (
                   <SelectItem key={option.key} value={option.key}>
@@ -164,7 +195,12 @@ export function PosterDensityMap({
         <p className="font-body text-sm text-muted-foreground">{messages.empty}</p>
       ) : (
         <div className="isolate h-[28rem] w-full overflow-hidden rounded-xl">
-          <PosterDensityMapInner points={filtered} mode={mode} detailsMessages={detailsMessages} />
+          <PosterDensityMapInner
+            points={renderPoints}
+            focusPoints={focusPoints}
+            mode={mode}
+            detailsMessages={detailsMessages}
+          />
         </div>
       )}
     </section>
