@@ -1,7 +1,7 @@
 import { isUserAdmin } from "@/lib/applications/review";
 import sql from "@/lib/database/client";
 import { ensureSchema } from "@/lib/database/ensure-schema";
-import { requireEnv } from "@/lib/env";
+import { reverseGeocode } from "@/lib/geo";
 import { isSameOriginRequest } from "@/lib/http";
 import { getActorSession } from "@/lib/session";
 
@@ -54,23 +54,8 @@ export async function GET(
     return Response.json({ address: poster.cached_address });
   }
 
-  const response = await fetch(
-    `https://geocoder.hackclub.com/v1/reverse_geocode?lat=${encodeURIComponent(Number(poster.latitude))}&lng=${encodeURIComponent(Number(poster.longitude))}&key=${encodeURIComponent(requireEnv("GEOCODER_KEY"))}`,
-    { cache: "no-store" },
-  );
-  if (!response.ok) {
-    return Response.json({ error: "lookup_failed" }, { status: 502 });
-  }
-
-  const data: unknown = await response.json();
-  const address =
-    typeof data === "object" &&
-    data !== null &&
-    "formatted_address" in data &&
-    typeof data.formatted_address === "string" &&
-    data.formatted_address.trim() !== ""
-      ? data.formatted_address.trim()
-      : null;
+  const geo = await reverseGeocode(Number(poster.latitude), Number(poster.longitude));
+  const address = geo?.formatted_address ?? null;
   if (address === null) {
     return Response.json({ error: "lookup_failed" }, { status: 502 });
   }

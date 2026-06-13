@@ -526,6 +526,22 @@ export async function updatePosterProofAndVerification(input: {
   return poster;
 }
 
+// Records the country (and US-style state) a poster's coordinates fall in, so
+// the density map can group it by where it physically is. Best-effort: the
+// caller swallows geocoder failures and the backfill script retries them.
+export async function updatePosterGeo(
+  posterId: string,
+  geo: { country_code: string | null; country_name: string | null; state: string | null },
+) {
+  await sql`
+    UPDATE posters
+    SET geo_country_code = ${geo.country_code},
+        geo_country_name = ${geo.country_name},
+        geo_state = ${geo.state}
+    WHERE id = ${posterId}
+  `;
+}
+
 export async function updatePosterMetadata(posterId: string, metadata: PosterMetadata) {
   const [poster] = await sql<PosterRow[]>`
     UPDATE posters

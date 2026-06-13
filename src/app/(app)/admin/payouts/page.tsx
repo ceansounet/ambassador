@@ -40,7 +40,7 @@ export default async function AdminPayoutsPage() {
   // Queue = pending, oldest first (order received).
   const pending = payouts
     .filter((p) => p.status === PAYOUT_STATUS_PENDING)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const finalized = payouts.filter((p) => p.status !== PAYOUT_STATUS_PENDING);
 
   return (

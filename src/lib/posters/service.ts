@@ -26,10 +26,12 @@ import {
   listUserPostersWithReferralCounts,
   movePosterToGroup,
   updatePosterGroupName,
+  updatePosterGeo,
   updatePosterMetadata,
   updatePosterName,
   updatePosterProofAndVerification,
 } from "@/lib/posters/repository";
+import { reverseGeocode } from "@/lib/geo";
 import { findMatchingPoster, readQrCodesFromImageBuffer } from "@/lib/posters/qr";
 import { deletePosterProofFile, savePosterProofFile } from "@/lib/posters/storage";
 import { PosterRequestError } from "@/lib/posters/http";
@@ -126,8 +128,9 @@ async function persistPosterDecision(input: {
 }) {
   const stored = await savePosterProofFile(input.poster.id, input.file);
 
+  let poster: PosterRow;
   try {
-    return await updatePosterProofAndVerification({
+    poster = await updatePosterProofAndVerification({
       posterId: input.poster.id,
       proofPath: stored.key,
       proofOriginalName: input.file.name || null,
@@ -150,6 +153,30 @@ async function persistPosterDecision(input: {
   } catch (error) {
     await deletePosterProofFile(stored.key);
     throw error;
+  }
+
+  await tagPosterLocationCountry(input.poster.id, input.latitude, input.longitude);
+  return poster;
+}
+
+// Records the country the poster's coordinates fall in so the density map groups
+// it by location, not by the placer's (IP geolocated) account country. Strictly
+// best-effort: a geocoder hiccup must never fail a proof submission, and
+// scripts/backfill-poster-geo.mjs reverse-geocodes anything left null here.
+async function tagPosterLocationCountry(
+  posterId: string,
+  latitude?: number | null,
+  longitude?: number | null,
+) {
+  if (typeof latitude !== "number" || typeof longitude !== "number") return;
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+  try {
+    const geo = await reverseGeocode(latitude, longitude);
+    if (geo?.country_code != null) {
+      await updatePosterGeo(posterId, geo);
+    }
+  } catch {
+    // Leave the geo columns null; the backfill script will retry.
   }
 }
 

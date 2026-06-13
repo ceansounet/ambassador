@@ -11,6 +11,7 @@ export type PosterAccessState = {
   manual_dashboard_state?: string | null;
   latest_application_status?: string | null;
   country_code?: string | null;
+  hca_country?: string | null;
   ambassador_region?: string | null;
   slack_id?: string | null;
   display_name?: string | null;
@@ -32,6 +33,7 @@ export const getPosterAccessState = cache(async (userId: string): Promise<Poster
       users.is_admin,
       users.manual_dashboard_state,
       users.country_code,
+      users.hca_country,
       users.ambassador_region,
       users.slack_id,
       users.display_name,

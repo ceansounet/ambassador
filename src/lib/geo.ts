@@ -68,6 +68,38 @@ export async function fetchGeo(ip: string): Promise<GeoResult | null> {
   };
 }
 
+export type ReverseGeoResult = {
+  country_code: string | null;
+  country_name: string | null;
+  state: string | null;
+  formatted_address: string | null;
+};
+
+// Resolves coordinates to the country (and US-style state) they fall in through
+// the Hack Club geocoder. Tags posters with where they physically are for the
+// density map, and backs the admin address popup's human-readable line.
+export async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeoResult | null> {
+  const res = await fetch(
+    `https://geocoder.hackclub.com/v1/reverse_geocode?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}&key=${encodeURIComponent(requireEnv("GEOCODER_KEY"))}`,
+    { cache: "no-store" },
+  );
+  if (!res.ok) return null;
+
+  const data: unknown = await res.json();
+  if (typeof data !== "object" || data === null) return null;
+  const field = (key: string): string | null => {
+    const value = (data as Record<string, unknown>)[key];
+    return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+  };
+
+  return {
+    country_code: field("country_code"),
+    country_name: field("country_name"),
+    state: field("state_full") ?? field("state"),
+    formatted_address: field("formatted_address"),
+  };
+}
+
 export async function geocodeIp(
   ip: string,
   table: "users" | "ip_visits" | "applications",

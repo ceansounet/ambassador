@@ -15,8 +15,12 @@ type PosterPointRow = {
 
 // Every verified poster with coordinates, for the density maps. The map groups
 // US points by state and the rest by country, so carry both names plus the
-// program-region US flag the admin dashboard scope filters on. The placer is
-// only attached for the admin map; the ambassador-facing map stays anonymous.
+// program-region US flag the admin dashboard scope filters on. Country/state
+// come from where the poster's coordinates actually fall (geo_*, reverse
+// geocoded on submit or by the backfill), falling back to the placer's account
+// location until a row is geocoded, so the per-country list matches the dots.
+// The placer is only attached for the admin map; the ambassador-facing map
+// stays anonymous.
 export async function loadPosterMapPoints(
   { includePlacer = false }: { includePlacer?: boolean } = {},
 ): Promise<PosterMapDatum[]> {
@@ -25,9 +29,9 @@ export async function loadPosterMapPoints(
       p.id,
       p.latitude AS lat,
       p.longitude AS lng,
-      COALESCE(NULLIF(u.country_code, ''), 'XX') AS country_code,
-      COALESCE(NULLIF(u.country_name, ''), NULLIF(u.country_code, ''), 'Unknown') AS country_name,
-      COALESCE(NULLIF(TRIM(u.region), ''), 'Unknown') AS state,
+      COALESCE(NULLIF(p.geo_country_code, ''), NULLIF(u.country_code, ''), 'XX') AS country_code,
+      COALESCE(NULLIF(p.geo_country_name, ''), NULLIF(u.country_name, ''), NULLIF(u.country_code, ''), 'Unknown') AS country_name,
+      COALESCE(NULLIF(p.geo_state, ''), NULLIF(TRIM(u.region), ''), 'Unknown') AS state,
       (u.ambassador_region = 'United States') AS is_us,
       u.id AS user_id,
       u.display_name AS placed_by

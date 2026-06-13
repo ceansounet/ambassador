@@ -90,7 +90,12 @@ export default async function PostersPage() {
               points={posterMapPoints}
               scope="all"
               interaction="zoom"
-              myCountry={user.country_code ?? undefined}
+              myCountry={
+                // Prefer the declared HCA address country over the IP-geolocated
+                // country_code: the latter is often wrong (a US-routed IP would
+                // send a UK ambassador's "My region" to the States).
+                ((user.hca_country ?? user.country_code) ?? "").trim().toUpperCase() || undefined
+              }
               locale={locale}
               messages={{
                 title: t("posters.map.title"),

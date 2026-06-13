@@ -1205,9 +1205,7 @@ export default async function AdminUserDetailPage({
                 </thead>
                 <tbody>
                   {posterList.map((poster) => {
-                    const canReject =
-                      poster.verification_status !== "rejected" &&
-                      poster.verification_status !== "success";
+                    const canReject = poster.verification_status !== "rejected";
                     const proofUrl = posterProofUrls.get(poster.id) ?? null;
                     return (
                       <tr key={poster.id} className="border-b border-foreground last:border-b-0">

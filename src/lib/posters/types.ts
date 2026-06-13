@@ -69,6 +69,9 @@ export type PosterRow = {
   latitude: number | null;
   longitude: number | null;
   location_accuracy: number | null;
+  geo_country_code: string | null;
+  geo_country_name: string | null;
+  geo_state: string | null;
   proof_path: string | null;
   proof_original_name: string | null;
   proof_content_type: string | null;
