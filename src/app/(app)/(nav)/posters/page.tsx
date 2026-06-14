@@ -42,7 +42,7 @@ export default async function PostersPage() {
 
   const [data, posterMapPoints] = await Promise.all([
     listClientPosterDataForUser(session.sub),
-    loadPosterMapPoints(),
+    loadPosterMapPoints({ viewerId: session.sub }),
   ]);
 
   const campaigns = listPosterCampaigns();

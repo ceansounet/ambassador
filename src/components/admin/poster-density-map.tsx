@@ -29,6 +29,14 @@ export type PosterMapDatum = {
   countryName: string;
   state: string;
   isUS: boolean;
+  // Set only for the viewer's own posters on the ambassador map: marks the dot
+  // so it stands out and carries its label for the hover tooltip.
+  mine?: boolean;
+  label?: string;
+  // Set only on the admin map (for posters that belong to a group), so dots can
+  // be filtered by group.
+  groupId?: string;
+  groupName?: string | null;
   placedBy?: { id: string; name: string };
 };
 
@@ -41,6 +49,10 @@ type PosterDensityMapMessages = {
   heatmap: string;
   // Only needed in "zoom" interaction (the viewer-facing posters map).
   myRegion?: string;
+  // Only needed on the admin map, where dots carry their group: enables the
+  // group filter dropdown.
+  allGroups?: string;
+  untitledGroup?: string;
 };
 
 export function PosterDensityMap({
@@ -76,14 +88,16 @@ export function PosterDensityMap({
   const supportsMyRegion = zooming && messages.myRegion !== undefined;
   const defaultSelected = supportsMyRegion ? "myregion" : "all";
   const [selected, setSelected] = useState(defaultSelected);
+  const [selectedGroup, setSelectedGroup] = useState("all");
   const [mode, setMode] = useState<PosterMapMode>("dots");
-  // The region scope owns the coarse filter; reset the fine filter whenever it
-  // flips so a leftover state/country pick can't hide every point. Done as a
-  // during-render adjustment (not an effect) so the reset lands in the same pass.
+  // The region scope owns the coarse filter; reset the fine filters whenever it
+  // flips so a leftover state/country/group pick can't hide every point. Done as
+  // a during-render adjustment (not an effect) so the reset lands in the same pass.
   const [prevScope, setPrevScope] = useState(scope);
   if (scope !== prevScope) {
     setPrevScope(scope);
     setSelected(defaultSelected);
+    setSelectedGroup("all");
   }
 
   // The US scope drills into states; the others group by country. "other" never
@@ -135,15 +149,38 @@ export function PosterDensityMap({
     return [...counts.values()].sort((a, b) => b.count - a.count);
   }, [scopedPoints, usingStates, countryLabel]);
 
-  const filtered = useMemo(
-    () =>
+  // The group filter is admin-only (the ambassador map never carries other
+  // people's groups, so groupId is absent there). List every group that has a
+  // dot in scope, busiest first, mirroring the country dropdown.
+  const groupOptions = useMemo(() => {
+    const counts = new Map<string, { key: string; label: string; count: number }>();
+    for (const point of scopedPoints) {
+      if (point.groupId === undefined) continue;
+      const existing = counts.get(point.groupId);
+      if (existing) existing.count += 1;
+      else
+        counts.set(point.groupId, {
+          key: point.groupId,
+          label: point.groupName?.trim() || (messages.untitledGroup ?? "Untitled group"),
+          count: 1,
+        });
+    }
+    return [...counts.values()].sort((a, b) => b.count - a.count);
+  }, [scopedPoints, messages.untitledGroup]);
+
+  const supportsGroups = messages.allGroups !== undefined && groupOptions.length > 0;
+
+  const filtered = useMemo(() => {
+    const byRegion =
       selected === "all"
         ? scopedPoints
         : scopedPoints.filter(
             (point) => (usingStates ? point.state : point.country) === selected,
-          ),
-    [scopedPoints, selected, usingStates],
-  );
+          );
+    return selectedGroup === "all"
+      ? byRegion
+      : byRegion.filter((point) => point.groupId === selectedGroup);
+  }, [scopedPoints, selected, usingStates, selectedGroup]);
 
   // In zoom mode every dot stays rendered; the selection only chooses which
   // subset the map reframes onto. An empty subset (e.g. "My region" before the
@@ -216,6 +253,30 @@ export function PosterDensityMap({
               </SelectContent>
             </Select>
             </div>
+            {supportsGroups ? (
+              <div className="w-full sm:w-64">
+                <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                  <SelectTrigger
+                    size="sm"
+                    className="ui-input-surface !bg-muted w-full !rounded-none border-0 px-3 text-sm focus-visible:ring-foreground/15 aria-[invalid]:!border-transparent aria-[invalid]:!ring-0"
+                  >
+                    <SelectValue placeholder={messages.allGroups} />
+                  </SelectTrigger>
+                  <SelectContent
+                    align="end"
+                    position="popper"
+                    className="w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
+                  >
+                    <SelectItem value="all">{messages.allGroups}</SelectItem>
+                    {groupOptions.map((option) => (
+                      <SelectItem key={option.key} value={option.key}>
+                        {option.label} ({numberFormatter.format(option.count)})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </>
         ) : null}
       </SectionHeading>

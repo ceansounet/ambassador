@@ -758,6 +758,7 @@ export async function getAdminPayout(payoutId: string) {
 export type PayoutPosterLineItem = {
   id: string;
   name: string | null;
+  groupName: string | null;
   referralCode: string;
   verificationStatus: string;
   amountCents: number;
@@ -848,6 +849,7 @@ export async function getPayoutBreakdown(payoutId: string) {
           {
             id: string;
             name: string | null;
+            group_name: string | null;
             referral_code: string;
             verification_status: string;
             latitude: number | null;
@@ -859,18 +861,21 @@ export async function getPayoutBreakdown(payoutId: string) {
             verified_at: string | null;
           }[]
         >`
-          SELECT id, name, referral_code, verification_status, latitude, longitude,
-                 location_description, proof_path, proof_content_type, submitted_at, verified_at
-          FROM posters
-          WHERE user_id = ${payout.user_id}
-            AND verification_status = 'success'
-            AND id NOT IN (SELECT pp.poster_id FROM payout_posters pp)
-          ORDER BY verified_at DESC NULLS LAST, created_at DESC
+          SELECT p.id, p.name, g.name AS group_name, p.referral_code, p.verification_status,
+                 p.latitude, p.longitude, p.location_description, p.proof_path,
+                 p.proof_content_type, p.submitted_at, p.verified_at
+          FROM posters p
+          LEFT JOIN poster_groups g ON g.id = p.poster_group_id
+          WHERE p.user_id = ${payout.user_id}
+            AND p.verification_status = 'success'
+            AND p.id NOT IN (SELECT pp.poster_id FROM payout_posters pp)
+          ORDER BY p.verified_at DESC NULLS LAST, p.created_at DESC
         `
       : sql<
           {
             id: string;
             name: string | null;
+            group_name: string | null;
             referral_code: string;
             verification_status: string;
             latitude: number | null;
@@ -882,11 +887,12 @@ export async function getPayoutBreakdown(payoutId: string) {
             verified_at: string | null;
           }[]
         >`
-          SELECT p.id, p.name, p.referral_code, p.verification_status, p.latitude,
-                 p.longitude, p.location_description, p.proof_path, p.proof_content_type,
-                 p.submitted_at, p.verified_at
+          SELECT p.id, p.name, g.name AS group_name, p.referral_code, p.verification_status,
+                 p.latitude, p.longitude, p.location_description, p.proof_path,
+                 p.proof_content_type, p.submitted_at, p.verified_at
           FROM payout_posters pp
           JOIN posters p ON p.id = pp.poster_id
+          LEFT JOIN poster_groups g ON g.id = p.poster_group_id
           WHERE pp.payout_id = ${payoutId}
           ORDER BY p.verified_at DESC NULLS LAST, p.created_at DESC
         `,
@@ -954,6 +960,7 @@ export async function getPayoutBreakdown(payoutId: string) {
   const posters: PayoutPosterLineItem[] = posterRows.map((row) => ({
     id: row.id,
     name: row.name,
+    groupName: row.group_name,
     referralCode: row.referral_code,
     verificationStatus: row.verification_status,
     amountCents: POSTER_PAYOUT_CENTS,

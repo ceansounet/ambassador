@@ -21,6 +21,7 @@ import {
   PAYOUT_STATUS_REJECTED,
   PayoutRequestError,
 } from "@/lib/payouts/service";
+import { formatPosterLabel } from "@/lib/posters/format";
 import { getPosterProofUrl } from "@/lib/posters/storage";
 import { getActorSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -109,7 +110,7 @@ export default async function AdminPayoutReviewPage({
     .filter((p) => p.latitude !== null && p.longitude !== null)
     .map((p) => ({
       id: p.id,
-      name: p.locationDescription ?? p.name ?? p.referralCode,
+      name: formatPosterLabel(p),
       latitude: p.latitude as number,
       longitude: p.longitude as number,
       status: p.verificationStatus,
@@ -233,7 +234,7 @@ export default async function AdminPayoutReviewPage({
                     content: (
                       <div className="flex flex-wrap items-start gap-4">
                         {proofUrl ? (
-                          <ExpandableImage src={proofUrl} alt={poster.name ?? poster.referralCode} />
+                          <ExpandableImage src={proofUrl} alt={formatPosterLabel(poster)} />
                         ) : (
                           <div className="flex h-16 w-16 items-center justify-center border border-foreground/15 bg-muted font-body text-xs text-muted-foreground">
                             no proof
@@ -241,8 +242,13 @@ export default async function AdminPayoutReviewPage({
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="font-body text-base text-foreground">
-                            {poster.locationDescription ?? poster.name ?? poster.referralCode}
+                            {formatPosterLabel(poster)}
                           </p>
+                          {poster.locationDescription ? (
+                            <p className="font-body text-sm text-muted-foreground">
+                              {poster.locationDescription}
+                            </p>
+                          ) : null}
                           <p className="font-body text-sm text-muted-foreground">
                             {formatUsdCents(poster.amountCents)} · {poster.verificationStatus}
                           </p>

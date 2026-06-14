@@ -15,6 +15,7 @@ import { ensureSchema } from "@/lib/database/ensure-schema";
 import { getHcbOauthConnection } from "@/lib/hcb/service";
 import {
   buildEmptyShirtStockBySize,
+  isShirtSizeInStock,
   ORDER_STATUS_APPROVED,
   ORDER_STATUS_CANCELLED,
   ORDER_STATUS_FAILED,
@@ -134,18 +135,19 @@ export default async function AdminOrdersPage({
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-6 gap-y-4">
             <h1 className="text-4xl leading-[3rem] text-foreground">{t("admin.orders.title")}</h1>
             <div className="flex flex-wrap items-center self-center gap-x-4 gap-y-2 font-body text-sm text-foreground tabular-nums">
-              {SHIRT_SIZES.map((size) => (
-                <div key={size} className="flex items-center gap-2">
-                  <span className="text-secondary">{size}</span>
-                  <span>
-                    {stockBySize[size] === null
-                      ? t("admin.orders.warehouse.stock-unavailable")
-                      : stockBySize[size] <= 0
-                        ? t("admin.orders.warehouse.stock-out")
-                        : t("admin.orders.warehouse.stock-left", { count: stockBySize[size] })}
-                  </span>
-                </div>
-              ))}
+              {SHIRT_SIZES.map((size) => {
+                const stock = stockBySize[size];
+                return (
+                  <div key={size} className="flex items-center gap-2">
+                    <span className="text-secondary">{size}</span>
+                    <span>
+                      {isShirtSizeInStock(stock)
+                        ? t("admin.orders.warehouse.stock-left", { count: stock })
+                        : t("admin.orders.warehouse.stock-out")}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <ConfirmSubmitForm

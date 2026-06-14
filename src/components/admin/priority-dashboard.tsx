@@ -663,6 +663,8 @@ export function PriorityDashboard({
             empty: tm("empty"),
             dots: tm("dots"),
             heatmap: tm("heatmap"),
+            allGroups: tm("all-groups"),
+            untitledGroup: tm("untitled-group"),
           }}
           detailsMessages={{
             addressLoading: tm("address-loading"),

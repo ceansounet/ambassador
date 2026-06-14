@@ -33,6 +33,7 @@ import {
   refreshOfficeGrantBalanceForUser,
 } from "@/lib/hcb/grants";
 import { getCachedHackatimeTrustLevel } from "@/lib/hackatime";
+import { formatPosterLabel } from "@/lib/posters/format";
 import { getPosterProofUrl } from "@/lib/posters/storage";
 import { readHcaAccessToken } from "@/lib/hca-access-token";
 import { ensureUserAddressSchema } from "@/lib/database/user-address-schema";
@@ -101,6 +102,7 @@ type LatestNoteEventRow = { note: string | null };
 type PosterListRow = {
   id: string;
   name: string | null;
+  group_name: string | null;
   referral_code: string;
   poster_type: string;
   verification_status: string;
@@ -331,11 +333,13 @@ export default async function AdminUserDetailPage({
       digital_count: 0,
     }),
     sql<PosterListRow[]>`
-      SELECT id, name, referral_code, poster_type, verification_status, rejection_reason,
-             proof_path, proof_content_type, created_at
-      FROM posters
-      WHERE user_id = ${user.id}
-      ORDER BY created_at DESC, id DESC
+      SELECT p.id, p.name, g.name AS group_name, p.referral_code, p.poster_type,
+             p.verification_status, p.rejection_reason, p.proof_path, p.proof_content_type,
+             p.created_at
+      FROM posters p
+      LEFT JOIN poster_groups g ON g.id = p.poster_group_id
+      WHERE p.user_id = ${user.id}
+      ORDER BY p.created_at DESC, p.id DESC
       LIMIT ${POSTERS_PER_PAGE}
       OFFSET ${(postersPage - 1) * POSTERS_PER_PAGE}
     `,
@@ -1225,9 +1229,11 @@ export default async function AdminUserDetailPage({
                           )}
                         </td>
                         <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
-                          {poster.name && poster.name.trim() !== ""
-                            ? poster.name
-                            : t("admin.user-detail.posters.no-name")}
+                          {formatPosterLabel({
+                            name: poster.name,
+                            referralCode: poster.referral_code,
+                            groupName: poster.group_name,
+                          })}
                         </td>
                         <td className="px-4 py-4 font-body text-sm leading-8 text-foreground">
                           {poster.referral_code}

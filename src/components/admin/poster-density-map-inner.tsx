@@ -6,13 +6,17 @@ import "./leaflet-heat";
 
 import L from "leaflet";
 import { useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 
 export type PosterMapPoint = {
   id: string;
   lat: number;
   lng: number;
   country: string;
+  // Set for the viewer's own posters: renders the dot more prominently and
+  // shows `label` on hover.
+  mine?: boolean;
+  label?: string;
   placedBy?: { id: string; name: string };
 };
 
@@ -152,26 +156,35 @@ export default function PosterDensityMapInner({
       {mode === "heat" ? (
         <HeatLayer points={points} color={dotColor} />
       ) : (
-        points.map((point) => (
-          <CircleMarker
-            key={point.id}
-            center={[point.lat, point.lng]}
-            radius={5}
-            pathOptions={{
-              color: dotColor,
-              fillColor: dotColor,
-              fillOpacity: 0.45,
-              opacity: 0.6,
-              weight: 1,
-            }}
-          >
-            {detailsMessages !== undefined ? (
-              <Popup>
-                <DotDetails point={point} messages={detailsMessages} />
-              </Popup>
-            ) : null}
-          </CircleMarker>
-        ))
+        // Render the viewer's own dots last so they sit on top of the crowd and
+        // stay hoverable where posters overlap.
+        [...points]
+          .sort((a, b) => (a.mine ? 1 : 0) - (b.mine ? 1 : 0))
+          .map((point) => (
+            <CircleMarker
+              key={point.id}
+              center={[point.lat, point.lng]}
+              radius={point.mine ? 7 : 5}
+              pathOptions={{
+                color: dotColor,
+                fillColor: dotColor,
+                fillOpacity: point.mine ? 0.95 : 0.45,
+                opacity: point.mine ? 1 : 0.6,
+                weight: point.mine ? 2 : 1,
+              }}
+            >
+              {point.mine && point.label !== undefined ? (
+                <Tooltip direction="top" offset={[0, -4]}>
+                  <span className="font-body text-xs">{point.label}</span>
+                </Tooltip>
+              ) : null}
+              {detailsMessages !== undefined ? (
+                <Popup>
+                  <DotDetails point={point} messages={detailsMessages} />
+                </Popup>
+              ) : null}
+            </CircleMarker>
+          ))
       )}
     </MapContainer>
   );

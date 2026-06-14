@@ -466,8 +466,8 @@ common:
 
 status:
   pending: Pending
-  pending-automatic-checks: Pending
-  pending-review: Pending
+  pending-automatic-checks: Pending checks
+  pending-review: Pending review
   approved: Approved
   accepted: Accepted
   rejected: Rejected
@@ -724,6 +724,8 @@ admin:
       title: Poster density
       all-countries: All countries
       all-states: All states
+      all-groups: All groups
+      untitled-group: Untitled group
       empty: No verified posters have coordinates yet.
       dots: Dots
       heatmap: Heatmap
@@ -743,7 +745,6 @@ admin:
       stock-label: Shirt stock
       stock-left: "{count} left"
       stock-out: Out
-      stock-unavailable: Unavailable
       expenditure-label: Total expenditure (sent to warehouse)
       contents: Contents
       labor: Labor
@@ -1149,7 +1150,6 @@ admin:
         actions: Actions
       reject: Reject
       reject-confirmation: Are you sure you want to mark this poster as rejected?
-      no-name: Unnamed
       no-proof: No proof
     referrals:
       empty: No referrals on file.

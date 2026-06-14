@@ -25,6 +25,15 @@ export function buildEmptyShirtStockBySize(): ShirtStockBySize {
   };
 }
 
+// A size is only orderable when the warehouse reports a positive count.
+// Everything else reads as "Out": null (not in the warehouse's inventory at
+// all) and <= 0 (sold out, or backordered with negative stock even if more is
+// on the way). Those distinctions don't matter to whoever's looking, so we
+// don't draw them.
+export function isShirtSizeInStock(stock: number | null): stock is number {
+  return stock !== null && stock > 0;
+}
+
 export const ORDER_STATUS_PENDING = "pending";
 export const ORDER_STATUS_APPROVED = "approved";
 export const ORDER_STATUS_REJECTED = "rejected";
