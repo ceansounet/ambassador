@@ -40,7 +40,15 @@ function FitBounds({ points }: { points: PosterMapPoint[] }) {
   useEffect(() => {
     if (points.length === 0) return;
     const bounds = L.latLngBounds(points.map((point) => [point.lat, point.lng]));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+    // The map is lazy-loaded, so on first paint its container often hasn't been
+    // measured yet and a synchronous fitBounds would fit a zero-size viewport
+    // (leaving the default world view until the next interaction). Wait a frame,
+    // re-measure, then fit — so "My region" frames on load, not just on reclick.
+    const frame = requestAnimationFrame(() => {
+      map.invalidateSize();
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 11 });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [map, points]);
   return null;
 }
