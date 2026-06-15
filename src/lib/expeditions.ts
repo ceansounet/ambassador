@@ -2,12 +2,13 @@ import "server-only";
 
 import { type AirtableRecord, createAirtableClient } from "@/lib/airtable";
 import {
+  type AmbassadorFieldKey,
   type MeetupFieldKey,
   getAirtableBaseId,
   getAirtableFieldId,
+  getAirtableFieldName,
   getAirtableFieldValue,
   getAirtableTableId,
-  getAirtableViewId,
 } from "@/lib/airtable-schema";
 
 export type Expedition = {
@@ -20,28 +21,21 @@ export type Expedition = {
   concluded: boolean;
   venue: {
     name: string | null;
-    address: string | null;
     city: string | null;
     state: string | null;
-    zip: string | null;
     country: string | null;
   };
   latitude: number | null;
   longitude: number | null;
   channelId: string | null;
   ambassadorSlackId: string | null;
+  ambassadorName: string | null;
+  participantSlackIds: string[];
 };
 
-/** Lookup and lookup-backed formula fields come back as arrays; flatten to one string. */
 function toText(value: unknown): string | null {
   const text = Array.isArray(value) ? value.find((item) => typeof item === "string") : value;
-
-  if (typeof text !== "string") {
-    return null;
-  }
-
-  const trimmed = text.trim();
-  return trimmed === "" ? null : trimmed;
+  return typeof text === "string" && text.trim() !== "" ? text.trim() : null;
 }
 
 function toCoordinate(value: unknown): number | null {
@@ -49,49 +43,34 @@ function toCoordinate(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getExpeditionsClient() {
+function firstLinkedId(value: unknown): string | null {
+  return Array.isArray(value) ? value.find((item): item is string => typeof item === "string") ?? null : null;
+}
+
+function getClient() {
   const client = createAirtableClient(getAirtableBaseId());
-
-  if (!client) {
-    throw new Error("AIRTABLE_PAT is not set");
-  }
-
+  if (!client) throw new Error("AIRTABLE_PAT is not set");
   return client;
 }
 
-async function listAllRecords(
-  table: string,
-  options: { view?: string; fields: string[] },
-) {
-  const client = getExpeditionsClient();
+async function listAllRecords(table: string, options: { filterByFormula?: string; fields: string[] }) {
+  const client = getClient();
   const records: AirtableRecord<Record<string, unknown>>[] = [];
   let offset: string | undefined;
 
   do {
-    const response = await client.listRecords<Record<string, unknown>>(
+    const page = await client.listRecords<Record<string, unknown>>(
       table,
-      {
-        view: options.view,
-        fields: options.fields,
-        pageSize: 100,
-        offset,
-      },
-      {
-        returnFieldsByFieldId: true,
-      },
+      { filterByFormula: options.filterByFormula, fields: options.fields, pageSize: 100, offset },
+      { returnFieldsByFieldId: true },
     );
-
-    records.push(...response.records);
-    offset = response.offset;
-  } while (offset !== undefined && offset !== "");
+    records.push(...page.records);
+    offset = page.offset;
+  } while (offset);
 
   return records;
 }
 
-/**
- * Stardance polls these endpoints per visitor, so every read is served from a
- * short-lived in-process cache and concurrent misses share one Airtable fetch.
- */
 const CACHE_TTL_MS = 60_000;
 
 function cached<T>(load: () => Promise<T>) {
@@ -99,143 +78,106 @@ function cached<T>(load: () => Promise<T>) {
 
   return () => {
     if (entry === null || Date.now() > entry.expiresAt) {
-      const next = {
-        promise: load(),
-        expiresAt: Date.now() + CACHE_TTL_MS,
-      };
+      const next = { promise: load(), expiresAt: Date.now() + CACHE_TTL_MS };
       next.promise.catch(() => {
-        if (entry === next) {
-          entry = null;
-        }
+        if (entry === next) entry = null;
       });
       entry = next;
     }
-
     return entry.promise;
   };
 }
 
 const MEETUP_FIELD_KEYS: MeetupFieldKey[] = [
-  "name",
-  "prettyName",
-  "slug",
-  "season",
-  "date",
-  "concluded",
-  "channelId",
-  "ambassadorSlackId",
-  "venueName",
-  "venueAddress",
-  "venueCity",
-  "venueState",
-  "venueZip",
-  "venueCountry",
-  "latitude",
-  "longitude",
+  "name", "prettyName", "slug", "season", "date", "concluded", "channelId",
+  "ambassadorSlackId", "ambassador", "venueName", "venueCity", "venueState",
+  "venueCountry", "latitude", "longitude",
 ];
 
-async function fetchPublicExpeditions(): Promise<Expedition[]> {
-  const records = await listAllRecords(getAirtableTableId("meetups"), {
-    view: getAirtableViewId("meetups", "publicStardance"),
-    fields: MEETUP_FIELD_KEYS.map((key) => getAirtableFieldId("meetups", key)),
+async function fetchAmbassadorNames(): Promise<Map<string, string>> {
+  const records = await listAllRecords(getAirtableTableId("ambassadors"), {
+    fields: (["preferredName", "firstName", "lastName"] as const).map((key) =>
+      getAirtableFieldId("ambassadors", key),
+    ),
   });
 
-  return records.map((record) => {
-    const field = (key: MeetupFieldKey) => getAirtableFieldValue(record.fields, "meetups", key);
+  const names = new Map<string, string>();
 
-    return {
-      id: record.id,
-      name: toText(field("name")),
-      prettyName: toText(field("prettyName")),
-      slug: toText(field("slug")),
-      season: toText(field("season")),
-      date: toText(field("date")),
-      concluded: field("concluded") === true,
-      venue: {
-        name: toText(field("venueName")),
-        address: toText(field("venueAddress")),
-        city: toText(field("venueCity")),
-        state: toText(field("venueState")),
-        zip: toText(field("venueZip")),
-        country: toText(field("venueCountry")),
-      },
-      latitude: toCoordinate(field("latitude")),
-      longitude: toCoordinate(field("longitude")),
-      channelId: toText(field("channelId")),
-      ambassadorSlackId: toText(field("ambassadorSlackId")),
-    };
-  });
+  for (const record of records) {
+    const value = (key: AmbassadorFieldKey) => getAirtableFieldValue(record.fields, "ambassadors", key);
+    const full = [toText(value("firstName")), toText(value("lastName"))]
+      .filter((part): part is string => part !== null)
+      .join(" ");
+    const name = toText(value("preferredName")) ?? (full || null);
+    if (name !== null) names.set(record.id, name);
+  }
+
+  return names;
 }
 
-type AttendanceIndex = {
-  byEmail: Map<string, Set<string>>;
-  bySlackId: Map<string, Set<string>>;
-};
-
-async function fetchAttendanceIndex(): Promise<AttendanceIndex> {
+async function fetchParticipantSlackIds(): Promise<Map<string, string[]>> {
   const records = await listAllRecords(getAirtableTableId("meetupParticipants"), {
-    fields: (["meetup", "email", "slackId"] as const).map((key) =>
+    fields: (["meetup", "slackId"] as const).map((key) =>
       getAirtableFieldId("meetupParticipants", key),
     ),
   });
 
-  const byEmail = new Map<string, Set<string>>();
-  const bySlackId = new Map<string, Set<string>>();
+  const byMeetup = new Map<string, string[]>();
 
   for (const record of records) {
+    const slackId = toText(getAirtableFieldValue(record.fields, "meetupParticipants", "slackId"));
+    if (slackId === null) continue;
+
     const meetupIds = getAirtableFieldValue(record.fields, "meetupParticipants", "meetup");
+    if (!Array.isArray(meetupIds)) continue;
 
-    if (!Array.isArray(meetupIds) || meetupIds.length === 0) {
-      continue;
+    for (const id of meetupIds) {
+      if (typeof id !== "string") continue;
+      const list = byMeetup.get(id);
+      if (list) list.push(slackId);
+      else byMeetup.set(id, [slackId]);
     }
-
-    const add = (index: Map<string, Set<string>>, key: string | null) => {
-      if (key === null) return;
-      const ids = index.get(key) ?? new Set<string>();
-      meetupIds.forEach((id) => {
-        if (typeof id === "string") ids.add(id);
-      });
-      index.set(key, ids);
-    };
-
-    add(
-      byEmail,
-      toText(getAirtableFieldValue(record.fields, "meetupParticipants", "email"))?.toLowerCase() ?? null,
-    );
-    add(bySlackId, toText(getAirtableFieldValue(record.fields, "meetupParticipants", "slackId")));
   }
 
-  return { byEmail, bySlackId };
+  return byMeetup;
+}
+
+async function fetchPublicExpeditions(): Promise<Expedition[]> {
+  const [records, ambassadorNames, slackIdsByMeetup] = await Promise.all([
+    listAllRecords(getAirtableTableId("meetups"), {
+      filterByFormula: `{${getAirtableFieldName("meetups", "status")}} = "Approved"`,
+      fields: MEETUP_FIELD_KEYS.map((key) => getAirtableFieldId("meetups", key)),
+    }),
+    fetchAmbassadorNames(),
+    fetchParticipantSlackIds(),
+  ]);
+
+  return records.map((record) => {
+    const value = (key: MeetupFieldKey) => getAirtableFieldValue(record.fields, "meetups", key);
+    const ambassadorId = firstLinkedId(value("ambassador"));
+
+    return {
+      id: record.id,
+      name: toText(value("name")),
+      prettyName: toText(value("prettyName")),
+      slug: toText(value("slug")),
+      season: toText(value("season")),
+      date: toText(value("date")),
+      concluded: value("concluded") === true,
+      venue: {
+        name: toText(value("venueName")),
+        city: toText(value("venueCity")),
+        state: toText(value("venueState")),
+        country: toText(value("venueCountry")),
+      },
+      latitude: toCoordinate(value("latitude")),
+      longitude: toCoordinate(value("longitude")),
+      channelId: toText(value("channelId")),
+      ambassadorSlackId: toText(value("ambassadorSlackId")),
+      ambassadorName: ambassadorId === null ? null : ambassadorNames.get(ambassadorId) ?? null,
+      participantSlackIds: slackIdsByMeetup.get(record.id) ?? [],
+    };
+  });
 }
 
 export const listPublicExpeditions = cached(fetchPublicExpeditions);
-const getAttendanceIndex = cached(fetchAttendanceIndex);
-
-/**
- * Public expeditions the person signed up for, matched by email (case
- * insensitive) or Slack id. A meetup the team pulled out of the public view
- * is never returned, even if the person is a participant.
- */
-export async function findExpeditionsForPerson(input: {
-  email?: string | null;
-  slackId?: string | null;
-}): Promise<Expedition[]> {
-  const email = input.email?.trim().toLowerCase() ?? "";
-  const slackId = input.slackId?.trim() ?? "";
-
-  if (email === "" && slackId === "") {
-    return [];
-  }
-
-  const [expeditions, attendance] = await Promise.all([
-    listPublicExpeditions(),
-    getAttendanceIndex(),
-  ]);
-
-  const meetupIds = new Set([
-    ...(email === "" ? [] : attendance.byEmail.get(email) ?? []),
-    ...(slackId === "" ? [] : attendance.bySlackId.get(slackId) ?? []),
-  ]);
-
-  return expeditions.filter((expedition) => meetupIds.has(expedition.id));
-}

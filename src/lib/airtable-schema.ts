@@ -34,6 +34,9 @@ export type ApplicationFieldKey =
   | "ambassadors";
 
 export type AmbassadorFieldKey =
+  | "preferredName"
+  | "firstName"
+  | "lastName"
   | "onboardingStatus"
   | "tshirtSent";
 
@@ -50,8 +53,10 @@ export type MeetupFieldKey =
   | "season"
   | "date"
   | "concluded"
+  | "status"
   | "channelId"
   | "ambassadorSlackId"
+  | "ambassador"
   | "venueName"
   | "venueAddress"
   | "venueCity"

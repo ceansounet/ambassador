@@ -75,6 +75,15 @@ tables:
     id: tblo8106uaVFMWyXk
     name: ambassadors
     fields:
+      preferredName:
+        id: fldsb67d0Mq7bImMZ
+        name: preferred_name
+      firstName:
+        id: fldJZdSDYjv7FZRnK
+        name: first_name
+      lastName:
+        id: fldTzBb8CKjDeTLRq
+        name: last_name
       onboardingStatus:
         id: flde1JpD9Ja4vz4vw
         name: onboarding_status
@@ -146,12 +155,18 @@ tables:
       concluded:
         id: fldsormjjNGVVOvTz
         name: concluded
+      status:
+        id: fldetCwJH12uNWeio
+        name: status
       channelId:
         id: fldmgWuwVwEE524Kr
         name: channel_id
       ambassadorSlackId:
         id: fldJo1a9YSLVsMinC
         name: ambassador_slack_id
+      ambassador:
+        id: fldGRZagmysd029xP
+        name: ambassador
       venueName:
         id: fldVUBd4eOtWsVLMW
         name: venue_name
