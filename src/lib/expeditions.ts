@@ -16,7 +16,6 @@ export type Expedition = {
   name: string | null;
   prettyName: string | null;
   slug: string | null;
-  season: string | null;
   date: string | null;
   concluded: boolean;
   venue: {
@@ -28,7 +27,6 @@ export type Expedition = {
   latitude: number | null;
   longitude: number | null;
   channelId: string | null;
-  ambassadorSlackId: string | null;
   ambassadorName: string | null;
   participantSlackIds: string[];
 };
@@ -89,8 +87,8 @@ function cached<T>(load: () => Promise<T>) {
 }
 
 const MEETUP_FIELD_KEYS: MeetupFieldKey[] = [
-  "name", "prettyName", "slug", "season", "date", "concluded", "channelId",
-  "ambassadorSlackId", "ambassador", "venueName", "venueCity", "venueState",
+  "name", "prettyName", "slug", "date", "concluded", "channelId",
+  "ambassador", "venueName", "venueCity", "venueState",
   "venueCountry", "latitude", "longitude",
 ];
 
@@ -161,7 +159,6 @@ async function fetchPublicExpeditions(): Promise<Expedition[]> {
       name: toText(value("name")),
       prettyName: toText(value("prettyName")),
       slug: toText(value("slug")),
-      season: toText(value("season")),
       date: toText(value("date")),
       concluded: value("concluded") === true,
       venue: {
@@ -173,7 +170,6 @@ async function fetchPublicExpeditions(): Promise<Expedition[]> {
       latitude: toCoordinate(value("latitude")),
       longitude: toCoordinate(value("longitude")),
       channelId: toText(value("channelId")),
-      ambassadorSlackId: toText(value("ambassadorSlackId")),
       ambassadorName: ambassadorId === null ? null : ambassadorNames.get(ambassadorId) ?? null,
       participantSlackIds: slackIdsByMeetup.get(record.id) ?? [],
     };
